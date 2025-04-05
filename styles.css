@@ -1,0 +1,107 @@
+/* ... (Todos os estilos anteriores permanecem) ... */
+
+/* --- Estilos de Autenticação --- */
+#auth-section {
+    background-color: #f8f9fa;
+    padding: 25px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    max-width: 450px; /* Limita largura dos forms de auth */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#auth-section h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+#auth-section label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+#auth-section input[type="email"],
+#auth-section input[type="password"] {
+    width: 100%; /* Ocupa largura total */
+    padding: 10px;
+    margin-bottom: 15px; /* Mais espaço entre inputs */
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+}
+
+#auth-section button {
+    width: 100%; /* Botão ocupa largura total */
+    padding: 12px 20px;
+    margin-top: 10px;
+    font-size: 1.1em;
+}
+
+#auth-section p {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.9em;
+}
+
+#auth-section a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#auth-section a:hover {
+    text-decoration: underline;
+}
+
+/* Mensagens de Erro */
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+/* Indicador de Carregamento */
+.loading-indicator {
+    text-align: center;
+    padding: 15px;
+    font-style: italic;
+    color: #555;
+}
+
+/* Status do Usuário no Header */
+.user-status-container {
+    text-align: right;
+    padding: 0 20px 10px; /* Espaçamento */
+    font-size: 0.9em;
+    color: #ecf0f1; /* Cor clara no header escuro */
+}
+
+.user-status-container span {
+    margin-right: 15px;
+}
+
+.user-status-container button {
+    padding: 5px 10px;
+    font-size: 0.9em;
+    background-color: #e74c3c; /* Cor de logout */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.user-status-container button:hover {
+    background-color: #c0392b;
+}
