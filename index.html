@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plano de Leitura da Bíblia (Firebase)</title>
     <link rel="stylesheet" href="styles.css">
+
     <!-- Adicione os SDKs do Firebase AQUI -->
-    <!-- Substitua pelas URLs mais recentes do Firebase CDN -->
+    <!-- Certifique-se de que estas são as versões desejadas ou atualize para versões mais recentes do CDN (v9 compat) -->
+    <!-- Usando versões compat para corresponder ao script.js fornecido anteriormente -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <!-- Opcional: Adicione outros SDKs compatíveis se necessário (ex: Analytics) -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script> -->
     <!-- Fim dos SDKs do Firebase -->
+
 </head>
 <body>
     <header>
@@ -59,7 +64,6 @@
                 Salvando plano...
              </div>
 
-            <!-- (Restante do formulário de criação como estava antes) -->
             <fieldset>
                 <legend>Opção 1: Definir por Intervalo Contínuo</legend>
                 <p>Defina o início e o fim da sua leitura seguindo a ordem dos livros.</p>
@@ -67,6 +71,7 @@
                     <label for="start-book-select">Livro Inicial:</label>
                     <select id="start-book-select">
                         <option value="">-- Selecione --</option>
+                        <!-- Opções serão preenchidas por JavaScript -->
                     </select>
                     <label for="start-chapter-input">Capítulo Inicial:</label>
                     <input type="number" id="start-chapter-input" min="1" style="width: 70px;">
@@ -75,22 +80,29 @@
                      <label for="end-book-select">Livro Final:</label>
                     <select id="end-book-select">
                         <option value="">-- Selecione --</option>
+                        <!-- Opções serão preenchidas por JavaScript -->
                     </select>
                     <label for="end-chapter-input">Capítulo Final:</label>
                     <input type="number" id="end-chapter-input" min="1" style="width: 70px;">
                 </div>
             </fieldset>
+
              <hr style="margin: 20px 0;">
+
              <fieldset>
                 <legend>Opção 2: Selecionar Livros Inteiros ou Capítulos Avulsos</legend>
                 <label for="books-select">Escolha Livros Inteiros (Ctrl/Cmd + Clique para vários):</label>
-                <select id="books-select" multiple></select>
-                <label for="chapters-input">Ou Especifique Capítulos/Intervalos (Ex: Gn 1-3, Sl 23):</label>
+                <select id="books-select" multiple size="10"> <!-- size="10" para melhor visualização -->
+                     <!-- Opções serão preenchidas por JavaScript -->
+                </select>
+                <label for="chapters-input" style="margin-top: 10px;">Ou Especifique Capítulos/Intervalos (Ex: Gn 1-3, Sl 23):</label>
                 <input type="text" id="chapters-input" placeholder="Ex: Gênesis 1-3, Êxodo 1, Salmos 23">
             </fieldset>
+
              <hr style="margin: 20px 0;">
+
             <label for="days-input">Número Total de Dias para o Plano:</label>
-            <input type="number" id="days-input" min="1" value="30">
+            <input type="number" id="days-input" min="1" value="30" required> <!-- Adicionado 'required' básico -->
             <button id="create-plan">Criar Plano</button>
         </section>
 
@@ -100,13 +112,22 @@
              <div id="plan-loading-view" class="loading-indicator" style="display: none;">
                 Carregando plano...
             </div>
-            <div id="daily-reading">Carregando leitura...</div>
-            <button id="mark-as-read">Marcar como Lido</button>
-            <button id="reset-plan">Resetar Plano</button>
+            <div id="daily-reading" class="daily-reading-box">Carregando leitura...</div> <!-- Adicionada classe para possível estilização -->
+            <div class="plan-actions"> <!-- Container para botões -->
+                <button id="mark-as-read">Marcar Dia como Lido</button>
+                <button id="reset-plan">Resetar Plano Atual</button>
+            </div>
         </section>
     </main>
-    
-<!-- Carrega o script principal como módulo no final do body -->
-    <script src="script.js" type="module"></script>
+
+    <footer>
+        <!-- Pode adicionar um rodapé se desejar -->
+        <!-- <p>© 2023 Seu Nome ou Projeto</p> -->
+    </footer>
+
+    <!-- Carrega o script principal no final do body -->
+    <!-- IMPORTANTE: Removido type="module" para funcionar com os scripts 'compat' -->
+    <script src="script.js"></script>
+
 </body>
 </html>
