@@ -1,5 +1,3 @@
-// --- START OF COMPLETE script.js ---
-
 // Import Firebase modular SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
@@ -966,5 +964,3 @@ document.addEventListener("DOMContentLoaded", () => {
 // Expor funções do modal globalmente se o onclick no HTML for usado
 window.openModal = openModal;
 window.closeModal = closeModal;
-
-// --- FIM DO SCRIPT ---
