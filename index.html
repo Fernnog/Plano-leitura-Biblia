@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plano de Leitura da Bíblia (Firebase)</title>
+
+    <!-- ***** Link para o Favicon ***** -->
+    <!-- Substitua 'favicon.png' pelo nome e caminho do seu arquivo de ícone -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <!-- ****************************** -->
+
     <link rel="stylesheet" href="styles.css">
     <!-- Adicione os SDKs do Firebase v9 (Modular) -->
-    <!-- Certifique-se de que seu script.js use a sintaxe modular -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
@@ -15,7 +20,13 @@
 </head>
 <body>
     <header>
+        <!-- ***** Imagem do Logo ***** -->
+        <!-- Substitua 'logo.png' pelo nome e caminho do seu arquivo de logo -->
+        <img src="logo.png" alt="Logotipo Plano de Leitura" id="header-logo">
+        <!-- ************************ -->
+
         <h1>Plano de Leitura da Bíblia</h1>
+
         <!-- Área de Status do Usuário -->
         <div id="user-status" class="user-status-container">
             <span id="user-email" style="display: none;"></span>
