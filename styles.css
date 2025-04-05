@@ -1,4 +1,3 @@
-/* --- START OF MODIFIED styles.css --- */
 :root {
     --primary-color: #2A7AB0; /* Azul do logo */
     --secondary-color: #F07C00; /* Laranja do logo */
@@ -23,18 +22,38 @@ body {
     color: var(--text-color-dark);
 }
 
+/* --- Header com Logo e Flexbox --- */
 header {
     background-color: var(--primary-color);
     color: var(--text-color-light);
-    padding: 15px 0 5px 0; /* Ajuste no padding inferior */
-    text-align: center;
+    padding: 10px 20px; /* Padding ajustado para flexbox */
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex; /* Ativa Flexbox */
+    align-items: center; /* Alinha itens verticalmente */
+    justify-content: space-between; /* Espaça logo+h1 e status */
+}
+
+header img#header-logo {
+    height: 40px; /* Altura do logo */
+    width: auto; /* Mantém proporção */
+    margin-right: 15px; /* Espaço entre logo e título */
 }
 
 header h1 {
-    margin: 0;
+    margin: 0; /* Remove margem padrão do H1 */
     font-size: 1.8em;
+    /* O Flexbox cuidará do alinhamento, text-align: center removido daqui */
 }
+
+.user-status-container {
+    text-align: right; /* Mantém texto interno alinhado à direita se houver espaço */
+    font-size: 0.9em;
+    color: var(--text-color-light);
+    white-space: nowrap; /* Evita quebra de linha no status do usuário */
+    /* margin-left: auto; -- não é mais necessário com justify-content: space-between */
+}
+/* --- Fim do Header --- */
+
 
 main {
     max-width: 800px;
@@ -118,7 +137,7 @@ input[type="number"],
 input[type="text"],
 input[type="date"],
 select {
-    width: calc(100% - 22px); /* Ajuste para padding/border */
+    width: 100%; /* Ocupa largura total por padrão */
     padding: 10px;
     margin-bottom: 15px;
     border-radius: 4px;
@@ -126,18 +145,39 @@ select {
     font-size: 1em;
     box-sizing: border-box; /* Inclui padding e border na largura */
 }
-input[type="number"][style*="width"],
-input[type="date"]{ /* Ajuste específico */
-     width: auto; /* Permite larguras menores */
+
+/* Ajustes específicos para inputs menores */
+input[type="number"]#start-chapter-input,
+input[type="number"]#end-chapter-input,
+input[type="number"]#days-input,
+input[type="number"]#chapters-per-day-input {
+    width: auto; /* Permite largura menor */
+    min-width: 80px; /* Define uma largura mínima razoável */
+    display: inline-block; /* Permite que outros elementos fiquem ao lado se o label permitir */
+    vertical-align: middle;
+}
+input[type="number"][style*="width"] { /* Para o input no modal */
+    width: 60px;
+    padding: 5px;
+    font-size: 0.9em;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+input[type="date"]{
+     width: auto;
      padding: 10px 5px;
+     vertical-align: middle;
 }
 input[type="radio"]{
     margin-right: 5px;
     margin-left: 10px;
+    vertical-align: middle;
 }
 
 select[multiple] {
     height: 150px; /* Altura para select múltiplo */
+    width: 100%; /* Garante que o select múltiplo use a largura total */
+    box-sizing: border-box;
 }
 
 fieldset {
@@ -160,7 +200,15 @@ hr {
     margin: 25px 0;
 }
 
-/* --- Estilos de Autenticação (Ajustados) --- */
+small {
+    display: block;
+    font-size: 0.85em;
+    color: #666;
+    margin-top: -10px;
+    margin-bottom: 15px;
+}
+
+/* --- Estilos de Autenticação --- */
 #auth-section {
     background-color: var(--background-light);
     padding: 25px;
@@ -174,33 +222,23 @@ hr {
 
 #auth-section h2 {
     text-align: center;
-    color: var(--primary-color); /* Usa cor primária */
+    color: var(--primary-color);
     margin-top: 0;
     margin-bottom: 20px;
     border-bottom: none; /* Remove borda do h2 geral */
 }
 
-#auth-section input[type="email"],
-#auth-section input[type="password"] {
-    width: 100%; /* Ocupa largura total */
-    box-sizing: border-box; /* Importante com padding */
-}
+/* Inputs já estão com width: 100% pela regra geral */
+/* #auth-section input[type="email"],
+#auth-section input[type="password"] { ... } */
 
-#auth-section button {
+#auth-section button { /* Botões de login/signup */
     width: 100%;
     padding: 12px 20px;
     margin-top: 10px;
     font-size: 1.1em;
+    /* Cores definidas pelas classes .button-primary */
 }
-/* Aplica classes de botão */
-#login-button, #signup-button {
-    background-color: var(--primary-color);
-    color: var(--text-color-light);
-}
-#login-button:hover:not(:disabled), #signup-button:hover:not(:disabled) {
-    background-color: var(--primary-color-dark);
-}
-
 
 #auth-section p {
     text-align: center;
@@ -209,7 +247,7 @@ hr {
 }
 
 #auth-section a {
-    color: var(--secondary-color); /* Usa cor secundária para links */
+    color: var(--secondary-color);
     text-decoration: none;
     font-weight: bold;
 }
@@ -219,7 +257,7 @@ hr {
     color: var(--secondary-color-dark);
 }
 
-/* Mensagens e Loading (sem mudanças de cor aqui) */
+/* Mensagens e Loading */
 .error-message {
     background-color: #f8d7da;
     color: #721c24;
@@ -238,28 +276,17 @@ hr {
     color: #555;
 }
 
-/* Status do Usuário no Header (Ajustado) */
-.user-status-container {
-    text-align: right;
-    padding: 0 20px 10px; /* Espaçamento */
-    font-size: 0.9em;
-    color: var(--text-color-light); /* Cor clara no header escuro */
-}
-
-.user-status-container span {
-    margin-right: 15px;
-}
-
-/* Botão Sair usa a classe button-danger */
-#logout-button {
+/* Status do Usuário no Header já estilizado acima */
+#logout-button { /* Botão Sair específico */
     padding: 5px 10px;
     font-size: 0.9em;
+    /* Usa .button-danger para cores */
 }
 
 
 /* --- Quadro Semanal --- */
 .weekly-tracker-container {
-    background-color: #f0f0f0; /* Fundo levemente diferente */
+    background-color: #f0f0f0;
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
@@ -276,14 +303,14 @@ hr {
 
 .week-days {
     display: flex;
-    justify-content: space-around; /* Distribui igualmente */
+    justify-content: space-around;
     align-items: center;
     text-align: center;
 }
 
 .day-indicator {
     display: flex;
-    flex-direction: column; /* Label acima do marcador */
+    flex-direction: column;
     align-items: center;
 }
 
@@ -297,8 +324,8 @@ hr {
 .day-marker {
     width: 25px;
     height: 25px;
-    border-radius: 50%; /* Círculo */
-    background-color: var(--marker-inactive-color); /* Cinza padrão */
+    border-radius: 50%;
+    background-color: var(--marker-inactive-color);
     border: 1px solid #ccc;
     display: flex;
     justify-content: center;
@@ -308,30 +335,28 @@ hr {
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Estado Ativo do Marcador */
 .day-indicator.active .day-marker {
-    background-color: var(--success-color); /* Verde quando ativo */
+    background-color: var(--success-color);
     border-color: #1e7e34;
 }
 
-/* Adiciona Checkmark (opcional, usando :after) */
 .day-indicator.active .day-marker::after {
-    content: '✓'; /* Checkmark */
+    content: '✓';
     font-size: 16px;
 }
 
 /* --- Estilos do Modal --- */
 .modal {
-    position: fixed; /* Fica fixo na tela */
+    position: fixed;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fundo semi-transparente */
-    display: flex; /* Usa flex para centralizar */
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex; /* Alterado para flex para centralizar mais facilmente */
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Garante que fique na frente */
+    z-index: 1000;
 }
 
 .modal-content {
@@ -339,7 +364,7 @@ hr {
     padding: 30px;
     border-radius: 8px;
     width: 90%;
-    max-width: 500px; /* Limita largura máxima */
+    max-width: 500px;
     position: relative;
     box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
@@ -367,22 +392,55 @@ hr {
     margin-top: 20px;
 }
 .modal label {
-    font-weight: normal; /* Labels normais dentro do modal */
+    font-weight: normal;
     margin-bottom: 8px;
 }
 .modal input[type="radio"] {
      vertical-align: middle;
      margin-bottom: 2px;
 }
-.modal input[type="number"] {
-    margin-left: 5px;
-    padding: 5px;
-    font-size: 0.9em;
-    width: 60px; /* Ajusta tamanho */
-}
+/* Estilo para input[number] dentro do modal já tratado acima */
 .modal button {
     margin-top: 20px;
     float: right; /* Alinha botão à direita */
 }
+/* Limpa o float após o botão */
+.modal .modal-content::after {
+    content: "";
+    display: table;
+    clear: both;
+}
 
-/* --- END OF MODIFIED styles.css --- */
+
+/* --- Media Query para Responsividade --- */
+/* Ajuste para telas menores se o header ficar muito cheio */
+@media (max-width: 600px) {
+    header {
+        flex-direction: column; /* Empilha os itens verticalmente */
+        align-items: center; /* Centraliza os itens empilhados */
+        padding: 15px;
+        text-align: center; /* Centraliza o H1 quando empilhado */
+    }
+    header h1 {
+        margin-top: 10px; /* Espaço entre logo e título */
+        margin-bottom: 10px; /* Espaço entre título e status */
+    }
+    .user-status-container {
+        margin-left: 0; /* Reseta margem se usada */
+        text-align: center;
+        width: 100%;
+        margin-top: 5px; /* Espaço acima do status */
+        padding: 0; /* Remove padding extra se houver */
+    }
+
+    /* Ajusta tamanho do texto em telas pequenas se necessário */
+    body {
+        font-size: 15px; /* Exemplo: um pouco menor */
+    }
+    header h1 {
+        font-size: 1.6em;
+    }
+    button {
+        font-size: 0.95em;
+    }
+}
