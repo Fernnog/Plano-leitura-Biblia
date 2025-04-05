@@ -1,5 +1,3 @@
-// --- START OF CORRECTED script.js ---
-
 // Import Firebase modular SDKs (Using CDN URLs from index.html)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
@@ -1226,5 +1224,3 @@ document.addEventListener("DOMContentLoaded", () => {
 // If you switch to addEventListener for the close button, these are not needed.
 window.openModal = openModal;
 window.closeModal = closeModal;
-
-// --- END OF CORRECTED script.js ---
