@@ -1,20 +1,26 @@
 // --- Constantes e Dados ---
 
-// Configuração do Firebase (use a sua)
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // SUBSTITUA
-  authDomain: "YOUR_AUTH_DOMAIN", // SUBSTITUA
-  projectId: "YOUR_PROJECT_ID", // SUBSTITUA
-  storageBucket: "YOUR_STORAGE_BUCKET", // SUBSTITUA
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // SUBSTITUA
-  appId: "YOUR_APP_ID", // SUBSTITUA
-  measurementId: "YOUR_MEASUREMENT_ID" // Opcional
+  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+  projectId: "plano-leitura-biblia-8f763",
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
+  messagingSenderId: "4101180633",
+  appId: "1:4101180633:web:32d7846cf9a031962342c8",
+  measurementId: "G-KT5PPGF7W1"
 };
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore(); // Usar Firestore
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 
 // Dados da Bíblia (como antes)
 const bibleBooksChapters = { "Gênesis": 50, /* ... (resto dos livros) ... */ "Apocalipse": 22 };
