@@ -1,0 +1,184 @@
+--- START OF MODIFIED index.html ---
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Leitura da Bíblia (Firebase)</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Adicione os SDKs do Firebase v9 (Modular) -->
+    <!-- Certifique-se de que seu script.js use a sintaxe modular -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-analytics.js"></script>
+    <!-- Fim dos SDKs do Firebase -->
+</head>
+<body>
+    <header>
+        <h1>Plano de Leitura da Bíblia</h1>
+        <!-- Área de Status do Usuário -->
+        <div id="user-status" class="user-status-container">
+            <span id="user-email" style="display: none;"></span>
+            <button id="logout-button" class="button-danger" style="display: none;">Sair</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Seção de Autenticação (Inicialmente Visível) -->
+        <section id="auth-section">
+            <!-- ... (conteúdo auth como antes) ... -->
+        </section>
+
+        <!-- Seção de Criação de Plano (Inicialmente Oculta) -->
+        <section id="plan-creation" style="display: none;">
+             <h2>Criar Plano Personalizado</h2>
+             <div id="plan-error" class="error-message" style="display: none;"></div>
+             <div id="plan-loading-create" class="loading-indicator" style="display: none;">
+                Salvando plano...
+             </div>
+
+             <!-- Opções de Criação -->
+             <fieldset>
+                 <legend>Método de Criação</legend>
+                 <label>
+                     <input type="radio" name="creation-method" value="interval" checked> Intervalo Contínuo
+                 </label>
+                 <label>
+                    <input type="radio" name="creation-method" value="selection"> Seleção Avulsa
+                </label>
+                <label>
+                    <input type="radio" name="creation-method" value="chapters-per-day"> Capítulos por Dia
+                </label>
+             </fieldset>
+
+             <div id="interval-options">
+                <fieldset>
+                    <legend>Opção 1: Definir por Intervalo Contínuo</legend>
+                    <!-- ... (inputs de intervalo como antes) ... -->
+                 </fieldset>
+            </div>
+
+            <div id="selection-options" style="display: none;">
+                <fieldset>
+                    <legend>Opção 2: Selecionar Livros/Capítulos Avulsos</legend>
+                    <!-- ... (inputs de seleção como antes) ... -->
+                 </fieldset>
+             </div>
+
+             <hr style="margin: 20px 0;">
+
+             <!-- Opções de Duração -->
+             <fieldset>
+                <legend>Duração do Plano</legend>
+                <label>
+                    <input type="radio" name="duration-method" value="days" checked> Número de Dias
+                </label>
+                 <label>
+                     <input type="radio" name="duration-method" value="end-date"> Data Final
+                 </label>
+                <div id="days-option">
+                    <label for="days-input">Número Total de Dias:</label>
+                    <input type="number" id="days-input" min="1" value="30">
+                </div>
+                <div id="end-date-option" style="display: none;">
+                     <label for="start-date-input">Data de Início:</label>
+                     <input type="date" id="start-date-input">
+                     <label for="end-date-input">Data Final:</label>
+                     <input type="date" id="end-date-input">
+                </div>
+                 <div id="chapters-per-day-option" style="display: none;">
+                     <label for="chapters-per-day-input">Capítulos por Dia (Aprox.):</label>
+                     <input type="number" id="chapters-per-day-input" min="1" value="3">
+                 </div>
+             </fieldset>
+
+            <button id="create-plan" class="button-primary">Criar Plano</button>
+        </section>
+
+        <!-- Seção do Plano de Leitura (Inicialmente Oculta) -->
+        <section id="reading-plan" style="display: none;">
+            <h2>Seu Plano de Leitura</h2>
+             <div id="plan-loading-view" class="loading-indicator" style="display: none;">
+                Carregando plano...
+            </div>
+
+            <!-- Quadro Semanal -->
+            <div id="weekly-tracker" class="weekly-tracker-container">
+                <h3>Progresso Semanal</h3>
+                <div class="week-days">
+                    <div class="day-indicator" data-day="0"> <!-- Domingo -->
+                        <span class="day-label">Dom</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="1"> <!-- Segunda -->
+                        <span class="day-label">Seg</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="2"> <!-- Terça -->
+                        <span class="day-label">Ter</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="3"> <!-- Quarta -->
+                        <span class="day-label">Qua</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="4"> <!-- Quinta -->
+                        <span class="day-label">Qui</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="5"> <!-- Sexta -->
+                        <span class="day-label">Sex</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="6"> <!-- Sábado -->
+                        <span class="day-label">Sáb</span>
+                        <span class="day-marker"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Fim do Quadro Semanal -->
+
+            <div id="daily-reading">Carregando leitura...</div>
+            <button id="mark-as-read" class="button-primary">Marcar como Lido</button>
+            <button id="recalculate-plan" class="button-secondary" style="display: none;">Recalcular Plano (Atraso)</button> <!-- Botão para Recálculo -->
+            <button id="reset-plan" class="button-danger">Resetar Plano</button>
+        </section>
+
+        <!-- Modal para Recálculo (Inicialmente Oculto) -->
+        <div id="recalculate-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal('recalculate-modal')">&times;</span>
+                <h2>Recalcular Plano de Leitura</h2>
+                <p>Você está atrasado. Como deseja ajustar seu plano?</p>
+                <div id="recalculate-error" class="error-message" style="display: none;"></div>
+                 <div id="recalculate-loading" class="loading-indicator" style="display: none;">Recalculando...</div>
+
+                <fieldset>
+                     <legend>Escolha uma opção:</legend>
+                     <label>
+                         <input type="radio" name="recalc-option" value="extend_date" checked>
+                         Manter o ritmo diário (a data final será adiada).
+                     </label>
+                     <br>
+                     <label>
+                         <input type="radio" name="recalc-option" value="increase_pace">
+                         Manter a data final original (mais capítulos por dia).
+                     </label>
+                    <br>
+                     <label>
+                         <input type="radio" name="recalc-option" value="new_pace">
+                         Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3" style="width: 60px;"> capítulos/dia.
+                     </label>
+                 </fieldset>
+                <button id="confirm-recalculate" class="button-primary">Confirmar Recálculo</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script type="module" src="script.js"></script> <!-- Script como módulo -->
+</body>
+</html>
+--- END OF MODIFIED index.html ---
