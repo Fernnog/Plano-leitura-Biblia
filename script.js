@@ -52,7 +52,7 @@ const canonicalBookOrder = Object.keys(bibleBooksChapters);
 
 // --- Estado da Aplicação ---
 let currentUser = null;
-let currentReadingPlan = null; // Armazena { plan: [], currentDay: 1, createdAt: ... }
+let currentReadingPlan = null; // Armazena { plan: [{day: 1, chapters: [...]}, ...], currentDay: 1, createdAt: ... }
 let planDocRef = null; // Referência ao documento do usuário no Firestore
 
 // --- Elementos da UI (Cache para performance) ---
@@ -166,7 +166,8 @@ function parseChaptersInput(inputString) {
     const entries = inputString.split(',');
 
     const bookRegex = `(${canonicalBookOrder.join('|')})`; // Regex para nomes de livros
-    const pattern = new RegExp(`^\\s*${bookRegex}\\s+(\\d+)(?:\\s*-\\s*(\\d+))?\\s*$`, 'i'); // Case-insensitive
+    // Updated Regex: handles book names with spaces (e.g., "1 Crônicas"), case-insensitive
+    const pattern = new RegExp(`^\\s*(${canonicalBookOrder.map(b => b.replace(/ /g, '\\s*')).join('|')})\\s+(\\d+)(?:\\s*-\\s*(\\d+))?\\s*$`, 'i');
 
     entries.forEach(entry => {
         entry = entry.trim();
@@ -175,16 +176,22 @@ function parseChaptersInput(inputString) {
         const match = entry.match(pattern);
 
         if (match) {
-            const bookName = canonicalBookOrder.find(b => b.toLowerCase() === match[1].toLowerCase()); // Encontra nome canônico
-            if (!bookName) return; // Segurança extra
+            // Find the canonical book name carefully, matching case-insensitively and handling spaces
+            const matchedBookPart = match[1].replace(/\s+/g, ' ').toLowerCase();
+            const bookName = canonicalBookOrder.find(b => b.toLowerCase() === matchedBookPart);
+
+            if (!bookName) {
+                 console.warn(`Nome de livro não reconhecido ignorado: ${match[1]}`);
+                 return; // Skip if book name wasn't found
+            }
 
             const startChapter = parseInt(match[2], 10);
-            const endChapter = match[3] ? parseInt(match[3], 10) : startChapter; // Se não houver fim, é o mesmo capítulo
+            const endChapter = match[3] ? parseInt(match[3], 10) : startChapter;
 
             if (isNaN(startChapter) || startChapter <= 0 || startChapter > bibleBooksChapters[bookName] ||
                 isNaN(endChapter) || endChapter < startChapter || endChapter > bibleBooksChapters[bookName]) {
-                console.warn(`Capítulo/intervalo inválido ignorado: ${entry}`);
-                return; // Ignora entrada inválida
+                console.warn(`Capítulo/intervalo inválido ignorado para ${bookName}: ${entry}`);
+                return;
             }
 
             for (let i = startChapter; i <= endChapter; i++) {
@@ -198,6 +205,8 @@ function parseChaptersInput(inputString) {
     return [...new Set(chapters)]; // Retorna capítulos únicos
 }
 
+
+// --- UPDATED distributePlan function ---
 function distributePlan(chaptersToRead, days) {
     if (!chaptersToRead || chaptersToRead.length === 0 || isNaN(days) || days <= 0) {
         return [];
@@ -205,36 +214,60 @@ function distributePlan(chaptersToRead, days) {
 
     const totalChapters = chaptersToRead.length;
     const baseChaptersPerDay = Math.floor(totalChapters / days);
-    let extraChapters = totalChapters % days; // Capítulos que sobram
-    const plan = [];
+    let extraChapters = totalChapters % days;
+    const plan = []; // Initialize the plan array
     let currentIndex = 0;
 
     for (let i = 0; i < days; i++) {
-        // Quantos capítulos neste dia: base + 1 extra (se houver sobrando)
         const chaptersThisDayCount = baseChaptersPerDay + (extraChapters > 0 ? 1 : 0);
         if (extraChapters > 0) {
-            extraChapters--; // Decrementa os extras distribuídos
+            extraChapters--;
         }
 
-        const endSliceIndex = currentIndex + chaptersThisDayCount;
+        // Avoid creating empty slices if count is 0 (can happen if days > chapters)
+        if(chaptersThisDayCount <= 0 && currentIndex >= totalChapters) {
+            break; // No more chapters to assign
+        }
+
+        const endSliceIndex = Math.min(currentIndex + chaptersThisDayCount, totalChapters); // Ensure not to go past the end
         const dailyChapters = chaptersToRead.slice(currentIndex, endSliceIndex);
-        plan.push(dailyChapters); // Adiciona a lista de capítulos do dia ao plano
-        currentIndex = endSliceIndex; // Atualiza o índice para o próximo dia
-    }
 
-     // Garante que mesmo se a divisão for imperfeita, todos os capítulos sejam incluídos
-     if (currentIndex < totalChapters) {
-        // Se sobraram capítulos (ex: 10 caps, 3 dias -> 4, 4, 2), adiciona os restantes ao último dia
-        if (plan.length > 0) {
-            plan[plan.length - 1].push(...chaptersToRead.slice(currentIndex));
-        } else {
-             // Caso extremo: 0 dias ou algo errado, apenas coloca tudo num dia
-             plan.push(chaptersToRead.slice(currentIndex));
+        // *** Create a map for the day (Firestore-friendly) ***
+        if (dailyChapters.length > 0) { // Only add day if it has chapters
+            const dayData = {
+                day: i + 1, // Store the day number (1-based)
+                chapters: dailyChapters // Store the array of chapters for this day
+            };
+            plan.push(dayData); // Push the map into the plan array
+        }
+        // *** End Change ***
+
+        currentIndex = endSliceIndex;
+
+        // Optimization: if we've already assigned all chapters, stop early
+        if (currentIndex >= totalChapters) {
+            break;
         }
     }
 
-    // Filtra dias vazios (pode acontecer se days > totalChapters)
-    return plan.filter(dayPlan => dayPlan.length > 0);
+    // Handle leftovers (less likely with the loop break, but good safety)
+    if (currentIndex < totalChapters) {
+        if (plan.length > 0) {
+            // Add remaining chapters to the last day's chapter list
+             const lastDayIndex = plan.length -1;
+             if(plan[lastDayIndex] && plan[lastDayIndex].chapters) {
+                plan[lastDayIndex].chapters.push(...chaptersToRead.slice(currentIndex));
+             } else {
+                // If last day somehow invalid, create a new day (edge case)
+                 plan.push({ day: plan.length + 1, chapters: chaptersToRead.slice(currentIndex) });
+             }
+        } else {
+             // If plan is empty (e.g., days=0 passed), put all chapters in day 1
+             plan.push({ day: 1, chapters: chaptersToRead.slice(currentIndex) });
+        }
+    }
+
+    return plan; // Return the array of maps
 }
 
 // --- Funções de UI e Estado ---
@@ -268,7 +301,6 @@ function updateUIBasedOnAuthState(user) {
         userEmailSpan.style.display = 'inline';
 
         // Define a referência do documento do usuário NO Firestore
-        // USA 'db' (firestore instance) e não 'firebase.firestore'
         planDocRef = db.collection('userPlans').doc(user.uid);
         console.log("Plan document reference set for user:", user.uid);
 
@@ -309,7 +341,6 @@ function resetFormFields() {
 async function loadPlanFromFirestore() {
     if (!planDocRef) {
         console.warn("loadPlanFromFirestore called without planDocRef.");
-        // Decide how to handle this - maybe show creation form?
         planCreationSection.style.display = 'block';
         readingPlanSection.style.display = 'none';
         showLoading(planLoadingViewDiv, false);
@@ -318,7 +349,7 @@ async function loadPlanFromFirestore() {
 
     console.log("Tentando carregar plano do Firestore...");
     showLoading(planLoadingViewDiv, true);
-    showLoading(planCreationSection, false); // Esconde criação enquanto carrega
+    planCreationSection.style.display = 'none'; // Esconde criação enquanto carrega
     readingPlanSection.style.display = 'none'; // Esconde leitura enquanto carrega
     showErrorMessage(planErrorDiv, ''); // Limpa erros antigos
 
@@ -328,20 +359,31 @@ async function loadPlanFromFirestore() {
             console.log("Plano encontrado no Firestore.");
             currentReadingPlan = docSnap.data(); // Armazena plano localmente
 
-            // Validação básica dos dados carregados
-            if (!currentReadingPlan || !Array.isArray(currentReadingPlan.plan) || typeof currentReadingPlan.currentDay !== 'number') {
-                console.error("Dados do plano inválidos no Firestore:", currentReadingPlan);
-                throw new Error("Formato de dados do plano inválido no banco de dados.");
+            // Validação da estrutura carregada
+            if (
+                !currentReadingPlan ||
+                typeof currentReadingPlan.currentDay !== 'number' ||
+                !Array.isArray(currentReadingPlan.plan) ||
+                // Verifica se os itens no array 'plan' são objetos com 'day' e 'chapters'
+                (currentReadingPlan.plan.length > 0 &&
+                 (typeof currentReadingPlan.plan[0] !== 'object' ||
+                  currentReadingPlan.plan[0] === null || // check for null explicitly
+                  typeof currentReadingPlan.plan[0].day !== 'number' ||
+                  !Array.isArray(currentReadingPlan.plan[0].chapters))
+                )
+            ) {
+                 console.error("Dados do plano inválidos ou estrutura incorreta no Firestore:", currentReadingPlan);
+                 throw new Error("Formato de dados do plano inválido no banco de dados.");
             }
-            // Verifica se currentDay é razoável (não precisa ser perfeito aqui, mas ajuda)
+
             if (currentReadingPlan.currentDay < 1) {
                  console.warn("currentDay inválido (< 1), resetando para 1.");
                  currentReadingPlan.currentDay = 1;
-                 // Opcional: Atualizar no Firestore também? Poderia causar loop se houver problema.
+                 // Considerar atualizar no Firestore se isso acontecer frequentemente
                  // await planDocRef.update({ currentDay: 1 });
             }
 
-            loadDailyReadingUI(); // Atualiza a UI com o plano carregado
+            loadDailyReadingUI(); // Atualiza a UI com o plano carregado (estrutura de mapa)
             planCreationSection.style.display = 'none'; // Esconde criação
             readingPlanSection.style.display = 'block'; // Mostra leitura
         } else {
@@ -355,7 +397,6 @@ async function loadPlanFromFirestore() {
         console.error("Erro ao carregar plano do Firestore:", error);
         showErrorMessage(planErrorDiv, `Erro ao carregar seu plano: ${error.message}. Tente recarregar a página.`);
         currentReadingPlan = null;
-        // Decide o que mostrar em caso de erro - talvez permitir criar novo?
         planCreationSection.style.display = 'block'; // Permite tentar criar de novo
         readingPlanSection.style.display = 'none';
     } finally {
@@ -372,23 +413,28 @@ async function savePlanToFirestore(planData) {
     }
     console.log("Tentando salvar plano no Firestore...");
     showLoading(planLoadingCreateDiv, true);
-    createPlanButton.disabled = true; // Desabilita botão durante salvar
+    createPlanButton.disabled = true;
     showErrorMessage(planErrorDiv, '');
 
     try {
-        // Usa set com merge: false para sobrescrever completamente qualquer plano existente
+        // Usa set com merge: false para sobrescrever completamente
         await planDocRef.set(planData, { merge: false });
         console.log("Plano salvo com sucesso no Firestore!");
         currentReadingPlan = planData; // Atualiza estado local
         return true; // Sucesso
     } catch (error) {
         console.error("Erro ao salvar plano no Firestore:", error);
-        showErrorMessage(planErrorDiv, `Erro ao salvar o plano: ${error.message}. Verifique sua conexão ou tente novamente.`);
-        // Não limpa currentReadingPlan aqui, pois o plano anterior (se houver) ainda pode ser válido
+         // Verifica se o erro é sobre dados inválidos (pode pegar o erro de nested array se a correção falhar)
+         let userMessage = `Erro ao salvar o plano: ${error.message}.`;
+         if (error.code === 'invalid-argument') { // Código comum para dados inválidos
+             userMessage += " Verifique se os dados do plano estão corretos.";
+             console.error("Detalhes do erro de argumento inválido:", error);
+         }
+        showErrorMessage(planErrorDiv, userMessage + " Verifique sua conexão ou tente novamente.");
         return false; // Falha
     } finally {
         showLoading(planLoadingCreateDiv, false);
-        createPlanButton.disabled = false; // Reabilita botão
+        createPlanButton.disabled = false;
     }
 }
 
@@ -406,7 +452,7 @@ async function updateCurrentDayInFirestore(newDay) {
      }
 
     console.log(`Tentando atualizar currentDay para ${newDay} no Firestore...`);
-    markAsReadButton.disabled = true; // Desabilita enquanto atualiza
+    markAsReadButton.disabled = true;
 
     try {
         await planDocRef.update({ currentDay: newDay });
@@ -415,14 +461,10 @@ async function updateCurrentDayInFirestore(newDay) {
         return true;
     } catch (error) {
         console.error("Erro ao atualizar dia no Firestore:", error);
-        // Informa o usuário sobre o erro
         alert(`Erro ao salvar seu progresso: ${error.message}. Tente marcar como lido novamente.`);
-        // Não atualiza o estado local se o Firestore falhou
         return false;
     } finally {
-         // Reabilita o botão apenas se o plano ainda não estiver concluído
-         // Verifica se currentReadingPlan ainda existe (pode ter sido resetado entre cliques)
-         if (currentReadingPlan && currentReadingPlan.currentDay <= currentReadingPlan.plan.length) {
+         if (currentReadingPlan && currentReadingPlan.plan && currentReadingPlan.currentDay <= currentReadingPlan.plan.length) {
              markAsReadButton.disabled = false;
          } else {
               markAsReadButton.style.display = 'none'; // Esconde se concluído
@@ -439,7 +481,7 @@ async function deletePlanFromFirestore() {
     }
     console.log("Tentando deletar plano do Firestore...");
     resetPlanButton.disabled = true;
-    showErrorMessage(planErrorDiv, ''); // Limpa erros antigos
+    showErrorMessage(planErrorDiv, '');
 
     try {
         await planDocRef.delete();
@@ -448,7 +490,6 @@ async function deletePlanFromFirestore() {
         return true;
     } catch (error) {
         console.error("Erro ao deletar plano do Firestore:", error);
-        // Exibe erro na área de plano, pois é onde o usuário tentará criar um novo
         showErrorMessage(planErrorDiv, `Erro ao resetar o plano: ${error.message}`);
         return false;
     } finally {
@@ -463,16 +504,14 @@ async function deletePlanFromFirestore() {
 async function createReadingPlan() {
     if (!currentUser) {
         showErrorMessage(planErrorDiv,"Você precisa estar logado para criar um plano.");
-        // Talvez direcionar para o login? Ou apenas mostrar a mensagem.
-        authSection.scrollIntoView(); // Rola para a seção de autenticação
+        authSection.scrollIntoView();
         return;
     }
 
     console.log("Iniciando criação do plano...");
-    showErrorMessage(planErrorDiv, ''); // Limpa erros anteriores
+    showErrorMessage(planErrorDiv, '');
     const days = parseInt(daysInput.value, 10);
 
-    // --- Validação Dias ---
     if (isNaN(days) || days <= 0) {
          showErrorMessage(planErrorDiv,"Por favor, insira um número válido de dias (maior que zero).");
          daysInput.focus();
@@ -488,18 +527,16 @@ async function createReadingPlan() {
     const selectedBooksVal = Array.from(booksSelect.selectedOptions).map(opt => opt.value);
     const chaptersInputVal = chaptersInput.value.trim();
 
-    // Determina qual método usar (Prioriza intervalo se todos os campos estiverem preenchidos)
     const useRangeMethod = !!startBookVal && !isNaN(startChapVal) && !!endBookVal && !isNaN(endChapVal);
     const useSelectionMethod = selectedBooksVal.length > 0 || chaptersInputVal.length > 0;
 
     if (useRangeMethod) {
         console.log("Gerando plano por intervalo...");
-        const generated = generateChaptersInRange(startBookVal, startChapVal, endBookVal, endChapVal);
-        if (!generated) { // Erro já mostrado por generateChaptersInRange
+        chaptersToRead = generateChaptersInRange(startBookVal, startChapVal, endBookVal, endChapVal);
+        if (!chaptersToRead) { // generateChaptersInRange retorna null em erro
              console.error("Falha ao gerar capítulos por intervalo.");
              return;
         }
-        chaptersToRead = generated;
         console.log(`Gerados ${chaptersToRead.length} capítulos pelo intervalo.`);
     } else if (useSelectionMethod) {
         console.log("Gerando plano por seleção/texto...");
@@ -518,22 +555,30 @@ async function createReadingPlan() {
          if (chaptersInputVal.length > 0) {
              console.log("Processando entrada de texto:", chaptersInputVal);
             fromText = parseChaptersInput(chaptersInputVal);
+             if (fromText.length === 0 && chaptersInputVal.length > 0) {
+                 // Avisa se o parse não retornou nada apesar de ter input
+                 showErrorMessage(planErrorDiv, "Formato inválido na entrada de capítulos/intervalos. Verifique o exemplo (Ex: Gênesis 1-3, Salmos 23).");
+                 return;
+             }
          }
 
-        // Combina e remove duplicatas
-        chaptersToRead = [...new Set([...fromSelection, ...fromText])];
+        chaptersToRead = [...new Set([...fromSelection, ...fromText])]; // Combina e remove duplicatas
 
-        // Ordena os capítulos pela ordem canônica da Bíblia (IMPORTANTE)
-        chaptersToRead.sort((a, b) => {
-            const [bookA, chapA] = a.split(' ');
-            const [bookB, chapB] = b.split(' ');
+        chaptersToRead.sort((a, b) => { // Ordena pela ordem canônica
+            const [bookA, chapA] = a.split(/ (.*)/s); // Separa livro do capítulo (lidando com espaços no nome do livro)
+            const [bookB, chapB] = b.split(/ (.*)/s);
             const indexA = canonicalBookOrder.indexOf(bookA);
             const indexB = canonicalBookOrder.indexOf(bookB);
 
+            if (indexA === -1 || indexB === -1) { // Segurança
+                 console.warn(`Erro de ordenação: livro não encontrado ${bookA} ou ${bookB}`);
+                 return 0;
+             }
+
             if (indexA !== indexB) {
-                return indexA - indexB; // Ordena por livro
+                return indexA - indexB;
             } else {
-                return parseInt(chapA, 10) - parseInt(chapB, 10); // Ordena por capítulo dentro do livro
+                return parseInt(chapA, 10) - parseInt(chapB, 10);
             }
         });
          console.log(`Gerados ${chaptersToRead.length} capítulos pela seleção/texto (únicos e ordenados).`);
@@ -550,41 +595,40 @@ async function createReadingPlan() {
          return;
     }
 
-     // --- Distribuição e Criação do Objeto do Plano ---
+     // --- Distribuição (usando a função atualizada) ---
      console.log(`Distribuindo ${chaptersToRead.length} capítulos em ${days} dias...`);
-    const planArray = distributePlan(chaptersToRead, days);
-     const actualDays = planArray.length; // O número real de dias pode ser menor se houver poucos capítulos
+    const planArrayOfMaps = distributePlan(chaptersToRead, days);
+     const actualDays = planArrayOfMaps.length;
 
     if (actualDays === 0) {
-        showErrorMessage(planErrorDiv, "Não foi possível gerar o plano (erro na distribuição).");
+        showErrorMessage(planErrorDiv, "Não foi possível gerar o plano (erro na distribuição). Verifique o número de dias.");
         console.error("Falha ao distribuir o plano. A função distributePlan retornou um array vazio.");
         return;
     }
      console.log(`Plano distribuído em ${actualDays} dias.`);
 
     const newPlanData = {
-        plan: planArray,
+        // Salva a estrutura correta (array de mapas)
+        plan: planArrayOfMaps,
         currentDay: 1,
-        totalChapters: chaptersToRead.length, // Info útil
-        totalDays: actualDays,            // Info útil
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // Timestamp do servidor
+        totalChapters: chaptersToRead.length,
+        totalDays: actualDays,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     // --- Salvar no Firestore ---
     const success = await savePlanToFirestore(newPlanData);
 
     if (success) {
-        // Atualiza UI para mostrar o plano recém-criado
         planCreationSection.style.display = 'none';
         readingPlanSection.style.display = 'block';
-        loadDailyReadingUI(); // Carrega a UI com os dados locais atualizados
+        loadDailyReadingUI(); // Carrega a UI com os dados locais atualizados (estrutura de mapa)
         alert(`Plano de ${chaptersToRead.length} capítulos criado com sucesso para ${actualDays} dia(s)!`);
-        readingPlanSection.scrollIntoView({ behavior: 'smooth' }); // Rola para ver o plano
+        readingPlanSection.scrollIntoView({ behavior: 'smooth' });
     }
-    // Se falhou, a mensagem de erro já foi mostrada por savePlanToFirestore
 }
 
-/** Atualiza a UI com a leitura do dia atual (usa `currentReadingPlan`) */
+// --- UPDATED loadDailyReadingUI function ---
 function loadDailyReadingUI() {
     if (!currentReadingPlan || !currentReadingPlan.plan || !Array.isArray(currentReadingPlan.plan)) {
         console.warn("loadDailyReadingUI chamado sem um plano válido.");
@@ -594,72 +638,81 @@ function loadDailyReadingUI() {
         return;
     }
 
-    const { plan, currentDay } = currentReadingPlan;
-    const totalDays = plan.length; // O número de dias é o tamanho do array do plano
+    // --- Access data from the array of maps structure ---
+    const planDataArray = currentReadingPlan.plan; // The array of {day, chapters} maps
+    const currentDay = currentReadingPlan.currentDay;
+    const totalDays = planDataArray.length; // Total days is the length of the array
 
-     console.log(`Carregando UI para o dia ${currentDay} de ${totalDays}`);
-
-    // Garante que o botão reset seja exibido se houver um plano
-     resetPlanButton.style.display = 'inline-block';
+    console.log(`Carregando UI para o dia ${currentDay} de ${totalDays}`);
+    resetPlanButton.style.display = 'inline-block'; // Mostra reset se tem plano
 
     if (currentDay > 0 && currentDay <= totalDays) {
-        const readingChapters = plan[currentDay - 1]; // Acessa o array baseado em índice 0
-        // Verifica se readingChapters é um array e tem itens
-        const readingText = (Array.isArray(readingChapters) && readingChapters.length > 0)
-                            ? readingChapters.join(", ")
-                            : "Dia de descanso ou erro no plano.";
-        dailyReadingDiv.innerHTML = `<strong>Dia ${currentDay} de ${totalDays}:</strong> ${readingText}`; // Usa innerHTML para o negrito
-        markAsReadButton.style.display = 'inline-block';
-        markAsReadButton.disabled = false;
+        // Find the map for the current day (arrays are 0-indexed)
+        // Add extra check: ensure the element at the index exists before accessing properties
+        const dayDataObject = (currentDay - 1 < planDataArray.length) ? planDataArray[currentDay - 1] : null;
+
+        // Validate the structure of the found object
+        if (dayDataObject && typeof dayDataObject === 'object' && dayDataObject.day === currentDay && Array.isArray(dayDataObject.chapters)) {
+             const readingChapters = dayDataObject.chapters; // Get chapters from the map's 'chapters' property
+             const readingText = (readingChapters.length > 0)
+                                 ? readingChapters.join(", ")
+                                 : "Dia de descanso ou erro nos dados do plano."; // Message if chapters array is empty
+             dailyReadingDiv.innerHTML = `<strong>Dia ${currentDay} de ${totalDays}:</strong> ${readingText}`;
+             markAsReadButton.style.display = 'inline-block';
+             markAsReadButton.disabled = false;
+        } else {
+            // Data corruption or mismatch in the plan array
+             dailyReadingDiv.textContent = `Erro: Dados do dia ${currentDay} não encontrados ou com formato inválido no plano.`;
+             markAsReadButton.style.display = 'none';
+             markAsReadButton.disabled = true;
+             console.error(`Erro ao carregar dia ${currentDay}. Objeto esperado não encontrado ou inválido:`, dayDataObject, `Índice: ${currentDay - 1}`);
+        }
+
     } else if (currentDay > totalDays) {
         dailyReadingDiv.innerHTML = `<strong>Parabéns!</strong> Plano de ${totalDays} dia(s) concluído! 🎉`;
         markAsReadButton.style.display = 'none'; // Esconde o botão ao concluir
         markAsReadButton.disabled = true;
     } else {
-        // Caso currentDay seja 0 ou negativo (não deveria acontecer com validação anterior)
+        // Caso currentDay seja 0 ou negativo
         dailyReadingDiv.textContent = `Erro: Dia inválido (${currentDay}). Por favor, reporte o problema.`;
         markAsReadButton.style.display = 'none';
         markAsReadButton.disabled = true;
-         console.error(`Estado inválido: currentDay é ${currentDay}`);
+        console.error(`Estado inválido: currentDay é ${currentDay}`);
     }
+    // --- End Change ---
 }
+
 
 /** Marca como lido, atualiza Firestore e UI */
 async function markAsRead() {
-    if (!currentReadingPlan || !currentUser) {
+    if (!currentReadingPlan || !currentUser || !currentReadingPlan.plan) {
          console.warn("markAsRead chamado sem plano ou usuário.");
          return;
     }
 
     const { plan, currentDay } = currentReadingPlan;
-    const totalDays = plan.length;
+    const totalDays = plan.length; // Length of the array of maps
 
     if (currentDay <= totalDays) {
         const nextDay = currentDay + 1;
         console.log(`Marcando dia ${currentDay} como lido. Próximo dia: ${nextDay}`);
-        // Atualiza Firestore PRIMEIRO
         const success = await updateCurrentDayInFirestore(nextDay);
         if (success) {
-            // Se o Firestore foi atualizado, atualiza a UI localmente
             console.log("Atualização no Firestore bem-sucedida, atualizando UI.");
             loadDailyReadingUI(); // Recarrega a UI com o novo currentDay
-            // Feedback visual rápido
             dailyReadingDiv.style.transition = 'background-color 0.5s ease';
-            dailyReadingDiv.style.backgroundColor = '#d4edda'; // Verde claro sucesso
+            dailyReadingDiv.style.backgroundColor = '#d4edda';
              setTimeout(() => {
-                 dailyReadingDiv.style.backgroundColor = ''; // Remove a cor
-             }, 1000); // Remove após 1 segundo
+                 dailyReadingDiv.style.backgroundColor = '';
+             }, 1000);
 
             if (nextDay > totalDays) {
-                 // Atraso pequeno para permitir que a UI atualize antes do alert
                  setTimeout(() => {
                      alert("Você concluiu o plano de leitura! Parabéns!");
-                      // Talvez adicionar confetes ou outra animação aqui?
                  }, 100);
             }
         } else {
              console.error("Falha ao atualizar o dia no Firestore. UI não será atualizada para o próximo dia.");
-             // A UI não avança, e o botão deve ter sido reabilitado pela função de update se apropriado.
         }
     } else {
         console.warn("Tentativa de marcar como lido um plano já concluído.");
@@ -675,15 +728,12 @@ async function resetReadingPlan() {
     }
     if (!currentReadingPlan) {
         console.warn("Tentativa de resetar um plano que não existe localmente.");
-         // Talvez sincronizar? Ou apenas permitir criar novo?
-         // Por segurança, apenas limpa a UI e mostra criação.
          resetFormFields();
          planCreationSection.style.display = 'block';
          readingPlanSection.style.display = 'none';
          return;
     }
 
-     // Confirmação crucial
      if (!confirm("Tem certeza que deseja resetar o plano atual?\n\nTODO o seu progresso será perdido permanentemente e não poderá ser recuperado.")) {
          console.log("Reset cancelado pelo usuário.");
          return;
@@ -693,16 +743,14 @@ async function resetReadingPlan() {
     const success = await deletePlanFromFirestore();
 
     if (success) {
-        // Limpa campos do formulário e alterna visibilidade
         resetFormFields();
-        planCreationSection.style.display = 'block'; // Mostra criação
-        readingPlanSection.style.display = 'none'; // Esconde visualização
-        dailyReadingDiv.textContent = ''; // Limpa texto da leitura diária
+        planCreationSection.style.display = 'block';
+        readingPlanSection.style.display = 'none';
+        dailyReadingDiv.textContent = '';
         alert("Seu plano de leitura foi resetado com sucesso.");
-        planCreationSection.scrollIntoView({ behavior: 'smooth' }); // Rola para a criação
+        planCreationSection.scrollIntoView({ behavior: 'smooth' });
     } else {
          console.error("Falha ao deletar o plano no Firestore durante o reset.");
-         // Mensagem de erro já deve ter sido mostrada por deletePlanFromFirestore
          alert("Ocorreu um erro ao tentar resetar seu plano. Por favor, tente novamente.");
     }
 }
@@ -712,13 +760,12 @@ async function resetReadingPlan() {
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM carregado. Vinculando eventos...");
 
-    // Preenche os seletores de livros assim que o DOM estiver pronto
     populateBookSelectors();
 
     // --- Listeners de Autenticação ---
     if (loginButton) {
         loginButton.addEventListener('click', async (e) => {
-            e.preventDefault(); // Previne envio do formulário
+            e.preventDefault();
             console.log("Botão Login clicado.");
             showLoading(authLoadingDiv, true);
             loginButton.disabled = true;
@@ -737,19 +784,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("Tentando login com:", email);
                 await auth.signInWithEmailAndPassword(email, password);
                 console.log("Login bem-sucedido (AuthStateChanged deve cuidar da UI).");
-                // Sucesso: onAuthStateChanged vai atualizar a UI e carregar dados.
-                // Limpar campos após sucesso? Opcional.
-                // loginEmailInput.value = '';
-                // loginPasswordInput.value = '';
             } catch (error) {
                 console.error("Erro de Login:", error.code, error.message);
-                // Mapeia códigos de erro comuns para mensagens amigáveis
                 let friendlyMessage = `Erro de login (${error.code}): ${error.message}`;
-                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') { // Added invalid-credential for newer SDKs
                      friendlyMessage = "Email ou senha incorretos. Verifique seus dados ou cadastre-se.";
                  } else if (error.code === 'auth/invalid-email') {
                      friendlyMessage = "O formato do email é inválido.";
-                 } // Adicione outros mapeamentos conforme necessário
+                 } else if (error.code === 'auth/too-many-requests') {
+                     friendlyMessage = "Muitas tentativas de login falharam. Tente novamente mais tarde.";
+                 }
                 showErrorMessage(authErrorDiv, friendlyMessage);
             } finally {
                 showLoading(authLoadingDiv, false);
@@ -760,7 +804,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (signupButton) {
         signupButton.addEventListener('click', async (e) => {
-            e.preventDefault(); // Previne envio do formulário
+            e.preventDefault();
             console.log("Botão Cadastro clicado.");
             showLoading(authLoadingDiv, true);
             signupButton.disabled = true;
@@ -785,12 +829,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.log("Tentando cadastrar com:", email);
                 await auth.createUserWithEmailAndPassword(email, password);
                 console.log("Cadastro bem-sucedido (AuthStateChanged deve cuidar da UI).");
-                // Sucesso: onAuthStateChanged vai logar automaticamente o usuário.
                 alert("Cadastro realizado com sucesso! Você já está logado.");
-                // Limpa campos após sucesso
                 signupEmailInput.value = '';
                 signupPasswordInput.value = '';
-                // toggleForms(true); // Opcional: Volta para tela de login? Não, AuthStateChanged vai esconder tudo.
             } catch (error) {
                 console.error("Erro de Cadastro:", error.code, error.message);
                  let friendlyMessage = `Erro de cadastro (${error.code}): ${error.message}`;
@@ -800,7 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
                      friendlyMessage = "A senha é muito fraca. Use pelo menos 6 caracteres.";
                  } else if (error.code === 'auth/invalid-email') {
                      friendlyMessage = "O formato do email é inválido.";
-                 } // Adicione outros
+                 }
                 showErrorMessage(signupErrorDiv, friendlyMessage);
             } finally {
                 showLoading(authLoadingDiv, false);
@@ -816,13 +857,10 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 await auth.signOut();
                 console.log("Logout bem-sucedido (AuthStateChanged deve cuidar da UI).");
-                // Sucesso: onAuthStateChanged vai limpar o estado e mostrar forms de login/cadastro.
             } catch (error) {
                 console.error("Erro ao Sair:", error);
                 alert(`Erro ao tentar sair: ${error.message}`);
             } finally {
-                // AuthStateChanged vai reabilitar se necessário, ou esconder
-                 // Garantir que não fique desabilitado se o usuário permanecer na página
                  setTimeout(() => { if(logoutButton) logoutButton.disabled = false; }, 500);
             }
         });
@@ -850,11 +888,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else { console.error("Elemento #reset-plan não encontrado."); }
 
     // --- Observador do Estado de Autenticação (ESSENCIAL) ---
-    // Este listener é chamado quando o DOM carrega E sempre que o estado de login muda
     console.log("Configurando observador de estado de autenticação (onAuthStateChanged)...");
     auth.onAuthStateChanged(user => {
         console.log("onAuthStateChanged disparado. User:", user ? user.uid : 'null');
-        // Atualiza a UI com base no estado do usuário (logado ou deslogado)
         updateUIBasedOnAuthState(user);
     });
 
