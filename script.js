@@ -8,13 +8,13 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestam
 
 // Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY", // IMPORTANTE: Substitua pela sua chave real! Considere usar App Check.
-    authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
-    projectId: "plano-leitura-biblia-8f763",
-    storageBucket: "plano-leitura-biblia-8f763.appspot.com",
-    messagingSenderId: "4101180633",
-    appId: "1:4101180633:web:32d7846cf9a031962342c8",
-    measurementId: "G-KT5PPGF7W1" // Opcional para Analytics
+    apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+  projectId: "plano-leitura-biblia-8f763",
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
+  messagingSenderId: "4101180633",
+  appId: "1:4101180633:web:32d7846cf9a031962342c8",
+  measurementId: "G-KT5PPGF7W1"
 };
 
 // Initialize Firebase
