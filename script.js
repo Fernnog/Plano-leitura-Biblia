@@ -6,17 +6,23 @@ import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.1/firebase
 
 // --- Constantes e Dados ---
 
-// Configuração do Firebase (!!! SUBSTITUA PELAS SUAS CHAVES REAIS !!!)
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID" // Opcional, mas recomendado se existir
-};
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+  projectId: "plano-leitura-biblia-8f763",
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
+  messagingSenderId: "4101180633",
+  appId: "1:4101180633:web:32d7846cf9a031962342c8",
+  measurementId: "G-KT5PPGF7W1"
+};
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
