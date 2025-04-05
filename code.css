@@ -1,0 +1,256 @@
+/* --- Reset Básico e Estilos Globais --- */
+* {
+    box-sizing: border-box; /* Inclui padding e border na largura/altura total */
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte moderna */
+    margin: 0;
+    padding: 0;
+    background-color: #f9f9f9; /* Fundo claro */
+    color: #333; /* Cor do texto padrão */
+    line-height: 1.6; /* Melhor espaçamento entre linhas */
+}
+
+/* --- Cabeçalho --- */
+header {
+    background-color: #2c3e50; /* Azul escuro moderno */
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra sutil */
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8em; /* Tamanho um pouco maior */
+}
+
+/* --- Conteúdo Principal --- */
+main {
+    padding: 20px;
+    max-width: 800px; /* Largura máxima para melhor leitura */
+    margin: 20px auto; /* Centralizado e com margem superior/inferior */
+    background-color: white; /* Fundo branco para o conteúdo */
+    box-shadow: 0 0 15px rgba(0,0,0,0.1); /* Sombra mais suave */
+    border-radius: 8px; /* Bordas arredondadas */
+}
+
+/* --- Seções de Criação e Leitura --- */
+#plan-creation, #reading-plan {
+    margin-bottom: 25px; /* Aumenta espaçamento inferior */
+    /* Removido padding/border/background daqui, será aplicado a fieldset ou direto */
+}
+
+/* Títulos das Seções */
+#plan-creation h2, #reading-plan h2 {
+    color: #2c3e50; /* Cor azul escura do header */
+    margin-top: 0;
+    margin-bottom: 20px; /* Espaço abaixo do título */
+    text-align: center; /* Centraliza títulos das seções */
+    border-bottom: 1px solid #eee; /* Linha separadora sutil */
+    padding-bottom: 10px;
+}
+
+/* --- Estilos do Formulário (plan-creation) --- */
+
+fieldset {
+    border: 1px solid #ddd;
+    padding: 20px; /* Mais padding interno */
+    margin-bottom: 20px;
+    border-radius: 5px;
+    background-color: #fdfdfd; /* Fundo levemente diferente */
+}
+
+legend {
+    font-weight: bold;
+    color: #2c3e50;
+    padding: 0 10px; /* Espaçamento lateral */
+    font-size: 1.2em; /* Tamanho um pouco maior */
+    margin-bottom: 15px; /* Espaço abaixo da legenda */
+}
+
+fieldset p { /* Estilo para o texto explicativo dentro do fieldset */
+    margin-top: -10px; /* Aproxima do legend */
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+/* Container Flex para alinhar label/input no intervalo */
+fieldset div {
+    display: flex;
+    align-items: center; /* Alinha verticalmente */
+    flex-wrap: wrap; /* Permite quebrar linha */
+    gap: 10px 15px; /* Espaço vertical e horizontal entre elementos */
+    margin-bottom: 10px;
+}
+
+/* Labels */
+label {
+    display: block; /* Garante que o label fique acima do input em modo coluna */
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+    flex-shrink: 0; /* Evita que o label encolha no flex container */
+}
+
+/* Inputs e Selects Gerais */
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%; /* Ocupa largura total por padrão (será ajustado onde necessário) */
+    padding: 10px; /* Padding aumentado */
+    margin-bottom: 10px; /* Espaçamento inferior */
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+    transition: border-color 0.3s ease; /* Transição suave no foco */
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    border-color: #2c3e50; /* Destaca borda no foco */
+    outline: none; /* Remove outline padrão */
+}
+
+/* Select Múltiplo */
+#books-select {
+    width: 100%;
+    height: 150px; /* Altura adequada */
+    padding: 8px; /* Padding interno */
+    margin-bottom: 15px;
+}
+
+/* Inputs de Capítulo (Intervalo) - Tamanho específico */
+#start-chapter-input,
+#end-chapter-input {
+    width: 80px; /* Largura fixa menor */
+    flex-grow: 0; /* Não cresce */
+    flex-shrink: 0; /* Não encolhe */
+    margin-bottom: 0; /* Remove margem inferior pois está no flex */
+}
+
+/* Selects de Livro (Intervalo) - Flexíveis */
+#start-book-select,
+#end-book-select {
+    flex-grow: 1; /* Permite crescer e ocupar espaço */
+    min-width: 180px; /* Largura mínima */
+    margin-bottom: 0; /* Remove margem inferior pois está no flex */
+    width: auto; /* Deixa o flex controlar a largura */
+}
+
+/* Input de Dias */
+#days-input {
+     width: 100px; /* Largura menor, não precisa ser tão grande */
+}
+
+/* Botões */
+button {
+    padding: 12px 25px; /* Padding ligeiramente ajustado */
+    background-color: #27ae60; /* Verde moderno */
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Transição suave */
+    font-size: 1.05em; /* Fonte ligeiramente maior */
+    margin-right: 10px; /* Espaçamento entre botões */
+    margin-top: 10px; /* Espaço acima dos botões */
+}
+
+button:hover {
+    background-color: #219653; /* Verde um pouco mais escuro no hover */
+    transform: translateY(-1px); /* Efeito leve de elevação */
+}
+
+button:active {
+     transform: translateY(0px); /* Retorna ao clicar */
+}
+
+#reset-plan {
+    background-color: #e74c3c; /* Vermelho para resetar */
+}
+
+#reset-plan:hover {
+     background-color: #c0392b; /* Vermelho mais escuro no hover */
+}
+
+
+/* Separador Visual */
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #eee;
+    margin: 25px 0; /* Espaçamento vertical aumentado */
+}
+
+/* --- Seção do Plano de Leitura Ativo --- */
+#reading-plan {
+    text-align: center; /* Centraliza conteúdo */
+    background-color: #f8f9fa; /* Fundo ligeiramente diferente */
+    padding: 20px;
+    border: 1px solid #e9ecef; /* Borda suave */
+    border-radius: 5px;
+}
+
+#daily-reading {
+    background-color: #ecf0f1; /* Cinza claro para a leitura diária */
+    padding: 20px;
+    border: 1px solid #ddd;
+    margin-bottom: 20px;
+    min-height: 60px; /* Altura mínima */
+    border-radius: 5px;
+    font-size: 1.1em; /* Fonte maior para destaque */
+    color: #34495e; /* Cor do texto mais escura */
+    line-height: 1.5; /* Espaçamento de linha interno */
+    text-align: left; /* Alinha texto à esquerda dentro da caixa */
+}
+
+/* --- Responsividade --- */
+@media (max-width: 768px) {
+    main {
+        padding: 15px;
+        margin: 15px;
+    }
+
+    header h1 {
+        font-size: 1.6em;
+    }
+
+    legend {
+        font-size: 1.1em;
+    }
+}
+
+
+@media (max-width: 600px) {
+    main {
+        padding: 10px;
+        margin: 10px;
+    }
+
+    /* Faz os elementos do intervalo ficarem um abaixo do outro */
+    fieldset div {
+        flex-direction: column; /* Empilha label e input */
+        align-items: stretch; /* Fazem ocupar toda a largura */
+        gap: 5px; /* Espaço menor */
+    }
+
+    #start-book-select,
+    #end-book-select,
+    #start-chapter-input,
+    #end-chapter-input,
+    #days-input {
+        width: 100%; /* Ocupa largura total no mobile */
+    }
+
+    /* Botões empilhados */
+    button {
+        width: 100%;
+        margin-bottom: 10px;
+        margin-right: 0; /* Remove margem direita */
+    }
+}
