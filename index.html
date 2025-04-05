@@ -1,693 +1,252 @@
-:root {
-    /* --- Nova Paleta de Cores --- */
-    --primary-color: #2C3E50; /* Azul Petróleo Escuro / Navy Suave */
-    --secondary-color: #D4AC0D; /* Dourado/Ocre Queimado */
-    --primary-color-dark: #1D2B3A; /* Azul ainda mais escuro para hover */
-    --secondary-color-dark: #B8860B; /* Dourado mais escuro para hover */
-    --background-light: #F8F9FA; /* Fundo quase branco */
-    --background-card: #FFFFFF; /* Fundo de seções/cards */
-    --text-color-light: #ffffff;
-    --text-color-dark: #212529; /* Cinza bem escuro para texto */
-    --text-color-muted: #6c757d; /* Cinza médio para texto secundário/muted */
-    --border-color: #DEE2E6; /* Cinza claro para bordas */
-    --success-color: #198754; /* Verde Bootstrap */
-    --danger-color: #DC3545; /* Vermelho Bootstrap */
-    --danger-color-dark: #bb2d3b;
-    --disabled-color: #cccccc;
-    --marker-inactive-color: #e9ecef; /* Cinza mais claro para marcador inativo */
-    --marker-active-border: #a37f0a; /* Borda do marcador ativo (dourado) */
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Leitura da Bíblia (Firebase)</title>
 
-    /* --- Variáveis RGB para RGBA (sombras, etc.) --- */
-    --primary-color-rgb: 44, 62, 80;
-    --success-color-rgb: 25, 135, 84;
+    <!-- ***** Link para o Favicon ***** -->
+    <!-- Certifique-se que 'favicon.png' existe no caminho correto -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <!-- ****************************** -->
 
-    /* --- Tipografia (Usando Google Fonts via HTML link) --- */
-    --font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    <link rel="stylesheet" href="styles.css">
 
-    /* --- Sombras --- */
-    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    --box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-    --box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.125);
-}
+    <!-- Google Fonts (Exemplo com Inter) - Adicionado -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-/* Remover import se estiver usando link no HTML */
-/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'); */
+    <!-- SDKs do Firebase são carregados via import no script.js (tipo módulo) -->
+    <!-- Tags <script> individuais para Firebase foram removidas daqui -->
 
-body {
-    font-family: var(--font-sans-serif); /* Aplica a fonte */
-    line-height: 1.6;
-    margin: 0;
-    background-color: var(--background-light);
-    color: var(--text-color-dark);
-    font-size: 16px; /* Base font size */
-    -webkit-font-smoothing: antialiased; /* Melhora renderização de fontes */
-    -moz-osx-font-smoothing: grayscale;
-}
+</head>
+<body>
+    <header>
+        <!-- ***** Imagem do Logo ***** -->
+        <img src="logo.png" alt="Logotipo Plano de Leitura" id="header-logo">
+        <!-- ************************ -->
 
-/* --- Header --- */
-header {
-    background-color: var(--primary-color);
-    color: var(--text-color-light);
-    padding: 15px 25px; /* Um pouco mais de padding */
-    box-shadow: var(--box-shadow); /* Sombra mais pronunciada */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px; /* Espaçamento entre itens flex */
-    position: sticky; /* Header fixo no topo */
-    top: 0;
-    z-index: 900; /* Abaixo do modal */
-}
+        <h1>Plano de Leitura da Bíblia</h1>
 
-header img#header-logo {
-    height: 45px; /* Ligeiramente maior */
-    width: auto;
-}
+        <!-- Área de Status do Usuário -->
+        <div id="user-status" class="user-status-container">
+            <span id="user-email" style="display: none;"></span>
+            <button id="logout-button" class="button-danger" style="display: none;">Sair</button>
+        </div>
+    </header>
 
-header h1 {
-    margin: 0;
-    font-size: 1.75em; /* Ajuste de tamanho */
-    font-weight: 700; /* Mais peso se a fonte permitir */
-    flex-grow: 1; /* Permite que o título cresça se houver espaço */
-    text-align: left; /* Alinha à esquerda dentro do seu espaço */
-    white-space: nowrap; /* Evita quebra de título */
-    overflow: hidden;
-    text-overflow: ellipsis; /* Adiciona '...' se não couber */
-}
+    <main>
+        <!-- Seção de Autenticação (Inicialmente Visível) -->
+        <section id="auth-section">
+             <h2>Acessar Plano</h2>
+             <!-- Mensagens de erro e loading -->
+             <div id="auth-error" class="error-message" style="display: none;"></div>
+             <div id="signup-error" class="error-message" style="display: none;"></div>
+             <div id="auth-loading" class="loading-indicator" style="display: none;">Carregando...</div>
 
-.user-status-container {
-    text-align: right;
-    font-size: 0.9em;
-    color: var(--text-color-light);
-    white-space: nowrap;
-    flex-shrink: 0; /* Impede que encolha demais */
-    display: flex; /* Alinha email e botão */
-    align-items: center;
-}
-#user-email {
-    margin-right: 10px;
-    opacity: 0.9;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px; /* Limita largura do email se necessário */
-    display: inline-block; /* Necessário para max-width/overflow */
-    vertical-align: middle;
-}
+             <!-- Formulário de Login (Inicialmente Visível) -->
+             <form id="login-form">
+                 <label for="login-email">Email:</label>
+                 <input type="email" id="login-email" required>
 
-/* --- Main Content --- */
-main {
-    max-width: 850px; /* Um pouco mais largo */
-    margin: 30px auto; /* Mais margem superior/inferior */
-    padding: 0 15px; /* Padding lateral para telas menores */
-    background-color: transparent; /* Main agora é só um container */
-    border-radius: 0;
-    box-shadow: none;
-}
+                 <label for="login-password">Senha:</label>
+                 <input type="password" id="login-password" required>
 
-section {
-    margin-bottom: 30px;
-    padding: 25px 30px; /* Mais padding interno */
-    background-color: var(--background-card); /* Fundo branco para seções */
-    border: 1px solid var(--border-color);
-    border-radius: 8px; /* Cantos arredondados */
-    box-shadow: var(--box-shadow-sm); /* Sombra sutil */
-    transition: box-shadow 0.3s ease-in-out;
-}
-/* Opcional: Desabilitar sombra no hover se achar muito */
-/* section:hover {
-     box-shadow: var(--box-shadow); /* Sombra maior no hover */
-/* } */
+                 <button type="submit" id="login-button" class="button-primary">Entrar</button>
+                 <p>Não tem uma conta? <a href="#" id="show-signup">Cadastre-se</a></p>
+             </form>
 
-section h2 {
-    color: var(--primary-color);
-    margin-top: 0;
-    border-bottom: 2px solid var(--secondary-color);
-    padding-bottom: 8px; /* Mais espaço abaixo da borda */
-    margin-bottom: 25px; /* Mais espaço abaixo do título */
-    font-size: 1.6em;
-    font-weight: 700;
-}
+             <!-- Formulário de Cadastro (Inicialmente Oculto) -->
+             <form id="signup-form" style="display: none;">
+                 <label for="signup-email">Email:</label>
+                 <input type="email" id="signup-email" required>
 
-/* --- Botões --- */
-button {
-    padding: 10px 20px; /* Padding ligeiramente ajustado */
-    border: none;
-    border-radius: 6px; /* Bordas mais arredondadas */
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: 600; /* Semibold */
-    transition: all 0.25s ease-in-out;
-    margin: 5px;
-    box-shadow: var(--box-shadow-sm);
-    letter-spacing: 0.5px; /* Espaçamento leve entre letras */
-    line-height: 1.5; /* Garante altura consistente */
-    vertical-align: middle; /* Alinha com inputs/texto */
-}
+                 <label for="signup-password">Senha:</label>
+                 <input type="password" id="signup-password" required>
 
-button:disabled {
-    background-color: var(--disabled-color);
-    color: #888;
-    cursor: not-allowed;
-    opacity: 0.7;
-    box-shadow: none;
-}
+                 <button type="submit" id="signup-button" class="button-primary">Cadastrar</button>
+                 <p>Já tem uma conta? <a href="#" id="show-login">Faça login</a></p>
+             </form>
+        </section>
 
-button:not(:disabled):hover {
-     transform: translateY(-2px); /* Efeito sutil de levantar */
-     box-shadow: var(--box-shadow);
-}
+        <!-- Seção de Criação de Plano (Inicialmente Oculta) -->
+        <section id="plan-creation" style="display: none;">
+             <h2>Criar Plano Personalizado</h2>
+             <div id="plan-error" class="error-message" style="display: none;"></div>
+             <div id="plan-loading-create" class="loading-indicator" style="display: none;">
+                Salvando plano...
+             </div>
 
-.button-primary {
-    background-color: var(--primary-color);
-    color: var(--text-color-light);
-}
-.button-primary:hover:not(:disabled) {
-    background-color: var(--primary-color-dark);
-}
+             <!-- Opções de Criação -->
+             <fieldset>
+                 <legend>Método de Criação</legend>
+                 <label>
+                     <input type="radio" name="creation-method" value="interval" checked> Intervalo Contínuo
+                 </label>
+                 <label>
+                    <input type="radio" name="creation-method" value="selection"> Seleção Avulsa
+                </label>
+                <label>
+                    <input type="radio" name="creation-method" value="chapters-per-day"> Capítulos por Dia
+                </label>
+             </fieldset>
 
-.button-secondary {
-    background-color: var(--secondary-color);
-    color: var(--text-color-dark); /* Texto escuro para melhor contraste com dourado */
-}
-.button-secondary:hover:not(:disabled) {
-    background-color: var(--secondary-color-dark);
-}
+             <!-- Opção 1: Intervalo -->
+             <div id="interval-options">
+                <fieldset>
+                    <legend>Opção 1: Definir por Intervalo Contínuo</legend>
+                    <label for="start-book-select">Livro Inicial:</label>
+                    <select id="start-book-select" required>
+                        <option value="">-- Selecione --</option> <!-- Populado via JS -->
+                    </select>
 
-.button-danger {
-    background-color: var(--danger-color);
-    color: var(--text-color-light);
-}
-.button-danger:hover:not(:disabled) {
-    background-color: var(--danger-color-dark);
-}
+                    <label for="start-chapter-input">Capítulo Inicial:</label>
+                    <input type="number" id="start-chapter-input" min="1" required>
 
-/* --- Formulários --- */
-label {
-    display: block;
-    margin-bottom: 8px; /* Mais espaço */
-    font-weight: 600; /* Semibold */
-    color: var(--text-color-muted);
-    font-size: 0.95em;
-}
+                    <label for="end-book-select">Livro Final:</label>
+                    <select id="end-book-select" required>
+                        <option value="">-- Selecione --</option> <!-- Populado via JS -->
+                    </select>
 
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="text"],
-input[type="date"],
-select {
-    width: 100%;
-    padding: 12px 15px; /* Padding interno maior */
-    margin-bottom: 18px; /* Mais espaço abaixo */
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    font-size: 1em;
-    box-sizing: border-box;
-    background-color: #fff;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    line-height: 1.5; /* Consistência */
-}
+                    <label for="end-chapter-input">Capítulo Final:</label>
+                    <input type="number" id="end-chapter-input" min="1" required>
+                 </fieldset>
+            </div>
 
-input:focus, select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
-}
+            <!-- Opção 2: Seleção -->
+            <div id="selection-options" style="display: none;">
+                <fieldset>
+                    <legend>Opção 2/3: Selecionar Livros/Capítulos</legend>
+                    <label for="books-select">Selecionar Livros Completos (Opcional):</label>
+                    <select id="books-select" multiple></select> <!-- Populado via JS -->
+                    <small>Use Ctrl/Cmd para selecionar múltiplos livros.</small>
 
+                    <label for="chapters-input">Digitar Capítulos/Intervalos (Opcional):</label>
+                    <!-- Adicionado atributo list e datalist para autocomplete -->
+                    <input type="text" id="chapters-input" placeholder="Ex: Gênesis 1-3, Êxodo 5, Salmos 119" list="book-suggestions">
+                    <datalist id="book-suggestions"></datalist> <!-- Datalist para sugestões -->
+                    <small>Separe por vírgula. Use hífen para intervalos. Ex: "Jo 3", "Sl 23, Sl 100-102", "1 Coríntios".</small>
+                 </fieldset>
+             </div>
 
-input[type="number"]#start-chapter-input,
-input[type="number"]#end-chapter-input,
-input[type="number"]#days-input,
-input[type="number"]#chapters-per-day-input {
-    width: auto;
-    min-width: 90px;
-    display: inline-block;
-    vertical-align: middle;
-}
-/* Input number no modal - ajustado */
-#new-pace-input {
-    width: 70px !important; /* Força largura com !important se necessário */
-    padding: 8px !important;
-    font-size: 0.9em !important;
-    margin-left: 5px !important;
-    vertical-align: middle !important;
-    display: inline-block !important; /* Garante inline */
-}
+             <hr> <!-- Linha horizontal mantida -->
 
-input[type="date"]{
-     width: auto;
-     padding: 10px 8px;
-     vertical-align: middle;
-}
-input[type="radio"]{
-    margin-right: 5px;
-    margin-left: 10px;
-    vertical-align: middle;
-    accent-color: var(--primary-color); /* Estiliza a bolinha do radio */
-    width: auto; /* Reset width */
-    margin-bottom: 0; /* Reset margin */
-}
-/* Alinha label do radio com o input */
-fieldset label {
-    display: inline-flex; /* Permite alinhar texto e input */
-    align-items: center;
-    margin-right: 15px; /* Espaço entre opções de radio/checkbox */
-    margin-bottom: 10px; /* Espaço abaixo das linhas de radio */
-    font-weight: normal; /* Peso normal para labels de radio/checkbox */
-    color: var(--text-color-dark);
-    cursor: pointer;
-}
-fieldset label input[type="radio"] {
-    margin-bottom: 0; /* Remove margem do input dentro do label */
-}
+             <!-- Opções de Duração -->
+             <fieldset>
+                <legend>Duração do Plano</legend>
+                <label>
+                    <input type="radio" name="duration-method" value="days" checked> Número de Dias
+                </label>
+                 <label>
+                     <input type="radio" name="duration-method" value="end-date"> Data Final
+                 </label>
 
-select[multiple] {
-    height: 160px;
-    width: 100%;
-    box-sizing: border-box;
-}
+                 <!-- Opção Duração: Dias -->
+                <div id="days-option">
+                    <label for="days-input">Número Total de Dias:</label>
+                    <input type="number" id="days-input" min="1" value="30">
+                </div>
 
-fieldset {
-    border: 1px solid var(--border-color);
-    padding: 20px 25px;
-    margin-bottom: 25px;
-    border-radius: 8px;
-    background-color: rgba(0,0,0,0.01); /* Fundo levemente diferente */
-}
+                <!-- Opção Duração: Data Final -->
+                <div id="end-date-option" style="display: none;">
+                     <label for="start-date-input">Data de Início:</label>
+                     <input type="date" id="start-date-input">
+                     <label for="end-date-input">Data Final:</label>
+                     <input type="date" id="end-date-input">
+                </div>
 
-legend {
-    font-weight: 700;
-    color: var(--primary-color);
-    padding: 0 10px;
-    font-size: 1.1em;
-}
+                <!-- Opção Duração: Capítulos/Dia -->
+                 <div id="chapters-per-day-option" style="display: none;">
+                     <label for="chapters-per-day-input">Capítulos por Dia (Aprox.):</label>
+                     <input type="number" id="chapters-per-day-input" min="1" value="3">
+                 </div>
+             </fieldset>
 
-hr {
-    border: 0;
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 30px 0;
-}
+            <button id="create-plan" class="button-primary">Criar Plano</button>
+        </section>
 
-small {
-    display: block;
-    font-size: 0.875em;
-    color: var(--text-color-muted);
-    margin-top: -12px; /* Puxa um pouco para cima */
-    margin-bottom: 15px;
-}
+        <!-- Seção do Plano de Leitura (Inicialmente Oculta) -->
+        <section id="reading-plan" style="display: none;">
+            <h2>Seu Plano de Leitura</h2>
+             <div id="plan-loading-view" class="loading-indicator" style="display: none;">
+                Carregando plano...
+            </div>
 
-/* --- Estilos de Autenticação --- */
-#auth-section {
-    background-color: var(--background-card);
-    padding: 30px 35px; /* Mais padding */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-bottom: 30px;
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
-    box-shadow: var(--box-shadow); /* Sombra mais definida */
-}
+            <!-- Quadro Semanal -->
+            <div id="weekly-tracker" class="weekly-tracker-container">
+                <h3>Progresso Semanal</h3>
+                <div class="week-days">
+                    <div class="day-indicator" data-day="0"> <!-- Domingo -->
+                        <span class="day-label">Dom</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="1"> <!-- Segunda -->
+                        <span class="day-label">Seg</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="2"> <!-- Terça -->
+                        <span class="day-label">Ter</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="3"> <!-- Quarta -->
+                        <span class="day-label">Qua</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="4"> <!-- Quinta -->
+                        <span class="day-label">Qui</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="5"> <!-- Sexta -->
+                        <span class="day-label">Sex</span>
+                        <span class="day-marker"></span>
+                    </div>
+                    <div class="day-indicator" data-day="6"> <!-- Sábado -->
+                        <span class="day-label">Sáb</span>
+                        <span class="day-marker"></span>
+                    </div>
+                </div>
+            </div>
+            <!-- Fim do Quadro Semanal -->
 
-#auth-section h2 {
-    text-align: center;
-    color: var(--primary-color);
-    margin-top: 0;
-    margin-bottom: 25px;
-    border-bottom: none;
-    font-size: 1.8em;
-}
+            <div id="daily-reading">Carregando leitura...</div>
+            <button id="mark-as-read" class="button-primary">Marcar como Lido</button>
+            <button id="recalculate-plan" class="button-secondary" style="display: none;">Recalcular Plano</button> <!-- Texto ajustado -->
+            <button id="reset-plan" class="button-danger">Resetar Plano</button>
+        </section>
 
-#auth-section button {
-    width: 100%;
-    padding: 12px 20px;
-    margin-top: 15px;
-    font-size: 1.1em;
-}
+        <!-- Modal para Recálculo (Inicialmente Oculto) -->
+        <div id="recalculate-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal('recalculate-modal')">×</span>
+                <h2>Recalcular Plano de Leitura</h2>
+                <p>Você está atrasado ou deseja ajustar o ritmo. Como deseja proceder?</p>
+                <div id="recalculate-error" class="error-message" style="display: none;"></div>
+                 <div id="recalculate-loading" class="loading-indicator" style="display: none;">Recalculando...</div>
 
-#auth-section p {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 0.95em;
-}
+                <fieldset>
+                     <legend>Escolha uma opção:</legend>
+                     <label>
+                         <input type="radio" name="recalc-option" value="extend_date" checked>
+                         Manter o ritmo diário (a data final será adiada).
+                     </label>
+                     <br>
+                     <label>
+                         <input type="radio" name="recalc-option" value="increase_pace">
+                         Manter a data final original (mais capítulos por dia).
+                     </label>
+                    <br>
+                     <label>
+                         <input type="radio" name="recalc-option" value="new_pace">
+                         Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3" style="width: 70px;"> capítulos/dia.
+                     </label>
+                 </fieldset>
+                <button id="confirm-recalculate" class="button-primary">Confirmar Recálculo</button>
+            </div>
+        </div>
 
-#auth-section a {
-    color: var(--secondary-color);
-    text-decoration: none;
-    font-weight: 600;
-}
+    </main>
 
-#auth-section a:hover {
-    text-decoration: underline;
-    color: var(--secondary-color-dark);
-}
-
-/* Mensagens e Loading */
-.error-message {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-    padding: 12px 18px;
-    border-radius: 6px;
-    margin-bottom: 18px;
-    font-size: 0.95em;
-    text-align: left; /* Alinha texto à esquerda */
-}
-
-.loading-indicator {
-    text-align: center;
-    padding: 15px;
-    font-style: italic;
-    color: var(--text-color-muted);
-}
-
-#logout-button {
-    padding: 6px 12px;
-    font-size: 0.85em;
-    margin-left: 5px; /* Espaço do email */
-    box-shadow: none; /* Sem sombra no botão pequeno */
-    flex-shrink: 0; /* Não encolher */
-}
-#logout-button:hover:not(:disabled){
-    transform: none; /* Sem efeito de levantar */
-    box-shadow: var(--box-shadow-sm);
-}
-
-
-/* --- Quadro Semanal --- */
-.weekly-tracker-container {
-    background-color: #f0f3f5; /* Tom de cinza azulado leve */
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 25px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-sm);
-}
-
-.weekly-tracker-container h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    text-align: center;
-    color: var(--primary-color);
-    font-size: 1.2em;
-    font-weight: 700;
-}
-
-.week-days {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    text-align: center;
-}
-
-.day-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: default; /* Não é clicável */
-}
-
-.day-label {
-    font-size: 0.85em;
-    font-weight: 600;
-    color: var(--text-color-muted);
-    margin-bottom: 8px;
-}
-
-.day-marker {
-    width: 30px; /* Ligeiramente maior */
-    height: 30px;
-    border-radius: 50%;
-    background-color: var(--marker-inactive-color);
-    border: 2px solid #dbe0e4; /* Borda um pouco mais escura que o fundo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--text-color-light);
-    font-weight: bold;
-    transition: all 0.3s ease;
-}
-
-.day-indicator.active .day-marker {
-    background-color: var(--success-color);
-    border-color: var(--marker-active-border); /* Borda dourada */
-    color: var(--text-color-light);
-    box-shadow: 0 0 8px rgba(var(--success-color-rgb), 0.5); /* Sombra verde */
-}
-
-.day-indicator.active .day-marker::after {
-    content: '✓';
-    font-size: 18px; /* Checkmark maior */
-}
-
-/* --- Leitura Diária --- */
-#daily-reading {
-    font-size: 1.1em;
-    padding: 15px;
-    margin: 20px 0;
-    background-color: #eef2f7; /* Fundo suave */
-    border-left: 4px solid var(--secondary-color); /* Destaque lateral */
-    color: var(--text-color-dark);
-    border-radius: 0 4px 4px 0; /* Arredonda cantos direito */
-}
-
-/* --- Estilos do Modal --- */
-.modal {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Fundo mais escuro */
-    display: flex; /* Usar display: none; e mudar para flex via JS */
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0; /* Começa invisível */
-    visibility: hidden; /* Começa escondido */
-    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
-    padding: 15px; /* Padding para evitar que conteúdo toque bordas em telas pequenas */
-    box-sizing: border-box;
-}
-.modal[style*="display: flex"] { /* Animação ao aparecer */
-     opacity: 1;
-     visibility: visible;
-     transition: opacity 0.3s ease;
-}
-
-
-.modal-content {
-    background-color: white;
-    padding: 30px 35px; /* Padding ajustado */
-    border-radius: 10px; /* Mais arredondado */
-    width: 100%; /* Largura total dentro do padding do modal */
-    max-width: 550px; /* Largura máxima */
-    position: relative;
-    box-shadow: var(--box-shadow-lg); /* Sombra bem definida */
-    transform: scale(0.95); /* Começa um pouco menor */
-    transition: transform 0.3s ease-in-out;
-}
-.modal[style*="display: flex"] .modal-content {
-    transform: scale(1); /* Animação de escala ao aparecer */
-}
-
-
-.close-button {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 28px;
-    font-weight: bold;
-    color: #aaa;
-    cursor: pointer;
-    transition: color 0.2s ease;
-    line-height: 1; /* Garante alinhamento */
-}
-
-.close-button:hover {
-    color: var(--danger-color); /* Vermelho no hover */
-}
-
-.modal h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: var(--primary-color);
-    font-size: 1.7em;
-}
-
-.modal fieldset {
-    margin-top: 25px;
-    border-color: #eee; /* Borda mais suave no modal */
-    padding: 15px 20px;
-}
-/* Ajustar labels dentro do modal */
-.modal fieldset label {
-    display: block; /* Força bloco para as opções de radio */
-    margin-bottom: 12px; /* Espaço entre as opções */
-    margin-right: 0;
-}
-.modal fieldset label input[type="radio"] {
-    margin-left: 0; /* Sem margem esquerda extra */
-    margin-right: 8px; /* Espaço do texto */
-}
-/* Estilo específico para o label com input number */
-.modal fieldset label:has(#new-pace-input) {
-    display: flex; /* Alinha texto e input na mesma linha */
-    align-items: center;
-}
-
-.modal button {
-    margin-top: 25px;
-    float: right;
-}
-/* Limpa o float após o botão */
-.modal .modal-content::after {
-    content: "";
-    display: table;
-    clear: both;
-}
-
-
-/* --- Media Query --- */
-@media (max-width: 768px) { /* Ponto de quebra ajustado para tablet */
-     header h1 {
-        font-size: 1.5em; /* Reduzir um pouco mais */
-    }
-    main {
-        margin: 20px auto;
-    }
-    section {
-         padding: 20px 25px;
-    }
-     section h2 {
-        font-size: 1.4em;
-    }
-    .modal-content {
-        padding: 25px;
-    }
-    /* Ajusta flex container dos dias da semana */
-    .week-days {
-        flex-wrap: wrap; /* Permitir quebra de linha */
-        gap: 10px; /* Espaçamento quando quebrar linha */
-        justify-content: center; /* Centraliza dias quando quebrar */
-    }
-    .day-indicator {
-        flex-basis: calc(100% / 4 - 12px); /* Tentar 4 por linha, ajustar gap */
-    }
-    button {
-        padding: 9px 18px; /* Reduzir padding dos botões */
-        font-size: 0.95em;
-    }
-    #auth-section {
-        padding: 25px 30px;
-    }
-     #auth-section h2 {
-        font-size: 1.6em;
-    }
-}
-
-@media (max-width: 600px) {
-    header {
-        flex-direction: column;
-        align-items: center;
-        padding: 15px; /* Padding reduzido */
-        text-align: center;
-        position: static; /* Remove sticky em telas pequenas */
-    }
-    header h1 {
-        margin-top: 10px;
-        margin-bottom: 10px;
-        font-size: 1.4em;
-        text-align: center;
-        flex-grow: 0;
-        white-space: normal; /* Permite quebra de título */
-    }
-    .user-status-container {
-        margin-left: 0;
-        text-align: center;
-        width: 100%;
-        margin-top: 10px;
-        padding: 0;
-        flex-direction: column; /* Empilha email e botão */
-        gap: 8px;
-    }
-    #user-email {
-        display: block;
-        margin-bottom: 0;
-        margin-right: 0;
-        max-width: 100%; /* Permite ocupar largura total */
-        text-align: center;
-    }
-    #logout-button {
-        margin-left: 0;
-    }
-
-    body {
-        font-size: 15px;
-    }
-    main {
-        margin: 15px auto;
-        padding: 0 10px;
-    }
-    section {
-         padding: 15px 20px;
-    }
-     section h2 {
-        font-size: 1.3em;
-        margin-bottom: 20px;
-    }
-    .modal-content {
-        padding: 20px;
-        max-width: 100%; /* Ocupa quase toda a largura */
-    }
-     .modal h2 {
-        font-size: 1.5em;
-    }
-    .day-indicator {
-        flex-basis: calc(100% / 4 - 10px); /* Mantem 4 se couber */
-    }
-    /* Garante que inputs de formulário sejam usáveis */
-    input[type="email"],
-    input[type="password"],
-    input[type="number"],
-    input[type="text"],
-    input[type="date"],
-    select {
-        padding: 10px 12px;
-        font-size: 1em; /* Mantém tamanho da fonte legível */
-    }
-    button {
-        padding: 10px 15px; /* Padding confortável */
-        width: 100%; /* Botões ocupam largura total para facilitar toque */
-        margin: 8px 0; /* Espaço vertical entre botões */
-        box-sizing: border-box;
-    }
-     /* Botões específicos que não devem ter 100% */
-     #logout-button, #confirm-recalculate {
-        width: auto;
-     }
-     .modal button { /* Botão no modal pode flutuar à direita */
-        width: auto;
-        float: right;
-     }
-     #auth-section {
-        padding: 20px 25px;
-        max-width: 100%;
-     }
-     #auth-section p {
-        font-size: 0.9em;
-     }
-     /* Ajuste para labels de radio em telas pequenas */
-     fieldset label {
-        display: block; /* Empilha opções de radio */
-        margin-right: 0;
-     }
-     .modal fieldset label:has(#new-pace-input){
-         flex-wrap: wrap; /* Permite quebra se não couber */
-     }
-     #new-pace-input {
-         margin-top: 5px; /* Espaço se quebrar linha */
-     }
-
-}
+    <script type="module" src="script.js"></script> <!-- Script como módulo -->
+</body>
+</html>
