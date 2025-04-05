@@ -1,98 +1,160 @@
 :root {
-    --primary-color: #2A7AB0; /* Azul do logo */
-    --secondary-color: #F07C00; /* Laranja do logo */
-    --primary-color-dark: #1e5a8a;
-    --secondary-color-dark: #c86500;
+    /* --- Nova Paleta de Cores --- */
+    --primary-color: #2C3E50; /* Azul Petróleo Escuro / Navy Suave */
+    --secondary-color: #D4AC0D; /* Dourado/Ocre Queimado */
+    --primary-color-dark: #1D2B3A; /* Azul ainda mais escuro para hover */
+    --secondary-color-dark: #B8860B; /* Dourado mais escuro para hover */
+    --background-light: #F8F9FA; /* Fundo quase branco */
+    --background-card: #FFFFFF; /* Fundo de seções/cards */
     --text-color-light: #ffffff;
-    --text-color-dark: #333333;
-    --background-light: #f8f9fa;
-    --border-color: #e0e0e0;
-    --success-color: #28a745; /* Verde para sucesso/concluído */
-    --danger-color: #dc3545; /* Vermelho para perigo/reset */
-    --danger-color-dark: #c82333;
+    --text-color-dark: #212529; /* Cinza bem escuro para texto */
+    --text-color-muted: #6c757d; /* Cinza médio para texto secundário/muted */
+    --border-color: #DEE2E6; /* Cinza claro para bordas */
+    --success-color: #198754; /* Verde Bootstrap */
+    --danger-color: #DC3545; /* Vermelho Bootstrap */
+    --danger-color-dark: #bb2d3b;
     --disabled-color: #cccccc;
-    --marker-inactive-color: #e0e0e0;
+    --marker-inactive-color: #e9ecef; /* Cinza mais claro para marcador inativo */
+    --marker-active-border: #a37f0a; /* Borda do marcador ativo (dourado) */
+
+    /* --- Variáveis RGB para RGBA (sombras, etc.) --- */
+    --primary-color-rgb: 44, 62, 80;
+    --success-color-rgb: 25, 135, 84;
+
+    /* --- Tipografia (Usando Google Fonts via HTML link) --- */
+    --font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    /* --- Sombras --- */
+    --box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    --box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.125);
 }
 
+/* Remover import se estiver usando link no HTML */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'); */
+
 body {
-    font-family: sans-serif;
+    font-family: var(--font-sans-serif); /* Aplica a fonte */
     line-height: 1.6;
     margin: 0;
     background-color: var(--background-light);
     color: var(--text-color-dark);
+    font-size: 16px; /* Base font size */
+    -webkit-font-smoothing: antialiased; /* Melhora renderização de fontes */
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- Header com Logo e Flexbox --- */
+/* --- Header --- */
 header {
     background-color: var(--primary-color);
     color: var(--text-color-light);
-    padding: 10px 20px; /* Padding ajustado para flexbox */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    display: flex; /* Ativa Flexbox */
-    align-items: center; /* Alinha itens verticalmente */
-    justify-content: space-between; /* Espaça logo+h1 e status */
+    padding: 15px 25px; /* Um pouco mais de padding */
+    box-shadow: var(--box-shadow); /* Sombra mais pronunciada */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px; /* Espaçamento entre itens flex */
+    position: sticky; /* Header fixo no topo */
+    top: 0;
+    z-index: 900; /* Abaixo do modal */
 }
 
 header img#header-logo {
-    height: 40px; /* Altura do logo */
-    width: auto; /* Mantém proporção */
-    margin-right: 15px; /* Espaço entre logo e título */
+    height: 45px; /* Ligeiramente maior */
+    width: auto;
 }
 
 header h1 {
-    margin: 0; /* Remove margem padrão do H1 */
-    font-size: 1.8em;
-    /* O Flexbox cuidará do alinhamento, text-align: center removido daqui */
+    margin: 0;
+    font-size: 1.75em; /* Ajuste de tamanho */
+    font-weight: 700; /* Mais peso se a fonte permitir */
+    flex-grow: 1; /* Permite que o título cresça se houver espaço */
+    text-align: left; /* Alinha à esquerda dentro do seu espaço */
+    white-space: nowrap; /* Evita quebra de título */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adiciona '...' se não couber */
 }
 
 .user-status-container {
-    text-align: right; /* Mantém texto interno alinhado à direita se houver espaço */
+    text-align: right;
     font-size: 0.9em;
     color: var(--text-color-light);
-    white-space: nowrap; /* Evita quebra de linha no status do usuário */
-    /* margin-left: auto; -- não é mais necessário com justify-content: space-between */
+    white-space: nowrap;
+    flex-shrink: 0; /* Impede que encolha demais */
+    display: flex; /* Alinha email e botão */
+    align-items: center;
 }
-/* --- Fim do Header --- */
+#user-email {
+    margin-right: 10px;
+    opacity: 0.9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px; /* Limita largura do email se necessário */
+    display: inline-block; /* Necessário para max-width/overflow */
+    vertical-align: middle;
+}
 
-
+/* --- Main Content --- */
 main {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: var(--text-color-light);
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    max-width: 850px; /* Um pouco mais largo */
+    margin: 30px auto; /* Mais margem superior/inferior */
+    padding: 0 15px; /* Padding lateral para telas menores */
+    background-color: transparent; /* Main agora é só um container */
+    border-radius: 0;
+    box-shadow: none;
 }
 
 section {
     margin-bottom: 30px;
-    padding: 20px;
+    padding: 25px 30px; /* Mais padding interno */
+    background-color: var(--background-card); /* Fundo branco para seções */
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 8px; /* Cantos arredondados */
+    box-shadow: var(--box-shadow-sm); /* Sombra sutil */
+    transition: box-shadow 0.3s ease-in-out;
 }
+/* Opcional: Desabilitar sombra no hover se achar muito */
+/* section:hover {
+     box-shadow: var(--box-shadow); /* Sombra maior no hover */
+/* } */
 
 section h2 {
     color: var(--primary-color);
     margin-top: 0;
     border-bottom: 2px solid var(--secondary-color);
-    padding-bottom: 5px;
-    margin-bottom: 20px;
+    padding-bottom: 8px; /* Mais espaço abaixo da borda */
+    margin-bottom: 25px; /* Mais espaço abaixo do título */
+    font-size: 1.6em;
+    font-weight: 700;
 }
 
-/* --- Botões Reutilizáveis --- */
+/* --- Botões --- */
 button {
-    padding: 10px 18px;
+    padding: 10px 20px; /* Padding ligeiramente ajustado */
     border: none;
-    border-radius: 5px;
+    border-radius: 6px; /* Bordas mais arredondadas */
     cursor: pointer;
     font-size: 1em;
-    transition: background-color 0.3s ease, box-shadow 0.2s ease;
-    margin: 5px; /* Espaçamento entre botões */
+    font-weight: 600; /* Semibold */
+    transition: all 0.25s ease-in-out;
+    margin: 5px;
+    box-shadow: var(--box-shadow-sm);
+    letter-spacing: 0.5px; /* Espaçamento leve entre letras */
+    line-height: 1.5; /* Garante altura consistente */
+    vertical-align: middle; /* Alinha com inputs/texto */
 }
 
 button:disabled {
     background-color: var(--disabled-color);
+    color: #888;
     cursor: not-allowed;
+    opacity: 0.7;
+    box-shadow: none;
+}
+
+button:not(:disabled):hover {
+     transform: translateY(-2px); /* Efeito sutil de levantar */
+     box-shadow: var(--box-shadow);
 }
 
 .button-primary {
@@ -101,16 +163,14 @@ button:disabled {
 }
 .button-primary:hover:not(:disabled) {
     background-color: var(--primary-color-dark);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 }
 
 .button-secondary {
     background-color: var(--secondary-color);
-    color: var(--text-color-light);
+    color: var(--text-color-dark); /* Texto escuro para melhor contraste com dourado */
 }
 .button-secondary:hover:not(:disabled) {
     background-color: var(--secondary-color-dark);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 }
 
 .button-danger {
@@ -119,16 +179,15 @@ button:disabled {
 }
 .button-danger:hover:not(:disabled) {
     background-color: var(--danger-color-dark);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
 }
-
 
 /* --- Formulários --- */
 label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
+    margin-bottom: 8px; /* Mais espaço */
+    font-weight: 600; /* Semibold */
+    color: var(--text-color-muted);
+    font-size: 0.95em;
 }
 
 input[type="email"],
@@ -137,119 +196,146 @@ input[type="number"],
 input[type="text"],
 input[type="date"],
 select {
-    width: 100%; /* Ocupa largura total por padrão */
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
+    width: 100%;
+    padding: 12px 15px; /* Padding interno maior */
+    margin-bottom: 18px; /* Mais espaço abaixo */
+    border-radius: 6px;
     border: 1px solid var(--border-color);
     font-size: 1em;
-    box-sizing: border-box; /* Inclui padding e border na largura */
+    box-sizing: border-box;
+    background-color: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    line-height: 1.5; /* Consistência */
 }
 
-/* Ajustes específicos para inputs menores */
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
+}
+
+
 input[type="number"]#start-chapter-input,
 input[type="number"]#end-chapter-input,
 input[type="number"]#days-input,
 input[type="number"]#chapters-per-day-input {
-    width: auto; /* Permite largura menor */
-    min-width: 80px; /* Define uma largura mínima razoável */
-    display: inline-block; /* Permite que outros elementos fiquem ao lado se o label permitir */
+    width: auto;
+    min-width: 90px;
+    display: inline-block;
     vertical-align: middle;
 }
-input[type="number"][style*="width"] { /* Para o input no modal */
-    width: 60px;
-    padding: 5px;
-    font-size: 0.9em;
-    margin-left: 5px;
-    vertical-align: middle;
+/* Input number no modal - ajustado */
+#new-pace-input {
+    width: 70px !important; /* Força largura com !important se necessário */
+    padding: 8px !important;
+    font-size: 0.9em !important;
+    margin-left: 5px !important;
+    vertical-align: middle !important;
+    display: inline-block !important; /* Garante inline */
 }
+
 input[type="date"]{
      width: auto;
-     padding: 10px 5px;
+     padding: 10px 8px;
      vertical-align: middle;
 }
 input[type="radio"]{
     margin-right: 5px;
     margin-left: 10px;
     vertical-align: middle;
+    accent-color: var(--primary-color); /* Estiliza a bolinha do radio */
+    width: auto; /* Reset width */
+    margin-bottom: 0; /* Reset margin */
+}
+/* Alinha label do radio com o input */
+fieldset label {
+    display: inline-flex; /* Permite alinhar texto e input */
+    align-items: center;
+    margin-right: 15px; /* Espaço entre opções de radio/checkbox */
+    margin-bottom: 10px; /* Espaço abaixo das linhas de radio */
+    font-weight: normal; /* Peso normal para labels de radio/checkbox */
+    color: var(--text-color-dark);
+    cursor: pointer;
+}
+fieldset label input[type="radio"] {
+    margin-bottom: 0; /* Remove margem do input dentro do label */
 }
 
 select[multiple] {
-    height: 150px; /* Altura para select múltiplo */
-    width: 100%; /* Garante que o select múltiplo use a largura total */
+    height: 160px;
+    width: 100%;
     box-sizing: border-box;
 }
 
 fieldset {
     border: 1px solid var(--border-color);
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
+    padding: 20px 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    background-color: rgba(0,0,0,0.01); /* Fundo levemente diferente */
 }
 
 legend {
-    font-weight: bold;
+    font-weight: 700;
     color: var(--primary-color);
     padding: 0 10px;
+    font-size: 1.1em;
 }
 
 hr {
     border: 0;
     height: 1px;
     background-color: var(--border-color);
-    margin: 25px 0;
+    margin: 30px 0;
 }
 
 small {
     display: block;
-    font-size: 0.85em;
-    color: #666;
-    margin-top: -10px;
+    font-size: 0.875em;
+    color: var(--text-color-muted);
+    margin-top: -12px; /* Puxa um pouco para cima */
     margin-bottom: 15px;
 }
 
 /* --- Estilos de Autenticação --- */
 #auth-section {
-    background-color: var(--background-light);
-    padding: 25px;
+    background-color: var(--background-card);
+    padding: 30px 35px; /* Mais padding */
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    margin-bottom: 25px;
-    max-width: 450px;
+    margin-bottom: 30px;
+    max-width: 480px;
     margin-left: auto;
     margin-right: auto;
+    box-shadow: var(--box-shadow); /* Sombra mais definida */
 }
 
 #auth-section h2 {
     text-align: center;
     color: var(--primary-color);
     margin-top: 0;
-    margin-bottom: 20px;
-    border-bottom: none; /* Remove borda do h2 geral */
+    margin-bottom: 25px;
+    border-bottom: none;
+    font-size: 1.8em;
 }
 
-/* Inputs já estão com width: 100% pela regra geral */
-/* #auth-section input[type="email"],
-#auth-section input[type="password"] { ... } */
-
-#auth-section button { /* Botões de login/signup */
+#auth-section button {
     width: 100%;
     padding: 12px 20px;
-    margin-top: 10px;
+    margin-top: 15px;
     font-size: 1.1em;
-    /* Cores definidas pelas classes .button-primary */
 }
 
 #auth-section p {
     text-align: center;
-    margin-top: 15px;
-    font-size: 0.9em;
+    margin-top: 20px;
+    font-size: 0.95em;
 }
 
 #auth-section a {
     color: var(--secondary-color);
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 600;
 }
 
 #auth-section a:hover {
@@ -262,43 +348,50 @@ small {
     background-color: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
-    padding: 10px 15px;
-    border-radius: 4px;
-    margin-bottom: 15px;
-    font-size: 0.9em;
-    text-align: center;
+    padding: 12px 18px;
+    border-radius: 6px;
+    margin-bottom: 18px;
+    font-size: 0.95em;
+    text-align: left; /* Alinha texto à esquerda */
 }
 
 .loading-indicator {
     text-align: center;
     padding: 15px;
     font-style: italic;
-    color: #555;
+    color: var(--text-color-muted);
 }
 
-/* Status do Usuário no Header já estilizado acima */
-#logout-button { /* Botão Sair específico */
-    padding: 5px 10px;
-    font-size: 0.9em;
-    /* Usa .button-danger para cores */
+#logout-button {
+    padding: 6px 12px;
+    font-size: 0.85em;
+    margin-left: 5px; /* Espaço do email */
+    box-shadow: none; /* Sem sombra no botão pequeno */
+    flex-shrink: 0; /* Não encolher */
+}
+#logout-button:hover:not(:disabled){
+    transform: none; /* Sem efeito de levantar */
+    box-shadow: var(--box-shadow-sm);
 }
 
 
 /* --- Quadro Semanal --- */
 .weekly-tracker-container {
-    background-color: #f0f0f0;
-    padding: 15px;
+    background-color: #f0f3f5; /* Tom de cinza azulado leve */
+    padding: 20px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow-sm);
 }
 
 .weekly-tracker-container h3 {
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     text-align: center;
     color: var(--primary-color);
-    font-size: 1.1em;
+    font-size: 1.2em;
+    font-weight: 700;
 }
 
 .week-days {
@@ -312,37 +405,51 @@ small {
     display: flex;
     flex-direction: column;
     align-items: center;
+    cursor: default; /* Não é clicável */
 }
 
 .day-label {
-    font-size: 0.8em;
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 5px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-color-muted);
+    margin-bottom: 8px;
 }
 
 .day-marker {
-    width: 25px;
-    height: 25px;
+    width: 30px; /* Ligeiramente maior */
+    height: 30px;
     border-radius: 50%;
     background-color: var(--marker-inactive-color);
-    border: 1px solid #ccc;
+    border: 2px solid #dbe0e4; /* Borda um pouco mais escura que o fundo */
     display: flex;
     justify-content: center;
     align-items: center;
     color: var(--text-color-light);
     font-weight: bold;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .day-indicator.active .day-marker {
     background-color: var(--success-color);
-    border-color: #1e7e34;
+    border-color: var(--marker-active-border); /* Borda dourada */
+    color: var(--text-color-light);
+    box-shadow: 0 0 8px rgba(var(--success-color-rgb), 0.5); /* Sombra verde */
 }
 
 .day-indicator.active .day-marker::after {
     content: '✓';
-    font-size: 16px;
+    font-size: 18px; /* Checkmark maior */
+}
+
+/* --- Leitura Diária --- */
+#daily-reading {
+    font-size: 1.1em;
+    padding: 15px;
+    margin: 20px 0;
+    background-color: #eef2f7; /* Fundo suave */
+    border-left: 4px solid var(--secondary-color); /* Destaque lateral */
+    color: var(--text-color-dark);
+    border-radius: 0 4px 4px 0; /* Arredonda cantos direito */
 }
 
 /* --- Estilos do Modal --- */
@@ -352,57 +459,87 @@ small {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex; /* Alterado para flex para centralizar mais facilmente */
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo mais escuro */
+    display: flex; /* Usar display: none; e mudar para flex via JS */
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    opacity: 0; /* Começa invisível */
+    visibility: hidden; /* Começa escondido */
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    padding: 15px; /* Padding para evitar que conteúdo toque bordas em telas pequenas */
+    box-sizing: border-box;
 }
+.modal[style*="display: flex"] { /* Animação ao aparecer */
+     opacity: 1;
+     visibility: visible;
+     transition: opacity 0.3s ease;
+}
+
 
 .modal-content {
     background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 500px;
+    padding: 30px 35px; /* Padding ajustado */
+    border-radius: 10px; /* Mais arredondado */
+    width: 100%; /* Largura total dentro do padding do modal */
+    max-width: 550px; /* Largura máxima */
     position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: var(--box-shadow-lg); /* Sombra bem definida */
+    transform: scale(0.95); /* Começa um pouco menor */
+    transition: transform 0.3s ease-in-out;
 }
+.modal[style*="display: flex"] .modal-content {
+    transform: scale(1); /* Animação de escala ao aparecer */
+}
+
 
 .close-button {
     position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 24px;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
     font-weight: bold;
     color: #aaa;
     cursor: pointer;
+    transition: color 0.2s ease;
+    line-height: 1; /* Garante alinhamento */
 }
 
 .close-button:hover {
-    color: #333;
+    color: var(--danger-color); /* Vermelho no hover */
 }
 
 .modal h2 {
     margin-top: 0;
+    margin-bottom: 20px;
     color: var(--primary-color);
+    font-size: 1.7em;
 }
 
 .modal fieldset {
-    margin-top: 20px;
+    margin-top: 25px;
+    border-color: #eee; /* Borda mais suave no modal */
+    padding: 15px 20px;
 }
-.modal label {
-    font-weight: normal;
-    margin-bottom: 8px;
+/* Ajustar labels dentro do modal */
+.modal fieldset label {
+    display: block; /* Força bloco para as opções de radio */
+    margin-bottom: 12px; /* Espaço entre as opções */
+    margin-right: 0;
 }
-.modal input[type="radio"] {
-     vertical-align: middle;
-     margin-bottom: 2px;
+.modal fieldset label input[type="radio"] {
+    margin-left: 0; /* Sem margem esquerda extra */
+    margin-right: 8px; /* Espaço do texto */
 }
-/* Estilo para input[number] dentro do modal já tratado acima */
+/* Estilo específico para o label com input number */
+.modal fieldset label:has(#new-pace-input) {
+    display: flex; /* Alinha texto e input na mesma linha */
+    align-items: center;
+}
+
 .modal button {
-    margin-top: 20px;
-    float: right; /* Alinha botão à direita */
+    margin-top: 25px;
+    float: right;
 }
 /* Limpa o float após o botão */
 .modal .modal-content::after {
@@ -412,35 +549,145 @@ small {
 }
 
 
-/* --- Media Query para Responsividade --- */
-/* Ajuste para telas menores se o header ficar muito cheio */
-@media (max-width: 600px) {
-    header {
-        flex-direction: column; /* Empilha os itens verticalmente */
-        align-items: center; /* Centraliza os itens empilhados */
-        padding: 15px;
-        text-align: center; /* Centraliza o H1 quando empilhado */
+/* --- Media Query --- */
+@media (max-width: 768px) { /* Ponto de quebra ajustado para tablet */
+     header h1 {
+        font-size: 1.5em; /* Reduzir um pouco mais */
     }
-    header h1 {
-        margin-top: 10px; /* Espaço entre logo e título */
-        margin-bottom: 10px; /* Espaço entre título e status */
+    main {
+        margin: 20px auto;
     }
-    .user-status-container {
-        margin-left: 0; /* Reseta margem se usada */
-        text-align: center;
-        width: 100%;
-        margin-top: 5px; /* Espaço acima do status */
-        padding: 0; /* Remove padding extra se houver */
+    section {
+         padding: 20px 25px;
     }
-
-    /* Ajusta tamanho do texto em telas pequenas se necessário */
-    body {
-        font-size: 15px; /* Exemplo: um pouco menor */
+     section h2 {
+        font-size: 1.4em;
     }
-    header h1 {
-        font-size: 1.6em;
+    .modal-content {
+        padding: 25px;
+    }
+    /* Ajusta flex container dos dias da semana */
+    .week-days {
+        flex-wrap: wrap; /* Permitir quebra de linha */
+        gap: 10px; /* Espaçamento quando quebrar linha */
+        justify-content: center; /* Centraliza dias quando quebrar */
+    }
+    .day-indicator {
+        flex-basis: calc(100% / 4 - 12px); /* Tentar 4 por linha, ajustar gap */
     }
     button {
+        padding: 9px 18px; /* Reduzir padding dos botões */
         font-size: 0.95em;
     }
+    #auth-section {
+        padding: 25px 30px;
+    }
+     #auth-section h2 {
+        font-size: 1.6em;
+    }
+}
+
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+        align-items: center;
+        padding: 15px; /* Padding reduzido */
+        text-align: center;
+        position: static; /* Remove sticky em telas pequenas */
+    }
+    header h1 {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        font-size: 1.4em;
+        text-align: center;
+        flex-grow: 0;
+        white-space: normal; /* Permite quebra de título */
+    }
+    .user-status-container {
+        margin-left: 0;
+        text-align: center;
+        width: 100%;
+        margin-top: 10px;
+        padding: 0;
+        flex-direction: column; /* Empilha email e botão */
+        gap: 8px;
+    }
+    #user-email {
+        display: block;
+        margin-bottom: 0;
+        margin-right: 0;
+        max-width: 100%; /* Permite ocupar largura total */
+        text-align: center;
+    }
+    #logout-button {
+        margin-left: 0;
+    }
+
+    body {
+        font-size: 15px;
+    }
+    main {
+        margin: 15px auto;
+        padding: 0 10px;
+    }
+    section {
+         padding: 15px 20px;
+    }
+     section h2 {
+        font-size: 1.3em;
+        margin-bottom: 20px;
+    }
+    .modal-content {
+        padding: 20px;
+        max-width: 100%; /* Ocupa quase toda a largura */
+    }
+     .modal h2 {
+        font-size: 1.5em;
+    }
+    .day-indicator {
+        flex-basis: calc(100% / 4 - 10px); /* Mantem 4 se couber */
+    }
+    /* Garante que inputs de formulário sejam usáveis */
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="text"],
+    input[type="date"],
+    select {
+        padding: 10px 12px;
+        font-size: 1em; /* Mantém tamanho da fonte legível */
+    }
+    button {
+        padding: 10px 15px; /* Padding confortável */
+        width: 100%; /* Botões ocupam largura total para facilitar toque */
+        margin: 8px 0; /* Espaço vertical entre botões */
+        box-sizing: border-box;
+    }
+     /* Botões específicos que não devem ter 100% */
+     #logout-button, #confirm-recalculate {
+        width: auto;
+     }
+     .modal button { /* Botão no modal pode flutuar à direita */
+        width: auto;
+        float: right;
+     }
+     #auth-section {
+        padding: 20px 25px;
+        max-width: 100%;
+     }
+     #auth-section p {
+        font-size: 0.9em;
+     }
+     /* Ajuste para labels de radio em telas pequenas */
+     fieldset label {
+        display: block; /* Empilha opções de radio */
+        margin-right: 0;
+     }
+     .modal fieldset label:has(#new-pace-input){
+         flex-wrap: wrap; /* Permite quebra se não couber */
+     }
+     #new-pace-input {
+         margin-top: 5px; /* Espaço se quebrar linha */
+     }
+
 }
