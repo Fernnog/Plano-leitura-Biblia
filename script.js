@@ -13,8 +13,7 @@ const firebaseConfig = {
   storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
   messagingSenderId: "4101180633",
   appId: "1:4101180633:web:32d7846cf9a031962342c8",
-  measurementId: "G-KT5PPGF7W1
-};
+ };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
