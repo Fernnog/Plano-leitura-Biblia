@@ -82,6 +82,12 @@
              <label for="plan-name">Nome do Plano:</label>
              <input type="text" id="plan-name" placeholder="Ex: Bíblia Completa, Novo Testamento" required>
 
+             <!-- ***** NOVO: Campo Link para Anotações ***** -->
+             <label for="plan-notes-link">Link para Anotações (Opcional):</label>
+             <input type="url" id="plan-notes-link" placeholder="Link Google Drive/Docs (Ex: https://docs.google.com/...)">
+             <small>Cole o link de uma pasta do Drive ou documento principal para suas notas.</small>
+             <!-- ****************************************** -->
+
              <!-- Opções de Criação (Método) -->
              <fieldset>
                  <legend>Método de Seleção de Capítulos</legend>
@@ -141,7 +147,7 @@
                  </div>
              </fieldset>
 
-            <!-- ***** NOVO: Opções de Periodicidade ***** -->
+            <!-- Opções de Periodicidade -->
             <fieldset id="periodicity-options">
                 <legend>Dias de Leitura na Semana</legend>
                 <small>Selecione os dias em que haverá leitura. O plano distribuirá os capítulos apenas nestes dias.</small>
@@ -156,7 +162,6 @@
                 </div>
                  <div id="periodicity-warning" class="error-message" style="display: none; margin-top: 10px;">Selecione pelo menos um dia da semana.</div>
             </fieldset>
-            <!-- **************************************** -->
 
             <button id="create-plan" class="button-primary">Criar Plano</button>
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
@@ -194,6 +199,11 @@
 
             <div class="plan-actions">
                 <button id="mark-as-read" class="button-primary">Marcar como Lido</button>
+                <!-- ***** NOVO: Botão/Link para Anotações ***** -->
+                <a id="open-notes-button" href="#" target="_blank" class="button-secondary" style="display: none;" rel="noopener noreferrer">
+                    Abrir Anotações
+                </a>
+                <!-- ***************************************** -->
                 <button id="recalculate-plan" class="button-secondary">Recalcular Plano</button>
                 <button id="show-stats-button" class="button-secondary">Ver Estatísticas</button>
                 <button id="show-history-button" class="button-secondary">Ver Histórico</button>
