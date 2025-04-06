@@ -1653,6 +1653,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if(showHistoryButton) showHistoryButton.addEventListener('click', () => { displayReadingHistory(); openModal('history-modal'); });
 
     // --- Listener Header Plan Selector ---
+        // ... (inside DOMContentLoaded) ...
+
+    // --- Listener Header Plan Selector ---
     if(planSelect) planSelect.addEventListener('change', (e) => { const selectedPlanId = e.target.value; if (selectedPlanId && selectedPlanId !== activePlanId) { setActivePlan(selectedPlanId); } });
     if(managePlansButton) managePlansButton.addEventListener('click', async () => { // Abre { da função async
         // Refetch list before opening modal to ensure latest data (esp. end dates)
@@ -1665,7 +1668,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else { // Fecha } do if, Abre { do else
             openModal('manage-plans-modal'); // Open empty modal if not logged in? Or disable button?
         } // Fecha } do else
-    }); // <<< --- CORREÇÃO: Adicionada a chave '}' aqui ---
+    }); // <<< --- CORRECTION: Added the missing '});' ---
 
     // --- Listeners Modals ---
     if(confirmRecalculateButton) confirmRecalculateButton.addEventListener('click', handleRecalculate);
