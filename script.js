@@ -7,13 +7,13 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collec
 
 // Configuração do Firebase
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY", // Substitua pela sua API Key
-    authDomain: "YOUR_AUTH_DOMAIN", // Substitua pelo seu Auth Domain
-    projectId: "YOUR_PROJECT_ID", // Substitua pelo seu Project ID
-    storageBucket: "YOUR_STORAGE_BUCKET", // Substitua pelo seu Storage Bucket
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Substitua pelo seu Messaging Sender ID
-    appId: "YOUR_APP_ID", // Substitua pela sua App ID
-    measurementId: "YOUR_MEASUREMENT_ID" // Opcional: Substitua pelo seu Measurement ID
+  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+  projectId: "plano-leitura-biblia-8f763",
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
+  messagingSenderId: "4101180633",
+  appId: "1:4101180633:web:32d7846cf9a031962342c8",
+  measurementId: "G-KT5PPGF7W1"
 };
 
 // Initialize Firebase
@@ -1590,21 +1590,21 @@ document.addEventListener("DOMContentLoaded", () => {
      // Close modal on background click
      [recalculateModal, managePlansModal, statsModal, historyModal].forEach(modal => { if (modal) { modal.addEventListener('click', (event) => { if (event.target === modal) { closeModal(modal.id); } }); } });
 
-    // --- Firebase Auth State Observer ---
-    onAuthStateChanged(auth, (user) => {
-        console.log("Auth state changed. User:", user ? user.uid : "null");
-        // Reset button states on auth change before updating UI
-        if (loginButton) loginButton.disabled = false;
-        if (signupButton) signupButton.disabled = false;
-        if (logoutButton) logoutButton.disabled = false;
-        if (markAsReadButton) markAsReadButton.disabled = true; // Disable until plan loaded
-        if (confirmRecalculateButton) confirmRecalculateButton.disabled = false;
+   // --- Firebase Auth State Observer ---
+        onAuthStateChanged(auth, (user) => {
+            console.log("Auth state changed. User:", user ? user.uid : "null");
+            // Reset button states on auth change before updating UI
+            if (loginButton) loginButton.disabled = false;
+            if (signupButton) signupButton.disabled = false;
+            if (logoutButton) logoutButton.disabled = false;
+            if (markAsReadButton) markAsReadButton.disabled = true; // Disable until plan loaded
+            if (confirmRecalculateButton) confirmRecalculateButton.disabled = false;
 
-        updateUIBasedOnAuthState(user);
-    });
+            updateUIBasedOnAuthState(user);
+        }); // <- Esta linha fecha o onAuthStateChanged
 
-    console.log("Event listeners attached.");
-});
-
-// Expor closeModal globalmente para uso nos `onclick` dos spans
-window.closeModal = closeModal;
+        console.log("Event listeners attached.");
+    }); 
+                                                                                                                                                         
+    // Expor closeModal globalmente para uso nos `onclick` dos spans
+    window.closeModal = closeModal;
