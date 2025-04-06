@@ -336,14 +336,20 @@ document.addEventListener("DOMContentLoaded", () => {
     // Listeners Plan Creation
     createPlanButton.addEventListener('click', createReadingPlan);
     if (cancelCreationButton) cancelCreationButton.addEventListener('click', cancelPlanCreation);
-    creationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
-    durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
+    creationMethodRadios.forEach(radio => { // Abre o bloco do forEach para 'radio'
+        radio.addEventListener('change', togglePlanCreationOptions);
+    }); // Fecha o bloco do forEach para 'radio'
+    durationMethodRadios.forEach(radio => { // Abre o bloco do forEach para 'radio'
+        radio.addEventListener('change', togglePlanCreationOptions);
+    }); // Fecha o bloco do forEach para 'radio'
     if (chaptersInput) chaptersInput.addEventListener('input', updateBookSuggestions);
-    periodicityCheckboxes.forEach(cb => cb.addEventListener('change', () => {
-        const anyChecked = Array.from(periodicityCheckboxes).some(c => c.checked);
-        showErrorMessage(periodicityWarningDiv, anyChecked ? '' : "Selecione pelo menos um dia.");
-    }));
-
+    // ***** CORREÇÃO APLICADA ABAIXO *****
+    periodicityCheckboxes.forEach(cb => { // Abre o bloco da função para cada checkbox 'cb'
+        cb.addEventListener('change', () => { // Adiciona o listener DENTRO da função do forEach
+            const anyChecked = Array.from(periodicityCheckboxes).some(c => c.checked);
+            showErrorMessage(periodicityWarningDiv, anyChecked ? '' : "Selecione pelo menos um dia.");
+        }); 
+    }); 
 
      // Listeners Reading Plan Actions
      markAsReadButton.addEventListener('click', markAsRead);
