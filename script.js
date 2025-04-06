@@ -7,13 +7,14 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collec
 
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
-  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
-  projectId: "plano-leitura-biblia-8f763",
-  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
-  messagingSenderId: "4101180633",
-  appId: "1:4101180633:web:32d7846cf9a031962342c8",
- };
+    apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+    authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+    projectId: "plano-leitura-biblia-8f763",
+    storageBucket: "plano-leitura-biblia-8f763.appspot.com", // Corrigido storageBucket (se necessário)
+    messagingSenderId: "4101180633",
+    appId: "1:4101180633:web:32d7846cf9a031962342c8",
+    measurementId: "G-KT5PPGF7W1"
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
