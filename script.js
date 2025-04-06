@@ -7,13 +7,13 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collec
 
 // Configuração do Firebase (SUBSTITUA COM SUAS CREDENCIAIS REAIS)
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY", // SUBSTITUA
-    authDomain: "SEU_AUTH_DOMAIN.firebaseapp.com", // SUBSTITUA
-    projectId: "SEU_PROJECT_ID", // SUBSTITUA
-    storageBucket: "SEU_STORAGE_BUCKET.appspot.com", // SUBSTITUA (se usar)
-    messagingSenderId: "SEU_MESSAGING_SENDER_ID", // SUBSTITUA
-    appId: "SEU_APP_ID", // SUBSTITUA
-    measurementId: "SEU_MEASUREMENT_ID" // SUBSTITUA (se usar)
+  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
+  projectId: "plano-leitura-biblia-8f763",
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
+  messagingSenderId: "4101180633",
+  appId: "1:4101180633:web:32d7846cf9a031962342c8",
+  measurementId: "G-KT5PPGF7W1"
 };
 
 // Initialize Firebase
