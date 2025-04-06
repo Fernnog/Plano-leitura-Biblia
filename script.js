@@ -1619,11 +1619,10 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("DOM carregado. Inicializando aplicação Firebase.");
     // Basic check for essential elements
     if (!loginForm || !signupForm || !planCreationSection || !readingPlanSection || !upcomingReadingsSection || !planSelect) {
-         console.error("Erro crítico: Elementos essenciais da UI não encontrados no DOM.");
-         document.body.innerHTML = '<p style="color: red; text-align: center; padding: 50px;">Erro Crítico: Falha ao carregar a estrutura da página. Tente recarregar.</p>';
-         return; // Stop execution if essential elements are missing
-     }
-
+        console.error("Erro crítico: Elementos essenciais da UI não encontrados no DOM.");
+        document.body.innerHTML = '<p style="color: red; text-align: center; padding: 50px;">Erro Crítico: Falha ao carregar a estrutura da página. Tente recarregar.</p>';
+        return; // Stop execution if essential elements are missing
+    }
 
     populateBookSelectors();
     togglePlanCreationOptions(); // Set initial state for creation form
@@ -1641,39 +1640,38 @@ document.addEventListener("DOMContentLoaded", () => {
     if(creationMethodRadios) creationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
     if(durationMethodRadios) durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
     if (chaptersInput) chaptersInput.addEventListener('input', updateBookSuggestions);
-     if(periodicityCheckboxes) periodicityCheckboxes.forEach(checkbox => checkbox.addEventListener('change', () => {
-         const anyChecked = Array.from(periodicityCheckboxes).some(cb => cb.checked);
-         showErrorMessage(periodicityWarningDiv, anyChecked ? '' : 'Selecione pelo menos um dia da semana.');
-     }));
+    if(periodicityCheckboxes) periodicityCheckboxes.forEach(checkbox => checkbox.addEventListener('change', () => {
+        const anyChecked = Array.from(periodicityCheckboxes).some(cb => cb.checked);
+        showErrorMessage(periodicityWarningDiv, anyChecked ? '' : 'Selecione pelo menos um dia da semana.');
+    }));
 
-     // --- Listeners Reading Plan ---
-     if(markAsReadButton) markAsReadButton.addEventListener('click', markAsRead);
-     if(deleteCurrentPlanButton) deleteCurrentPlanButton.addEventListener('click', () => { if(activePlanId) handleDeleteSpecificPlan(activePlanId); else alert("Nenhum plano ativo para deletar."); });
-     if(recalculatePlanButton) recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
-     if(showStatsButton) showStatsButton.addEventListener('click', () => { calculateAndShowStats(); openModal('stats-modal'); });
-     if(showHistoryButton) showHistoryButton.addEventListener('click', () => { displayReadingHistory(); openModal('history-modal'); });
+    // --- Listeners Reading Plan ---
+    if(markAsReadButton) markAsReadButton.addEventListener('click', markAsRead);
+    if(deleteCurrentPlanButton) deleteCurrentPlanButton.addEventListener('click', () => { if(activePlanId) handleDeleteSpecificPlan(activePlanId); else alert("Nenhum plano ativo para deletar."); });
+    if(recalculatePlanButton) recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
+    if(showStatsButton) showStatsButton.addEventListener('click', () => { calculateAndShowStats(); openModal('stats-modal'); });
+    if(showHistoryButton) showHistoryButton.addEventListener('click', () => { displayReadingHistory(); openModal('history-modal'); });
 
-     // --- Listener Header Plan Selector ---
-     if(planSelect) planSelect.addEventListener('change', (e) => { const selectedPlanId = e.target.value; if (selectedPlanId && selectedPlanId !== activePlanId) { setActivePlan(selectedPlanId); } });
-     if(managePlansButton) managePlansButton.addEventListener('click', async () => {
-         // Refetch list before opening modal to ensure latest data (esp. end dates)
-         if(currentUser){
-             showLoading(managePlansLoadingDiv, true); // Show loading in modal
-             openModal('manage-plans-modal');
-             await fetchUserPlansList(currentUser.uid);
-             populateManagePlansModal();
-             showLoading(managePlansLoadingDiv, false);
-         } else {
-             openModal('manage-plans-modal'); // Open empty modal if not logged in? Or disable button?
-         }
+    // --- Listener Header Plan Selector ---
+    if(planSelect) planSelect.addEventListener('change', (e) => { const selectedPlanId = e.target.value; if (selectedPlanId && selectedPlanId !== activePlanId) { setActivePlan(selectedPlanId); } });
+    if(managePlansButton) managePlansButton.addEventListener('click', async () => { // Abre { da função async
+        // Refetch list before opening modal to ensure latest data (esp. end dates)
+        if(currentUser){ // Abre { do if
+            showLoading(managePlansLoadingDiv, true); // Show loading in modal
+            openModal('manage-plans-modal');
+            await fetchUserPlansList(currentUser.uid);
+            populateManagePlansModal();
+            showLoading(managePlansLoadingDiv, false);
+        } else { // Fecha } do if, Abre { do else
+            openModal('manage-plans-modal'); // Open empty modal if not logged in? Or disable button?
+        } // Fecha } do else
+    }); // <<< --- CORREÇÃO: Adicionada a chave '}' aqui ---
 
-     });
-
-     // --- Listeners Modals ---
-     if(confirmRecalculateButton) confirmRecalculateButton.addEventListener('click', handleRecalculate);
-     if(createNewPlanButton) createNewPlanButton.addEventListener('click', () => { closeModal('manage-plans-modal'); showPlanCreationSection(); });
-     // Close modal on background click
-     [recalculateModal, managePlansModal, statsModal, historyModal].forEach(modal => { if (modal) { modal.addEventListener('click', (event) => { if (event.target === modal) { closeModal(modal.id); } }); } });
+    // --- Listeners Modals ---
+    if(confirmRecalculateButton) confirmRecalculateButton.addEventListener('click', handleRecalculate);
+    if(createNewPlanButton) createNewPlanButton.addEventListener('click', () => { closeModal('manage-plans-modal'); showPlanCreationSection(); });
+    // Close modal on background click
+    [recalculateModal, managePlansModal, statsModal, historyModal].forEach(modal => { if (modal) { modal.addEventListener('click', (event) => { if (event.target === modal) { closeModal(modal.id); } }); } });
 
     // --- Firebase Auth State Observer ---
     onAuthStateChanged(auth, (user) => {
