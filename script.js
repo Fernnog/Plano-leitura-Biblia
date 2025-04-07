@@ -1527,12 +1527,13 @@ async function handleRecalculate() {
     showErrorMessage(recalculateErrorDiv, '');
     confirmRecalculateButton.disabled = true;
 
-    // Inclui googleDriveLink na cópia
-    const { chaptersList, currentDay, plan: originalPlanMap, startDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink } = JSON.parse(JSON.stringify(currentReadingPlan));
+    // Inclui googleDriveLink na cópia e pega o startDate original
+    const { chaptersList, currentDay, plan: originalPlanMap, startDate: originalStartDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink } = JSON.parse(JSON.stringify(currentReadingPlan));
     const totalReadingDaysOriginal = Object.keys(originalPlanMap || {}).length;
     const validAllowedDays = Array.isArray(allowedDays) ? allowedDays : [0, 1, 2, 3, 4, 5, 6];
 
     try {
+        // --- Calcula capítulos restantes (mesma lógica de antes) ---
         let chaptersReadCount = 0;
         for (let dayKey in originalPlanMap) {
             const dayNum = parseInt(dayKey, 10);
@@ -1545,8 +1546,9 @@ async function handleRecalculate() {
 
         if (remainingChapters.length === 0) throw new Error("Não há capítulos restantes para recalcular.");
 
-        let newTotalReadingDays = 0;
-        let newPlanMap = {};
+        // --- Calcula o número de dias de leitura necessários para os capítulos restantes ---
+        let newTotalReadingDays = 0; // Número de *dias de leitura* para o restante
+        let newPlanMap = {}; // Mapa apenas para os dias restantes
 
         if (recalcOption === 'extend_date') {
             const originalReadingDaysWithContent = Object.values(originalPlanMap || {}).filter(chaps => Array.isArray(chaps) && chaps.length > 0).length;
@@ -1557,29 +1559,46 @@ async function handleRecalculate() {
             newPlanMap = distributeChaptersOverReadingDays(remainingChapters, newTotalReadingDays);
 
         } else if (recalcOption === 'increase_pace') {
-            const originalEndDate = new Date(currentReadingPlan.endDate + 'T00:00:00Z');
+            // Esta opção agora se torna mais complexa, pois a data final original
+            // pode não ser alcançável começando de hoje. Vamos manter a lógica
+            // de calcular quantos dias de leitura existem entre 'hoje' (ou a data
+            // do currentDay) e a data final original, e distribuir nisso.
+
             const todayDate = new Date(getCurrentUTCDateString() + 'T00:00:00Z');
-            if (originalEndDate < todayDate) throw new Error("A data final original já passou. Não é possível manter.");
+            const originalEndDate = new Date(currentReadingPlan.endDate + 'T00:00:00Z');
 
-            let remainingReadingDaysCount = 0;
-            let currentDate = new Date(todayDate);
-            const currentDateOfPlanDayStr = calculateDateForDay(startDate, currentDay, validAllowedDays);
-            if(currentDateOfPlanDayStr){
-                currentDate = new Date(currentDateOfPlanDayStr + 'T00:00:00Z');
-            }else {
-                console.warn("Não foi possível calcular a data do dia atual do plano, usando hoje como fallback.");
+            // Determina a data base para contagem: hoje ou a data agendada para currentDay (se futura)
+            const originalScheduledDateForCurrentDay = calculateDateForDay(originalStartDate, currentDay, validAllowedDays);
+            let countStartDate = todayDate;
+            if (originalScheduledDateForCurrentDay && new Date(originalScheduledDateForCurrentDay + 'T00:00:00Z') > todayDate) {
+                countStartDate = new Date(originalScheduledDateForCurrentDay + 'T00:00:00Z');
             }
 
-            while (currentDate <= originalEndDate) {
-                 if (validAllowedDays.includes(currentDate.getUTCDay())) {
-                    remainingReadingDaysCount++;
+            if (originalEndDate < countStartDate) {
+                 // Ajuste: Se a data final original já passou em relação à data de início da contagem,
+                 // usamos a opção 'extend_date' como fallback para evitar erro.
+                 console.warn("Data final original já passou em relação ao início do recálculo. Usando lógica de 'extend_date'.");
+                 const originalReadingDaysWithContent = Object.values(originalPlanMap || {}).filter(chaps => Array.isArray(chaps) && chaps.length > 0).length;
+                 const avgPace = originalReadingDaysWithContent > 0
+                     ? Math.max(1, Math.ceil(chaptersList.length / originalReadingDaysWithContent))
+                     : 3;
+                 newTotalReadingDays = Math.max(1, Math.ceil(remainingChapters.length / avgPace));
+
+            } else {
+                // Conta os dias de leitura disponíveis até a data final original
+                let remainingReadingDaysCount = 0;
+                let currentDate = new Date(countStartDate);
+                while (currentDate <= originalEndDate) {
+                     if (validAllowedDays.includes(currentDate.getUTCDay())) {
+                        remainingReadingDaysCount++;
+                    }
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                     if(remainingReadingDaysCount > 365*5) break; // Safety break
                 }
-                currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-                 if(remainingReadingDaysCount > 365*5) break; // Safety break
+                 newTotalReadingDays = Math.max(1, remainingReadingDaysCount);
             }
-
-            newTotalReadingDays = Math.max(1, remainingReadingDaysCount);
             newPlanMap = distributeChaptersOverReadingDays(remainingChapters, newTotalReadingDays);
+
 
         } else if (recalcOption === 'new_pace') {
             const newPacePerReadingDay = parseInt(newPaceInput.value, 10);
@@ -1592,48 +1611,74 @@ async function handleRecalculate() {
             throw new Error("Falha ao redistribuir os capítulos restantes.");
         }
 
+        // --- Determinar a data de início para o cálculo da nova data final ---
+        const todayStr = getCurrentUTCDateString();
+        // Calcula a data que *estava* agendada para o dia atual do plano (currentDay)
+        const originalScheduledDateForCurrentDay = calculateDateForDay(originalStartDate, currentDay, validAllowedDays);
+
+        let recalcEffectiveStartDate = todayStr; // Padrão: começar a contar a partir de hoje
+        if (originalScheduledDateForCurrentDay && originalScheduledDateForCurrentDay >= todayStr) {
+            // Se a data agendada original para o dia atual é hoje ou futura, usamos ela como base
+            // para não adiantar o plano se o usuário estiver em dia ou adiantado.
+            recalcEffectiveStartDate = originalScheduledDateForCurrentDay;
+            console.log(`Recálculo usará como data base a data agendada original do dia atual: ${recalcEffectiveStartDate}`);
+        } else {
+            console.log(`Recálculo usará como data base hoje: ${recalcEffectiveStartDate}`);
+        }
+
+        // --- Construir o mapa completo do plano atualizado ---
         const updatedFullPlanMap = {};
+        // Adiciona dias já lidos
         for (let dayKey in originalPlanMap) {
             const dayNum = parseInt(dayKey, 10);
             if (dayNum < currentDay) {
                 updatedFullPlanMap[dayKey] = originalPlanMap[dayKey];
             }
         }
+        // Adiciona os dias restantes recalculados
         let newMapDayCounter = 0;
         Object.keys(newPlanMap).sort((a,b) => parseInt(a) - parseInt(b)).forEach(remDayKey => {
+            // A chave no mapa continua a sequência numérica (ex: se parou no dia 5, continua 5, 6, 7...)
             const newDayKey = (currentDay + newMapDayCounter).toString();
             updatedFullPlanMap[newDayKey] = newPlanMap[remDayKey];
             newMapDayCounter++;
         });
 
-        const finalRecalculatedDayNumber = currentDay + newMapDayCounter - 1;
-        const newEndDateStr = calculateDateForDay(startDate, finalRecalculatedDayNumber, validAllowedDays);
-        if (!newEndDateStr) throw new Error("Falha ao calcular a nova data final após recálculo.");
+        // --- Calcular a NOVA data final ---
+        // Usamos a data de início efetiva do recálculo (recalcEffectiveStartDate)
+        // e o número de dias de leitura restantes (newTotalReadingDays).
+        const newEndDateStr = calculateDateForDay(recalcEffectiveStartDate, newTotalReadingDays, validAllowedDays);
+        if (!newEndDateStr) throw new Error(`Falha ao calcular a nova data final após recálculo, partindo de ${recalcEffectiveStartDate} por ${newTotalReadingDays} dias de leitura.`);
 
+        // --- Preparar os dados finais para salvar ---
         const updatedPlanData = {
+            // Manter metadados originais importantes
             name: name,
-            chaptersList: chaptersList,
+            chaptersList: chaptersList, // Lista completa original
             totalChapters: chaptersList.length,
             allowedDays: allowedDays,
             readLog: readLog || {},
             weeklyInteractions: weeklyInteractions || { weekId: getUTCWeekId(), interactions: {} },
             createdAt: createdAt || serverTimestamp(),
-            googleDriveLink: googleDriveLink || null, // *** Mantém o link ***
-            plan: updatedFullPlanMap,
-            currentDay: currentDay,
-            startDate: startDate,
-            endDate: newEndDateStr
+            googleDriveLink: googleDriveLink || null,
+            startDate: originalStartDate, // <<<=== IMPORTANTE: Mantém a data de início ORIGINAL
+
+            // Atualizar o plano e a nova data final
+            plan: updatedFullPlanMap, // O novo mapa combinado
+            currentDay: currentDay,    // O dia em que o usuário está continua o mesmo
+            endDate: newEndDateStr    // A nova data final calculada
         };
 
+        // --- Salvar no Firestore ---
         const success = await saveRecalculatedPlanToFirestore(userId, activePlanId, updatedPlanData);
 
         if (success) {
-            alert("Seu plano foi recalculado com sucesso!");
+            alert("Seu plano foi recalculado com sucesso! O cronograma restante foi ajustado a partir de hoje (ou da data agendada, se futura).");
             closeModal('recalculate-modal');
-            loadDailyReadingUI();
-            updateProgressBarUI();
-            await displayScheduledReadings(); // *** USA A NOVA FUNÇÃO ***
-            populatePlanSelector();
+            loadDailyReadingUI(); // Atualiza a leitura do dia (que deve mostrar a data correta agora)
+            updateProgressBarUI(); // Atualiza barra com nova data final
+            await displayScheduledReadings(); // Atualiza as próximas leituras
+            populatePlanSelector(); // Atualiza o seletor com a nova data final
         }
 
     } catch (error) {
