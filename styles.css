@@ -1,4 +1,3 @@
-/* START: styles.css - Completo com Leituras Atrasadas e Link Google Drive */
 :root {
     /* --- Paleta de Cores e Variáveis --- */
     --gradient-start: #FF8C00; /* Laranja Vibrante */
@@ -528,5 +527,3 @@ input[type="url"]::placeholder {
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; } /* Padding menor nos itens */
     .overdue-date, .upcoming-date { font-size: 1em; }
 }
-
-/* END: styles.css - Completo com Leituras Atrasadas e Link Google Drive */
