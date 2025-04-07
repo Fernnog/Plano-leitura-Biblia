@@ -1,7 +1,3 @@
-Com certeza! Aqui está o arquivo `README.md` completo, atualizado para incluir a nova funcionalidade do "Painel de Sequência de Leitura":
-
----
-
 # Plano de Leitura da Bíblia Personalizado com Firebase
 
 ![Logotipo do Plano de Leitura](logo.png)
@@ -128,5 +124,3 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
 *   `README.md`: Este arquivo.
 *   `logo.png`: Imagem do logotipo.
 *   `favicon.ico`: Ícone da aba do navegador (Corrigido de `favicon.png` para `.ico` como no HTML).
-
----
