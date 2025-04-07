@@ -171,19 +171,22 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-         <!-- ***** NOVO: Seção Leituras Atrasadas ***** -->
+        <!-- ***** NOVO: Painel de Sequência de Leitura ***** -->
+        <section id="streak-counter-section" class="streak-counter" style="display: none;">
+             <div class="streak-icon">🔥</div> <!-- Ícone de chama (perseverança) -->
+             <div class="streak-info">
+                 <p>Sequência Atual: <strong id="current-streak-value">0</strong> dias</p>
+                 <p class="longest">Maior Sequência: <strong id="longest-streak-value">0</strong> dias</p>
+             </div>
+        </section>
+        <!-- ************************************************ -->
+
+         <!-- ***** Seção Leituras Atrasadas ***** -->
          <section id="overdue-readings" style="display: none;">
               <h2>⚠️ Leituras Atrasadas</h2>
               <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
               <div id="overdue-readings-list" class="overdue-readings-container">
                   <!-- Itens de leitura atrasada serão adicionados pelo script.js -->
-                  <!-- Exemplo (não descomentar):
-                  <div class="overdue-reading-item">
-                      <div class="overdue-date">DD/MM/YYYY (Atrasada!)</div>
-                      <div class="overdue-plan-name">Nome do Plano</div>
-                      <div class="overdue-chapters">Capítulos...</div>
-                  </div>
-                   -->
               </div>
          </section>
          <!-- ***************************************** -->
@@ -194,13 +197,6 @@
               <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando próximas leituras...</div>
               <div id="upcoming-readings-list" class="upcoming-readings-container">
                   <!-- Itens serão adicionados pelo script.js -->
-                  <!-- Exemplo de item (não descomentar):
-                  <div class="upcoming-reading-item">
-                      <div class="upcoming-date">DD/MM/YYYY</div>
-                      <div class="upcoming-plan-name">Nome do Plano</div>
-                      <div class="upcoming-chapters">Capítulos...</div>
-                  </div>
-                   -->
               </div>
          </section>
          <!-- ***************************************** -->
