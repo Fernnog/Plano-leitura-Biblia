@@ -19,14 +19,14 @@
     --success-color-rgb: 40, 167, 69;
     --danger-color: #dc3545; /* Vermelho perigo */
     --danger-color-dark: #bb2d3b;
-    --warning-bg-light: #fffbeb; /* *** NOVO: Fundo aviso Atrasadas *** */
-    --warning-border-light: #fde68a; /* *** NOVO: Borda aviso Atrasadas *** */
-    --warning-text-dark: #d97706; /* *** NOVO: Texto aviso Atrasadas *** */
-    --warning-border-strong: #fcd34d; /* *** NOVO: Borda H2 Atrasadas *** */
-    --warning-item-border: #ef4444; /* *** NOVO: Borda item Atrasado *** */
-    --warning-item-text: #dc2626; /* *** NOVO: Cor data Atrasada *** */
-    --drive-blue: #4285F4; /* *** NOVO: Azul Google Drive *** */
-    --drive-text-blue: #0b57d0; /* *** NOVO: Azul texto link Drive *** */
+    --warning-bg-light: #fffbeb; /* Fundo aviso Atrasadas */
+    --warning-border-light: #fde68a; /* Borda aviso Atrasadas */
+    --warning-text-dark: #d97706; /* Texto aviso Atrasadas */
+    --warning-border-strong: #fcd34d; /* Borda H2 Atrasadas */
+    --warning-item-border: #ef4444; /* Borda item Atrasado */
+    --warning-item-text: #dc2626; /* Cor data Atrasada */
+    --drive-blue: #4285F4; /* Azul Google Drive */
+    --drive-text-blue: #0b57d0; /* Azul texto link Drive */
     --disabled-color: #e0e0e0; /* Cinza para desabilitado */
     --disabled-text-color: #9e9e9e;
     --marker-inactive-color: #f0f0f5; /* Cor de fundo marcador inativo */
@@ -302,7 +302,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
 .history-date { font-weight: bold; color: var(--primary-action); display: block; margin-bottom: 5px; }
 .history-chapters { font-size: 0.95em; color: var(--text-color-muted); word-wrap: break-word; line-height: 1.5; }
 
-/* --- *** NOVO: Estilos Seção Leituras Atrasadas *** --- */
+/* --- Estilos Seção Leituras Atrasadas --- */
 #overdue-readings {
     background-color: var(--warning-bg-light);
     border: 1px solid var(--warning-border-light);
@@ -404,7 +404,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     word-break: break-word;
 }
 
-/* --- *** NOVO: Estilos Google Drive Link *** --- */
+/* --- Estilos Google Drive Link --- */
 input[type="url"] {
     font-size: 0.95em;
     color: var(--drive-text-blue); /* Azul google */
@@ -469,20 +469,61 @@ input[type="url"]::placeholder {
     transform: scale(1.2);
 }
 
+/* --- *** NOVO: Estilos Painel de Sequência de Leitura *** --- */
+.streak-counter {
+    /* display: flex; // Será definido via JS ('flex' ou 'none') */
+    align-items: center;
+    gap: 15px;
+    padding: 12px 20px; /* Slim padding */
+    /* margin-bottom: 25px; // Já existe em <section>, não precisa duplicar */
+    border-radius: var(--base-border-radius);
+    background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); /* Gradiente vibrante */
+    color: var(--text-color-light);
+    box-shadow: var(--box-shadow-sm);
+    transition: all var(--transition-base);
+}
+
+.streak-counter:hover {
+    box-shadow: var(--box-shadow);
+    transform: translateY(-2px);
+}
+
+.streak-icon {
+    font-size: 2.5em; /* Tamanho do ícone */
+    line-height: 1;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.streak-info p {
+    margin: 0 0 3px 0; /* Espaçamento entre linhas */
+    font-size: 1em;
+    font-weight: 400;
+}
+
+.streak-info strong {
+    font-weight: 700;
+    font-size: 1.1em; /* Destaca o número */
+}
+
+.streak-info .longest {
+    font-size: 0.85em; /* "Maior sequência" um pouco menor */
+    opacity: 0.9;
+}
+/* --- Fim dos Estilos do Painel de Sequência --- */
 
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; } section { padding: 20px; }
      section h2 { font-size: 1.4em; }
-     #overdue-readings h2, #upcoming-readings h2 { font-size: 1.3em; } /* H2 das listas menores */
+     #overdue-readings h2, #upcoming-readings h2 { font-size: 1.3em; }
      .modal-content { padding: 25px; max-width: calc(100% - 30px); }
      header h1 { font-size: 1.4em; }
      .plan-selector-container label { display: none; }
      #plan-select { max-width: 120px; font-size: 0.8em; }
      .header-content { align-items: center; }
      .user-status-container { gap: 5px;} #user-email { max-width: 100px;} #logout-button { padding: 5px 10px; font-size: 0.8em; }
-     .upcoming-readings-container { grid-template-columns: 1fr; } /* Uma coluna no mobile */
-     #reading-plan-title { font-size: 1.4em; } /* Título plano ativo menor */
+     .upcoming-readings-container { grid-template-columns: 1fr; }
+     #reading-plan-title { font-size: 1.4em; }
      .drive-link-icon svg { width: 26px; height: 26px; }
 }
 
@@ -519,11 +560,30 @@ input[type="url"]::placeholder {
     .weekly-tracker-container { padding: 15px 10px; }
     .day-indicator { min-width: 36px; } .day-label { font-size: 0.7em; } .day-marker { width: 30px; height: 30px; } .day-indicator.active .day-marker::after { font-size: 16px; }
     .daily-reading-display { padding: 15px 20px; }
-    .plan-list-item { flex-direction: column; align-items: flex-start; gap: 5px;} .plan-list-item .actions { margin-top: 5px; align-self: flex-end; } /* Ações alinhadas à direita */
-    .plan-list-item .actions .manage-drive-link { order: -1; /* Coloca o ícone Drive primeiro */ margin-right: auto; /* Empurra botões para direita */ margin-left: 0; font-size: 1.4em; }
+    .plan-list-item { flex-direction: column; align-items: flex-start; gap: 5px;} .plan-list-item .actions { margin-top: 5px; align-self: flex-end; }
+    .plan-list-item .actions .manage-drive-link { order: -1; margin-right: auto; margin-left: 0; font-size: 1.4em; }
 
     #reading-plan-title { font-size: 1.3em; }
     .drive-link-icon svg { width: 24px; height: 24px; }
-    .overdue-reading-item, .upcoming-reading-item { padding: 12px; } /* Padding menor nos itens */
+    .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
+
+    /* ***** NOVO: Ajustes Responsivos para o Painel de Sequência ***** */
+    .streak-counter {
+        padding: 10px 15px;
+        gap: 10px;
+        flex-direction: column; /* Empilha no mobile */
+        text-align: center;
+    }
+    .streak-icon {
+        font-size: 2.2em;
+        margin-bottom: 5px;
+    }
+    .streak-info p {
+        font-size: 0.95em;
+    }
+    .streak-info .longest {
+        font-size: 0.8em;
+    }
+    /* ***** Fim dos Ajustes Responsivos ***** */
 }
