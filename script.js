@@ -1176,9 +1176,177 @@ async function createReadingPlan() {
         }
 
         // 4. Calcular Data Final REAL (Lógica existente)
+/** Cria um novo plano de leitura com base nos dados do formulário */
+async function createReadingPlan() {
+    if (!currentUser) { alert("Você precisa estar logado para criar um plano."); return; }
+    const userId = currentUser.uid;
+
+    showErrorMessage(planErrorDiv, '');
+    showErrorMessage(periodicityWarningDiv, '');
+
+    // 1. Validações Iniciais e Coleta de Dados Básicos
+    const planName = planNameInput.value.trim();
+    const googleDriveLink = googleDriveLinkInput.value.trim();
+
+    if (!planName) { showErrorMessage(planErrorDiv, "Por favor, dê um nome ao seu plano."); planNameInput.focus(); return; }
+
+    // Validação básica do link (pode ser melhorada)
+    if (googleDriveLink && !(googleDriveLink.startsWith('http://') || googleDriveLink.startsWith('https://'))) {
+        showErrorMessage(planErrorDiv, "O link do Google Drive parece inválido. Use o endereço completo (http:// ou https://).");
+        googleDriveLinkInput.focus();
+        return;
+    }
+
+    const allowedDaysOfWeek = Array.from(periodicityCheckboxes)
+                               .filter(cb => cb.checked)
+                               .map(cb => parseInt(cb.value, 10));
+
+    // Variável para armazenar a lista final de capítulos
+    let chaptersToRead = []; // Definida aqui, no escopo principal da função
+
+    try {
+        // 2. Coleta de Capítulos - Lógica movida para dentro do try
+        const creationMethodRadio = document.querySelector('input[name="creation-method"]:checked');
+        const creationMethod = creationMethodRadio ? creationMethodRadio.value : null;
+        if (!creationMethod) throw new Error("Método de criação não selecionado."); // Lança erro se não selecionado
+
+        if (creationMethod === 'interval') {
+            const startBook = startBookSelect.value;
+            const startChap = parseInt(startChapterInput.value, 10);
+            const endBook = endBookSelect.value;
+            const endChap = parseInt(endChapterInput.value, 10);
+
+            // *** VALIDAÇÃO REFORÇADA para Intervalo ***
+            if (!startBook || startBook === "" || isNaN(startChap) || startChap <= 0 ||
+                !endBook || endBook === "" || isNaN(endChap) || endChap <= 0) {
+                 throw new Error("Selecione os livros e capítulos inicial/final corretamente (números positivos).");
+            }
+            // console.log("Calling generateChaptersInRange with:", { startBook, startChap, endBook, endChap }); // DEBUG (Remover depois)
+
+            // generateChaptersInRange já mostra erros específicos se os livros/caps são inválidos *dentro* do intervalo canônico
+            const generatedChapters = generateChaptersInRange(startBook, startChap, endBook, endChap);
+            if (!generatedChapters) {
+                // Se generateChaptersInRange retornou null (indicando erro já mostrado), paramos.
+                // Não precisamos lançar um novo erro aqui, pois a mensagem já foi exibida.
+                return;
+            }
+            chaptersToRead = generatedChapters; // Atribui o resultado à variável principal
+
+        } else if (creationMethod === 'selection' || creationMethod === 'chapters-per-day') {
+            const selectedBooks = booksSelect ? Array.from(booksSelect.selectedOptions).map(opt => opt.value) : [];
+            const chaptersText = chaptersInput ? chaptersInput.value.trim() : "";
+            if (selectedBooks.length === 0 && !chaptersText) {
+                throw new Error("Escolha livros na lista OU digite capítulos/intervalos.");
+            }
+
+            let chaptersFromSelectedBooks = [];
+            selectedBooks.forEach(book => {
+                if (!bibleBooksChapters[book]) { // Verifica se o livro selecionado é válido
+                    console.warn(`Livro selecionado inválido encontrado: ${book}`);
+                    return; // Pula livro inválido
+                }
+                const maxChap = bibleBooksChapters[book];
+                for (let i = 1; i <= maxChap; i++) chaptersFromSelectedBooks.push(`${book} ${i}`);
+            });
+
+            // parseChaptersInput agora retorna um array ordenado
+            let chaptersFromTextInput = parseChaptersInput(chaptersText);
+            // Poderíamos adicionar uma validação aqui se parseChaptersInput retornasse algo inesperado
+
+            // Combina e garante unicidade (Set) antes de ordenar novamente (embora parse já ordene)
+            const combinedSet = new Set([...chaptersFromSelectedBooks, ...chaptersFromTextInput]);
+            const combinedChapters = Array.from(combinedSet); // Usa a variável local como antes
+
+            // Reordena para garantir ordem canônica final
+            combinedChapters.sort((a, b) => {
+                const matchA = a.match(/^(.*)\s+(\d+)$/); const matchB = b.match(/^(.*)\s+(\d+)$/);
+                if (!matchA || !matchB) return 0;
+                const bookA = matchA[1]; const chapA = parseInt(matchA[2], 10);
+                const bookB = matchB[1]; const chapB = parseInt(matchB[2], 10);
+                const indexA = canonicalBookOrder.indexOf(bookA); const indexB = canonicalBookOrder.indexOf(bookB);
+                if (indexA === -1 || indexB === -1) return 0; // Segurança extra
+                if (indexA !== indexB) return indexA - indexB; return chapA - chapB;
+            });
+
+            chaptersToRead = combinedChapters; // Atribui o resultado final à variável principal
+        }
+
+        // Validação final da lista de capítulos gerada
+        if (!chaptersToRead || chaptersToRead.length === 0) {
+             throw new Error("Nenhum capítulo válido foi selecionado ou gerado para o plano.");
+        }
+
+        // --- Restante da lógica (Duração, Datas, Mapa, Salvar) ---
+
+        // 3. Determinação da Duração e Datas
+        let startDateStr = getCurrentUTCDateString();
+        let totalReadingDays = 0;
+        let planMap = {};
+        let endDateStr = '';
+        const durationMethodRadio = document.querySelector('input[name="duration-method"]:checked');
+        const durationMethod = (creationMethod === 'chapters-per-day') ? null : (durationMethodRadio ? durationMethodRadio.value : 'days'); // Ajusta se for caps/dia
+        const validAllowedDays = allowedDaysOfWeek.length > 0 ? allowedDaysOfWeek : [0, 1, 2, 3, 4, 5, 6];
+
+
+        if (creationMethod === 'chapters-per-day') {
+            const chapPerDay = parseInt(chaptersPerDayInput.value, 10);
+            if (isNaN(chapPerDay) || chapPerDay <= 0) throw new Error("Número inválido de capítulos por dia de leitura.");
+            totalReadingDays = Math.ceil(chaptersToRead.length / chapPerDay);
+            if (totalReadingDays < 1) totalReadingDays = 1;
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
+        } else if (durationMethod === 'days') {
+            const totalCalendarDaysInput = parseInt(daysInput.value, 10);
+            if (isNaN(totalCalendarDaysInput) || totalCalendarDaysInput <= 0) throw new Error("Número total de dias de calendário inválido.");
+            let readingDaysInPeriod = 0;
+            let tempDate = new Date(startDateStr + 'T00:00:00Z');
+            for (let i = 0; i < totalCalendarDaysInput; i++) {
+                if (validAllowedDays.includes(tempDate.getUTCDay())) {
+                    readingDaysInPeriod++;
+                }
+                tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+            }
+            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
+        } else if (durationMethod === 'end-date') {
+            const inputStartDateStr = startDateInput.value || startDateStr; // Usa hoje se não preenchido
+            const inputEndDateStr = endDateInput.value;
+            if (!inputEndDateStr) throw new Error("Selecione a data final.");
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(inputStartDateStr) || !/^\d{4}-\d{2}-\d{2}$/.test(inputEndDateStr)) throw new Error("Formato de data inválido (use YYYY-MM-DD).");
+
+            const start = new Date(inputStartDateStr + 'T00:00:00Z');
+            const end = new Date(inputEndDateStr + 'T00:00:00Z');
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) throw new Error("Datas inválidas.");
+            if (end < start) throw new Error("A data final não pode ser anterior à data inicial.");
+
+            startDateStr = inputStartDateStr; // Usa a data de início (fornecida ou hoje)
+            const calendarDuration = dateDiffInDays(inputStartDateStr, inputEndDateStr) + 1;
+
+            let readingDaysInPeriod = 0;
+            let tempDate = new Date(start);
+            for (let i = 0; i < calendarDuration; i++) {
+                if (validAllowedDays.includes(tempDate.getUTCDay())) {
+                    readingDaysInPeriod++;
+                }
+                tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+                if (i > 365*10) break; // Safety break
+            }
+            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
+        } else {
+            // Se creationMethod != 'chapters-per-day' E durationMethod não é 'days' nem 'end-date'
+             if(creationMethod !== 'chapters-per-day') {
+                 throw new Error("Método de duração inválido ou não determinado.");
+             }
+             // Se chegou aqui, é 'chapters-per-day', que já foi tratado.
+        }
+
+        // 4. Calcular Data Final REAL
         endDateStr = calculateDateForDay(startDateStr, totalReadingDays, validAllowedDays);
         if (!endDateStr) {
-            throw new Error("Não foi possível calcular a data final do plano. Verifique os dias da semana selecionados.");
+            throw new Error("Não foi possível calcular a data final do plano. Verifique os dias da semana selecionados ou o período.");
         }
 
         // 5. Montar e Salvar Dados
@@ -1186,26 +1354,32 @@ async function createReadingPlan() {
             name: planName,
             plan: planMap,
             currentDay: 1,
-            totalChapters: chaptersToRead.length,
-            chaptersList: chaptersToRead,
+            totalChapters: chaptersToRead.length, // Usa a variável principal
+            chaptersList: chaptersToRead,         // Usa a variável principal
             allowedDays: allowedDaysOfWeek,
             startDate: startDateStr,
             endDate: endDateStr,
             readLog: {},
-            googleDriveLink: googleDriveLink || null // *** ADICIONA O LINK AQUI ***
+            googleDriveLink: googleDriveLink || null
         };
+
+        // console.log("Dados do novo plano a serem salvos:", newPlanData); // DEBUG
 
         const newPlanId = await saveNewPlanToFirestore(userId, newPlanData);
         if (newPlanId) {
             alert(`Plano "${planName}" criado com sucesso! Iniciando em ${formatUTCDateStringToBrasilian(startDateStr)} e terminando em ${formatUTCDateStringToBrasilian(endDateStr)}.`);
+            // UI já é atualizada por setActivePlan dentro de saveNewPlanToFirestore
         }
+        // Se saveNewPlan falhar, ele mostrará o erro e retornará null, não chegando aqui.
 
     } catch (error) {
+        // Captura qualquer erro lançado dentro do bloco try
         console.error("Erro durante createReadingPlan:", error);
+        // Mostra a mensagem de erro específica que foi lançada
         showErrorMessage(planErrorDiv, `Erro ao criar plano: ${error.message}`);
+        // Não continua a execução se houver erro
     }
-}
-
+            }
 
 /** Atualiza a UI para mostrar a leitura do dia atual (com data e link) */
 function loadDailyReadingUI() {
