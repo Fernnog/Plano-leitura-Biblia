@@ -1650,7 +1650,7 @@ async function handleRecalculate() {
         const newEndDateStr = calculateDateForDay(recalcEffectiveStartDate, newTotalReadingDays, validAllowedDays);
         if (!newEndDateStr) throw new Error(`Falha ao calcular a nova data final após recálculo, partindo de ${recalcEffectiveStartDate} por ${newTotalReadingDays} dias de leitura.`);
 
-        // --- Preparar os dados finais para salvar ---
+       // --- Preparar os dados finais para salvar ---
         const updatedPlanData = {
             // Manter metadados originais importantes
             name: name,
@@ -1661,12 +1661,15 @@ async function handleRecalculate() {
             weeklyInteractions: weeklyInteractions || { weekId: getUTCWeekId(), interactions: {} },
             createdAt: createdAt || serverTimestamp(),
             googleDriveLink: googleDriveLink || null,
-            startDate: originalStartDate, // <<<=== IMPORTANTE: Mantém a data de início ORIGINAL
+            startDate: originalStartDate, 
 
             // Atualizar o plano e a nova data final
             plan: updatedFullPlanMap, // O novo mapa combinado
             currentDay: currentDay,    // O dia em que o usuário está continua o mesmo
-            endDate: newEndDateStr    // A nova data final calculada
+            endDate: newEndDateStr,    // A nova data final calculada
+
+            recalculationBaseDay: currentDay, // Salva o dia em que o recalculo foi feito
+            recalculationBaseDate: recalcEffectiveStartDate // Salva a data base usada para recalcular           
         };
 
         // --- Salvar no Firestore ---
