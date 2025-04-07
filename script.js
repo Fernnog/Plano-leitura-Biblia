@@ -277,12 +277,14 @@ function generateChaptersInRange(startBook, startChap, endBook, endChap) {
     const startIndex = canonicalBookOrder.indexOf(startBook);
     const endIndex = canonicalBookOrder.indexOf(endBook);
 
+    // Validações que mostram mensagem de erro e retornam null
     if (startIndex === -1 || endIndex === -1) { showErrorMessage(planErrorDiv, "Erro: Livro inicial ou final inválido."); return null; }
     if (startIndex > endIndex) { showErrorMessage(planErrorDiv, "Erro: O livro inicial deve vir antes do livro final."); return null; }
-    if (isNaN(startChap) || startChap < 1 || startChap > bibleBooksChapters[startBook]) { showErrorMessage(planErrorDiv, `Erro: Capítulo inicial inválido para ${startBook}.`); return null; }
-    if (isNaN(endChap) || endChap < 1 || endChap > bibleBooksChapters[endBook]) { showErrorMessage(planErrorDiv, `Erro: Capítulo final inválido para ${endBook}.`); return null; }
+    if (isNaN(startChap) || startChap < 1 || startChap > bibleBooksChapters[startBook]) { showErrorMessage(planErrorDiv, `Erro: Capítulo inicial inválido para ${startBook} (máx ${bibleBooksChapters[startBook]}).`); return null; }
+    if (isNaN(endChap) || endChap < 1 || endChap > bibleBooksChapters[endBook]) { showErrorMessage(planErrorDiv, `Erro: Capítulo final inválido para ${endBook} (máx ${bibleBooksChapters[endBook]}).`); return null; }
     if (startIndex === endIndex && startChap > endChap) { showErrorMessage(planErrorDiv, "Erro: Capítulo inicial maior que o final no mesmo livro."); return null; }
 
+    // Geração da lista
     for (let i = startIndex; i <= endIndex; i++) {
         const currentBook = canonicalBookOrder[i];
         const totalChapters = bibleBooksChapters[currentBook];
@@ -292,8 +294,9 @@ function generateChaptersInRange(startBook, startChap, endBook, endChap) {
             chapters.push(`${currentBook} ${j}`);
         }
     }
-    return chapters;
+    return chapters; // Retorna a lista de capítulos se tudo deu certo
 }
+
 
 /** Analisa a entrada de texto para capítulos/intervalos (ex: "Gn 1-3, Ex 5") */
 function parseChaptersInput(inputString) {
@@ -321,15 +324,16 @@ function parseChaptersInput(inputString) {
 
             try {
                 if (startChapter === null && endChapter === null) { // Livro inteiro
-                    for (let i = 1; i <= maxChapters; i++) chapters.add(`${bookName} ${i}`);
+                    if (maxChapters) { for (let i = 1; i <= maxChapters; i++) chapters.add(`${bookName} ${i}`); }
+                    else { console.warn(`Livro ${bookName} não encontrado nos dados da Bíblia.`); }
                 } else if (startChapter !== null && endChapter === null) { // Capítulo único
                     if (startChapter >= 1 && startChapter <= maxChapters) {
                         chapters.add(`${bookName} ${startChapter}`);
-                    } else { console.warn(`Capítulo inválido (${startChapter}) para ${bookName} na entrada: "${part}"`); }
+                    } else { console.warn(`Capítulo inválido (${startChapter}) para ${bookName} (máx ${maxChapters}) na entrada: "${part}"`); }
                 } else if (startChapter !== null && endChapter !== null) { // Intervalo
                     if (startChapter >= 1 && endChapter >= startChapter && endChapter <= maxChapters) {
                         for (let i = startChapter; i <= endChapter; i++) chapters.add(`${bookName} ${i}`);
-                    } else { console.warn(`Intervalo de capítulos inválido (${startChapter}-${endChapter}) para ${bookName} na entrada: "${part}"`); }
+                    } else { console.warn(`Intervalo de capítulos inválido (${startChapter}-${endChapter}) para ${bookName} (máx ${maxChapters}) na entrada: "${part}"`); }
                 }
             } catch (e) { console.error(`Erro processando parte "${part}": ${e}`); }
         } else { console.warn(`Não foi possível analisar a parte da entrada: "${part}"`); }
@@ -345,11 +349,13 @@ function parseChaptersInput(inputString) {
         const bookB = matchB[1]; const chapB = parseInt(matchB[2], 10);
         const indexA = canonicalBookOrder.indexOf(bookA);
         const indexB = canonicalBookOrder.indexOf(bookB);
+        if (indexA === -1 || indexB === -1) return 0; // Segurança
         if (indexA !== indexB) return indexA - indexB;
         return chapA - chapB;
     });
     return uniqueChaptersArray;
 }
+
 
 /**
  * Distribui os capítulos ao longo dos dias *de leitura*, criando o mapa do plano.
@@ -391,7 +397,12 @@ function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays) {
     if (chapterIndex < totalChapters) {
         console.warn("Nem todos os capítulos foram distribuídos. Adicionando restantes ao último dia.");
         const remaining = chaptersToRead.slice(chapterIndex);
-        planMap[totalReadingDays.toString()].push(...remaining);
+        // Adiciona ao último dia existente
+        if (planMap[totalReadingDays.toString()]) {
+             planMap[totalReadingDays.toString()].push(...remaining);
+        } else { // Caso improvável de totalReadingDays ser 0, mas ter capítulos
+             planMap["1"] = remaining;
+        }
     }
 
     return planMap;
@@ -605,7 +616,7 @@ function populateManagePlansModal() {
         // *** NOVO: Adiciona link do Drive se existir ***
         const driveLinkHTML = plan.googleDriveLink
             ? `<a href="${plan.googleDriveLink}" target="_blank" class="manage-drive-link" title="Abrir link do Google Drive associado" onclick="event.stopPropagation();"> <!-- Impede que clique no link ative o plano -->
-                   <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
+                   <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M7.71 5.41L5.77 7.35C4.09 9.03 3 11.36 3 13.95c0 3.31 2.69 6 6 6h1.05c.39 0 .76-.23.92-.59l2.12-4.72c.19-.43.02-.93-.4-1.16L8.8 11.5c-.57-.31-1.3-.17-1.7.4L5.82 14H6c-1.1 0-2-.9-2-2 0-1.84.8-3.5 2.1-4.59zM18 9h-1.05c-.39 0-.76.23-.92.59l-2.12 4.72c-.19.43-.02-.93.4 1.16l3.89 1.98c.57.31 1.3.17 1.7-.4l1.28-2.05H18c1.1 0 2 .9 2 2 0 1.84-.8 3.5-2.1 4.59L18.29 18.59l1.94 1.94C21.91 18.97 23 16.64 23 14.05c0-3.31-2.69-6-6-6zM12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill-rule="evenodd"/></svg>
                </a>`
             : '';
         // ********************************************
@@ -892,14 +903,14 @@ async function saveNewPlanToFirestore(userId, planData) {
         };
 
         const newPlanDocRef = await addDoc(plansCollectionRef, dataToSave);
-        userPlansList.unshift({ id: newPlanDocRef.id, ...dataToSave });
-        await setActivePlan(newPlanDocRef.id);
-        return newPlanDocRef.id;
+        userPlansList.unshift({ id: newPlanDocRef.id, ...dataToSave }); // Adiciona ao início da lista local
+        await setActivePlan(newPlanDocRef.id); // Define como ativo e recarrega
+        return newPlanDocRef.id; // Retorna o ID do novo plano
 
     } catch (error) {
         console.error("Error saving new plan to Firestore:", error);
         showErrorMessage(planErrorDiv, `Erro ao salvar plano: ${error.message}`);
-        return null;
+        return null; // Indica falha
     } finally {
         showLoading(planLoadingCreateDiv, false);
         if (createPlanButton) createPlanButton.disabled = false;
@@ -1104,15 +1115,17 @@ function cancelPlanCreation() {
 
     if (currentReadingPlan && activePlanId) {
         readingPlanSection.style.display = 'block';
-        if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.hasChildNodes() ? 'block' : 'none'; // Re-exibe Atrasadas se houver
-        if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.hasChildNodes() ? 'block' : 'none'; // Re-exibe Próximas se houver
+        // Re-exibe Atrasadas/Próximas SE houver itens nelas
+        if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 1 || (overdueReadingsListDiv.children.length === 1 && !overdueReadingsListDiv.querySelector('p')) ? 'block' : 'none';
+        if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.children.length > 1 || (upcomingReadingsListDiv.children.length === 1 && !upcomingReadingsListDiv.querySelector('p')) ? 'block' : 'none';
     } else {
         console.log("Cancel creation: No active plan to return to.");
-        // loadUserDataAndPlans(); // Poderia forçar recarga se necessário
+        // Se não há plano ativo, pode ser necessário chamar displayScheduledReadings para mostrar msg "nenhum plano"
+         displayScheduledReadings();
     }
 }
 
-/** Cria um novo plano de leitura com base nos dados do formulário */
+/** Cria um novo plano de leitura com base nos dados do formulário (VERSÃO CORRIGIDA) */
 async function createReadingPlan() {
     if (!currentUser) { alert("Você precisa estar logado para criar um plano."); return; }
     const userId = currentUser.uid;
@@ -1122,7 +1135,7 @@ async function createReadingPlan() {
 
     // 1. Validações Iniciais e Coleta de Dados Básicos
     const planName = planNameInput.value.trim();
-    const googleDriveLink = googleDriveLinkInput.value.trim(); // *** PEGA O LINK ***
+    const googleDriveLink = googleDriveLinkInput.value.trim();
 
     if (!planName) { showErrorMessage(planErrorDiv, "Por favor, dê um nome ao seu plano."); planNameInput.focus(); return; }
 
@@ -1137,48 +1150,150 @@ async function createReadingPlan() {
                                .filter(cb => cb.checked)
                                .map(cb => parseInt(cb.value, 10));
 
-    // 2. Coleta de Capítulos (Lógica existente)
-    let chaptersToRead = [];
-    const creationMethodRadio = document.querySelector('input[name="creation-method"]:checked');
-    const creationMethod = creationMethodRadio ? creationMethodRadio.value : null;
-    if (!creationMethod) { showErrorMessage(planErrorDiv, "Erro: Método de criação não selecionado."); return; }
+    // Variável para armazenar a lista final de capítulos
+    let chaptersToRead = []; // Definida aqui, no escopo principal da função
 
     try {
+        // 2. Coleta de Capítulos - Lógica movida para dentro do try
+        const creationMethodRadio = document.querySelector('input[name="creation-method"]:checked');
+        const creationMethod = creationMethodRadio ? creationMethodRadio.value : null;
+        if (!creationMethod) throw new Error("Método de criação não selecionado."); // Lança erro se não selecionado
+
         if (creationMethod === 'interval') {
-            // ... (lógica existente)
-            chaptersToRead = generateChaptersInRange(/*...*/);
-            if (!chaptersToRead) return;
+            const startBook = startBookSelect.value;
+            const startChap = parseInt(startChapterInput.value, 10);
+            const endBook = endBookSelect.value;
+            const endChap = parseInt(endChapterInput.value, 10);
+
+            // *** VALIDAÇÃO REFORÇADA para Intervalo ***
+            if (!startBook || startBook === "" || isNaN(startChap) || startChap <= 0 ||
+                !endBook || endBook === "" || isNaN(endChap) || endChap <= 0) {
+                 throw new Error("Selecione os livros e capítulos inicial/final corretamente (números positivos).");
+            }
+
+            // generateChaptersInRange já mostra erros específicos e retorna null
+            const generatedChapters = generateChaptersInRange(startBook, startChap, endBook, endChap);
+            if (generatedChapters === null) {
+                // Se generateChaptersInRange retornou null (erro já mostrado), paramos.
+                return;
+            }
+            chaptersToRead = generatedChapters; // Atribui o resultado à variável principal
 
         } else if (creationMethod === 'selection' || creationMethod === 'chapters-per-day') {
-             // ... (lógica existente)
-            chaptersToRead = combinedChapters; // Resultado da combinação e ordenação
+            const selectedBooks = booksSelect ? Array.from(booksSelect.selectedOptions).map(opt => opt.value) : [];
+            const chaptersText = chaptersInput ? chaptersInput.value.trim() : "";
+            if (selectedBooks.length === 0 && !chaptersText) {
+                throw new Error("Escolha livros na lista OU digite capítulos/intervalos.");
+            }
+
+            let chaptersFromSelectedBooks = [];
+            selectedBooks.forEach(book => {
+                if (!bibleBooksChapters[book]) {
+                    console.warn(`Livro selecionado inválido encontrado: ${book}`);
+                    return; // Pula livro inválido
+                }
+                const maxChap = bibleBooksChapters[book];
+                for (let i = 1; i <= maxChap; i++) chaptersFromSelectedBooks.push(`${book} ${i}`);
+            });
+
+            let chaptersFromTextInput = parseChaptersInput(chaptersText);
+
+            // Combina e garante unicidade (Set) antes de ordenar
+            const combinedSet = new Set([...chaptersFromSelectedBooks, ...chaptersFromTextInput]);
+            const combinedChapters = Array.from(combinedSet); // Usa a variável local
+
+            // Reordena para garantir ordem canônica final
+            combinedChapters.sort((a, b) => {
+                const matchA = a.match(/^(.*)\s+(\d+)$/); const matchB = b.match(/^(.*)\s+(\d+)$/);
+                if (!matchA || !matchB) return 0;
+                const bookA = matchA[1]; const chapA = parseInt(matchA[2], 10);
+                const bookB = matchB[1]; const chapB = parseInt(matchB[2], 10);
+                const indexA = canonicalBookOrder.indexOf(bookA); const indexB = canonicalBookOrder.indexOf(bookB);
+                if (indexA === -1 || indexB === -1) return 0; // Segurança extra
+                if (indexA !== indexB) return indexA - indexB; return chapA - chapB;
+            });
+
+            chaptersToRead = combinedChapters; // Atribui o resultado final à variável principal
         }
 
-        if (!chaptersToRead || chaptersToRead.length === 0) throw new Error("Nenhum capítulo válido foi selecionado ou gerado para o plano.");
+        // Validação final da lista de capítulos gerada
+        if (!chaptersToRead || chaptersToRead.length === 0) {
+             throw new Error("Nenhum capítulo válido foi selecionado ou gerado para o plano.");
+        }
 
-        // 3. Determinação da Duração e Datas (Lógica existente)
+        // --- Restante da lógica (Duração, Datas, Mapa, Salvar) ---
+
+        // 3. Determinação da Duração e Datas
         let startDateStr = getCurrentUTCDateString();
         let totalReadingDays = 0;
         let planMap = {};
         let endDateStr = '';
         const durationMethodRadio = document.querySelector('input[name="duration-method"]:checked');
-        const durationMethod = durationMethodRadio ? durationMethodRadio.value : null;
+        // Ajusta durationMethod se for 'chapters-per-day'
+        const durationMethod = (creationMethod === 'chapters-per-day') ? null : (durationMethodRadio ? durationMethodRadio.value : 'days');
         const validAllowedDays = allowedDaysOfWeek.length > 0 ? allowedDaysOfWeek : [0, 1, 2, 3, 4, 5, 6];
 
+
         if (creationMethod === 'chapters-per-day') {
-            // ... (lógica existente)
+            const chapPerDay = parseInt(chaptersPerDayInput.value, 10);
+            if (isNaN(chapPerDay) || chapPerDay <= 0) throw new Error("Número inválido de capítulos por dia de leitura.");
+            totalReadingDays = Math.ceil(chaptersToRead.length / chapPerDay);
+            if (totalReadingDays < 1) totalReadingDays = 1;
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
         } else if (durationMethod === 'days') {
-            // ... (lógica existente)
+            const totalCalendarDaysInput = parseInt(daysInput.value, 10);
+            if (isNaN(totalCalendarDaysInput) || totalCalendarDaysInput <= 0) throw new Error("Número total de dias de calendário inválido.");
+            let readingDaysInPeriod = 0;
+            let tempDate = new Date(startDateStr + 'T00:00:00Z');
+            for (let i = 0; i < totalCalendarDaysInput; i++) {
+                if (validAllowedDays.includes(tempDate.getUTCDay())) {
+                    readingDaysInPeriod++;
+                }
+                tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+                 if (i > 365*10) break; // Safety break
+            }
+            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
         } else if (durationMethod === 'end-date') {
-            // ... (lógica existente)
+            const inputStartDateStr = startDateInput.value || startDateStr; // Usa hoje se não preenchido
+            const inputEndDateStr = endDateInput.value;
+            if (!inputEndDateStr) throw new Error("Selecione a data final.");
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(inputStartDateStr) || !/^\d{4}-\d{2}-\d{2}$/.test(inputEndDateStr)) throw new Error("Formato de data inválido (use YYYY-MM-DD).");
+
+            const start = new Date(inputStartDateStr + 'T00:00:00Z');
+            const end = new Date(inputEndDateStr + 'T00:00:00Z');
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) throw new Error("Datas inválidas.");
+            if (end < start) throw new Error("A data final não pode ser anterior à data inicial.");
+
+            startDateStr = inputStartDateStr; // Usa a data de início (fornecida ou hoje)
+            const calendarDuration = dateDiffInDays(inputStartDateStr, inputEndDateStr) + 1;
+
+            let readingDaysInPeriod = 0;
+            let tempDate = new Date(start);
+            for (let i = 0; i < calendarDuration; i++) {
+                if (validAllowedDays.includes(tempDate.getUTCDay())) {
+                    readingDaysInPeriod++;
+                }
+                tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+                if (i > 365*10) break; // Safety break
+            }
+            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+
         } else {
-            throw new Error("Método de duração inválido ou não determinado.");
+             // Se creationMethod != 'chapters-per-day' E durationMethod não é válido
+             if(creationMethod !== 'chapters-per-day') {
+                 throw new Error("Método de duração inválido ou não determinado.");
+             }
+             // Se chegou aqui, é 'chapters-per-day', que já foi tratado.
         }
 
-        // 4. Calcular Data Final REAL (Lógica existente)
+        // 4. Calcular Data Final REAL
         endDateStr = calculateDateForDay(startDateStr, totalReadingDays, validAllowedDays);
         if (!endDateStr) {
-            throw new Error("Não foi possível calcular a data final do plano. Verifique os dias da semana selecionados.");
+            throw new Error("Não foi possível calcular a data final do plano. Verifique os dias da semana selecionados ou o período.");
         }
 
         // 5. Montar e Salvar Dados
@@ -1192,8 +1307,10 @@ async function createReadingPlan() {
             startDate: startDateStr,
             endDate: endDateStr,
             readLog: {},
-            googleDriveLink: googleDriveLink || null // *** ADICIONA O LINK AQUI ***
+            googleDriveLink: googleDriveLink || null
         };
+
+        // console.log("Dados do novo plano a serem salvos:", newPlanData); // DEBUG
 
         const newPlanId = await saveNewPlanToFirestore(userId, newPlanData);
         if (newPlanId) {
@@ -1201,7 +1318,9 @@ async function createReadingPlan() {
         }
 
     } catch (error) {
+        // Captura qualquer erro lançado dentro do bloco try
         console.error("Erro durante createReadingPlan:", error);
+        // Mostra a mensagem de erro específica que foi lançada
         showErrorMessage(planErrorDiv, `Erro ao criar plano: ${error.message}`);
     }
 }
@@ -1639,8 +1758,9 @@ async function displayScheduledReadings(upcomingCount = 3) {
 
     showLoading(overdueReadingsLoadingDiv, true);
     showLoading(upcomingReadingsLoadingDiv, true);
-    overdueReadingsSection.style.display = 'block'; // Mostra seção de atrasadas (será escondida depois se vazia)
-    upcomingReadingsSection.style.display = 'block'; // Mostra seção de próximas (será escondida depois se vazia)
+    // Mostra seções inicialmente, serão escondidas no finally se vazias
+    overdueReadingsSection.style.display = 'block';
+    upcomingReadingsSection.style.display = 'block';
     overdueReadingsListDiv.innerHTML = ''; // Limpa conteúdo anterior (atrasadas)
     upcomingReadingsListDiv.innerHTML = ''; // Limpa conteúdo anterior (próximas)
     showErrorMessage(planViewErrorDiv, ''); // Limpa erros gerais
@@ -1654,8 +1774,7 @@ async function displayScheduledReadings(upcomingCount = 3) {
         upcomingReadingsListDiv.innerHTML = '<p>Você ainda não tem planos de leitura.</p>';
         showLoading(overdueReadingsLoadingDiv, false);
         showLoading(upcomingReadingsLoadingDiv, false);
-        overdueReadingsSection.style.display = 'block'; // Mantém visível para a mensagem
-        upcomingReadingsSection.style.display = 'block'; // Mantém visível para a mensagem
+        // Mantém seções visíveis para mostrar as mensagens
         return;
     }
 
@@ -1734,7 +1853,7 @@ async function displayScheduledReadings(upcomingCount = 3) {
 
         // --- Renderizar Leituras Atrasadas ---
         if (overdueList.length === 0) {
-            overdueReadingsListDiv.innerHTML = '<p>Nenhuma leitura atrasada encontrada. Bom trabalho!</p>';
+            // Não insere HTML aqui, deixa o finally esconder a seção
         } else {
             // Ordena por data (mais antiga primeiro) - opcional
             overdueList.sort((a, b) => a.date.localeCompare(b.date));
@@ -1760,14 +1879,10 @@ async function displayScheduledReadings(upcomingCount = 3) {
         }
 
         // --- Renderizar Próximas Leituras ---
-        if (upcomingList.length === 0 && overdueList.length === 0) {
-             // Se não há atrasadas nem futuras (planos concluídos ou vazios)
-              upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima agendada encontrada.</p>';
-         } else if (upcomingList.length === 0 && overdueList.length > 0) {
-             // Se há atrasadas mas nenhuma futura
-              upcomingReadingsListDiv.innerHTML = '<p>Verifique suas leituras atrasadas acima.</p>';
-         } else if (upcomingList.length > 0) {
-            // Ordena a lista combinada por data (mais próxima primeiro)
+        if (upcomingList.length === 0) {
+            // Não insere HTML aqui, deixa o finally tratar a visibilidade
+        } else {
+            // Ordena a lista por data (mais próxima primeiro)
             upcomingList.sort((a, b) => a.date.localeCompare(b.date));
             const itemsToShow = upcomingList.slice(0, upcomingCount);
             itemsToShow.forEach(item => {
@@ -1788,27 +1903,37 @@ async function displayScheduledReadings(upcomingCount = 3) {
                 itemDiv.style.cursor = 'pointer';
                 upcomingReadingsListDiv.appendChild(itemDiv);
             });
-        } else {
-             // Fallback caso nenhuma condição anterior seja atendida (improvável)
-             upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima agendada encontrada.</p>';
         }
 
 
     } catch (error) {
         console.error("Erro ao buscar leituras agendadas:", error);
-        overdueReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao verificar atrasos.</p>';
-        upcomingReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao carregar próximas leituras.</p>';
+        // Mostra erro nas duas seções
+        if (overdueReadingsListDiv) overdueReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao verificar atrasos.</p>';
+        if (upcomingReadingsListDiv) upcomingReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao carregar próximas leituras.</p>';
         showErrorMessage(planViewErrorDiv, `Erro nas leituras agendadas: ${error.message}`);
     } finally {
         showLoading(overdueReadingsLoadingDiv, false);
         showLoading(upcomingReadingsLoadingDiv, false);
-        // Esconde seções se não houver itens (exceto mensagem de 'nenhum encontrado')
+
+        // Esconde seção de Atrasadas se não houver itens nela
         overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 0 ? 'block' : 'none';
-        // A condição para upcoming precisa ser ajustada para mostrar a mensagem quando não há próximas mas há atrasadas
-        const showUpcoming = upcomingList.length > 0 || (upcomingList.length === 0 && overdueList.length === 0) || (upcomingList.length === 0 && overdueList.length > 0);
-        upcomingReadingsSection.style.display = showUpcoming ? 'block' : 'none';
 
-
+        // Esconde seção Próximas se não houver itens nela
+        if (upcomingReadingsListDiv.children.length === 0) {
+            // Se não tem próximas, mostra mensagem padrão (pode ser sobrecarregada por erro acima)
+            upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima agendada encontrada.</p>';
+            // Mantém a seção visível para mostrar a mensagem
+            upcomingReadingsSection.style.display = 'block';
+        } else {
+            // Se tem itens, a seção já está visível
+             upcomingReadingsSection.style.display = 'block';
+        }
+        // Caso especial: se não há planos, as mensagens iniciais já foram setadas
+         if (userPlansList.length === 0) {
+             overdueReadingsSection.style.display = 'block';
+             upcomingReadingsSection.style.display = 'block';
+         }
     }
 }
 
