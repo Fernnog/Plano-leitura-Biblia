@@ -1,7 +1,7 @@
 {
-  "name": "Minhas Compras de Mercado",
-  "short_name": "Compras",
-  "description": "Sua lista de supermercado inteligente.",
+  "name": "Meu plano pessoal de leitura da Bíblia",
+  "short_name": "Plano leitura da Bíblia",
+  "description": "Plano de leitura da Bíblia inteligente",
   "start_url": ".", // Ou apenas "/" se o index.html está na raiz
   "display": "standalone", // Faz parecer um app sem a barra de endereço do Chrome
   "background_color": "#f8f9fa", // Cor de fundo da tela de splash (opcional)
