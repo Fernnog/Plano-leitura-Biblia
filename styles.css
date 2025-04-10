@@ -36,7 +36,7 @@
     --marker-active-bg: var(--primary-action); /* Fundo marcador ativo (lido) */
     --marker-active-border: var(--gradient-mid); /* Borda marcador ativo (lido) */
     --marker-active-shadow: rgba(var(--primary-action-rgb), 0.4); /* Sombra marcador ativo (lido) */
-    /* NOVAS cores para dia inativo do PLANO */
+    /* Cores para dia inativo do PLANO */
     --marker-plan-inactive-bg: #e0e0e0;   /* Fundo cinza claro */
     --marker-plan-inactive-border: #bdbdbd; /* Borda cinza médio */
     --marker-plan-inactive-text: #757575; /* Cor do texto/ícone cinza escuro */
@@ -249,7 +249,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
 .day-indicator.active .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); }
 .day-indicator.active .day-marker::after { content: '✓'; font-size: 18px; font-weight: bold; text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
 
-/* --- *** NOVO: Estilo para Dias INATIVOS conforme o Plano *** --- */
+/* --- Estilo para Dias INATIVOS conforme o Plano --- */
 .day-indicator.inactive-plan-day .day-marker {
     background-color: var(--marker-plan-inactive-bg); /* Cinza claro de fundo */
     border-color: var(--marker-plan-inactive-border); /* Borda cinza um pouco mais escura */
@@ -270,45 +270,110 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     opacity: 0.8;
 }
 
-/* Garante que o estado 'active' (lido) sobrescreva o 'inactive-plan-day' se por algum erro ocorrerem juntos */
+/* Garante que o estado 'active' (lido) sobrescreva o 'inactive-plan-day' */
 .day-indicator.active.inactive-plan-day .day-marker {
-    /* Re-aplica estilos do active se necessário, garantindo prioridade visual */
     background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
     border-color: transparent;
     color: var(--text-color-light);
     box-shadow: 0 0 12px var(--marker-active-shadow);
     transform: scale(1.1);
-    cursor: default; /* Volta cursor padrão */
-    opacity: 1; /* Remove transparência */
+    cursor: default;
+    opacity: 1;
 }
 .day-indicator.active.inactive-plan-day .day-marker::after {
-    content: '✓'; /* Garante o checkmark */
+    content: '✓';
     color: var(--text-color-light);
     text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
 }
 .day-indicator.active.inactive-plan-day .day-label {
-    color: var(--text-color-muted); /* Mantém o label apagado ou volta ao normal */
-    opacity: 1;
+    opacity: 1; /* Restaura opacidade do label */
 }
-/* --- *** FIM NOVO ESTILO *** --- */
 
 /* --- Leitura Diária e Ações --- */
 .daily-reading-display {
-    font-size: 1.1em;
+    font-size: 1.1em; /* Tamanho base */
     padding: 20px 25px;
     margin: 25px 0;
-    background-color: var(--background-card);
+    background-color: var(--background-card); /* Fundo branco */
     border-left: 6px solid;
-    border-image: linear-gradient(to bottom, var(--primary-action), var(--gradient-mid)) 1;
+    border-image: linear-gradient(to bottom, var(--primary-action), var(--gradient-mid)) 1; /* Gradiente na borda */
     color: var(--text-color-dark);
     border-radius: 0 var(--base-border-radius) var(--base-border-radius) 0;
     box-shadow: var(--box-shadow-sm);
-    line-height: 1.7;
+    line-height: 1.7; /* Espaçamento de linha */
 }
-.daily-reading-display p { margin-top: 0; }
+.daily-reading-display p:first-child { margin-top: 0; } /* Remove margem do primeiro parágrafo (data/dia) */
+
+/* --- *** NOVO: Estilos Lista de Capítulos Individual *** --- */
+.chapter-list {
+    list-style: none;
+    padding-left: 5px; /* Pequeno recuo */
+    margin-top: 15px; /* Espaço após o cabeçalho do dia */
+    margin-bottom: 0;
+}
+
+.chapter-item {
+    padding: 8px 5px;
+    margin-bottom: 6px;
+    border-left: 3px solid transparent; /* Espaço para indicar estado */
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+    display: flex; /* Para alinhar checkbox e label */
+    align-items: center;
+    gap: 10px; /* Espaço entre checkbox e label */
+}
+
+/* Checkbox customizado (base) */
+.chapter-item input[type="checkbox"] {
+    margin: 0; /* Remove margens padrão */
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0; /* Impede que o checkbox encolha */
+    cursor: pointer;
+    accent-color: var(--primary-action); /* Cor quando marcado */
+    vertical-align: middle; /* Alinha com o texto */
+}
+
+/* Label associado ao checkbox */
+.chapter-item label {
+    margin-bottom: 0; /* Remove margem padrão */
+    font-weight: normal; /* Texto normal */
+    color: var(--text-color-dark);
+    cursor: pointer; /* Label também é clicável */
+    flex-grow: 1; /* Label ocupa espaço restante */
+    line-height: 1.4; /* Ajusta altura da linha */
+    transition: color var(--transition-fast), text-decoration var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* Efeito Hover no item */
+.chapter-item:hover {
+    background-color: var(--background-light); /* Fundo suave no hover */
+}
+
+/* Estilo para capítulo completado */
+.chapter-item.completed label {
+    text-decoration: line-through; /* Tacha o texto */
+    color: var(--text-color-muted); /* Cor mais apagada */
+    opacity: 0.8;
+}
+
+.chapter-item.completed {
+    border-left-color: var(--success-color); /* Borda verde à esquerda */
+}
+
+/* Estilo para checkbox desabilitado (durante salvamento) */
+.chapter-item input[type="checkbox"]:disabled {
+    cursor: wait; /* Cursor de espera */
+    opacity: 0.6;
+}
+.chapter-item input[type="checkbox"]:disabled + label {
+    cursor: wait;
+    opacity: 0.6;
+}
+/* --- *** FIM Estilos Lista de Capítulos *** --- */
+
 
 .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-.plan-actions button { flex-grow: 1; min-width: 150px; }
+.plan-actions button { flex-grow: 1; min-width: 150px; } /* Botões restantes */
 
 /* --- Estilos Periodicidade na Criação --- */
 #periodicity-options .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 15px; margin-top: 10px; justify-content: flex-start; }
@@ -522,13 +587,12 @@ input[type="url"]::placeholder {
     transform: scale(1.2);
 }
 
-/* --- *** NOVO: Estilos Painel de Sequência de Leitura *** --- */
+/* --- Estilos Painel de Sequência de Leitura --- */
 .streak-counter {
     /* display: flex; // Será definido via JS ('flex' ou 'none') */
     align-items: center;
     gap: 15px;
     padding: 12px 20px; /* Slim padding */
-    /* margin-bottom: 25px; // Já existe em <section>, não precisa duplicar */
     border-radius: var(--base-border-radius);
     background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); /* Gradiente vibrante */
     color: var(--text-color-light);
@@ -562,7 +626,6 @@ input[type="url"]::placeholder {
     font-size: 0.85em; /* "Maior sequência" um pouco menor */
     opacity: 0.9;
 }
-/* --- Fim dos Estilos do Painel de Sequência --- */
 
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
@@ -578,8 +641,11 @@ input[type="url"]::placeholder {
      .upcoming-readings-container { grid-template-columns: 1fr; }
      #reading-plan-title { font-size: 1.4em; }
      .drive-link-icon svg { width: 26px; height: 26px; }
-     .day-marker { width: 30px; height: 30px; } /* Ajuste pequeno para caber melhor */
-     .day-indicator.active .day-marker::after, .day-indicator.inactive-plan-day .day-marker::after { font-size: 16px; } /* Ajuste ícone interno */
+     .day-marker { width: 30px; height: 30px; }
+     .day-indicator.active .day-marker::after, .day-indicator.inactive-plan-day .day-marker::after { font-size: 16px; }
+     /* Ajuste para lista de capítulos */
+     .chapter-item { padding: 6px 3px; gap: 8px;}
+     .chapter-item label { font-size: 0.95em; }
 }
 
 @media (max-width: 600px) {
@@ -627,7 +693,7 @@ input[type="url"]::placeholder {
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
 
-    /* ***** NOVO: Ajustes Responsivos para o Painel de Sequência ***** */
+    /* Ajustes Responsivos Painel de Sequência */
     .streak-counter {
         padding: 10px 15px;
         gap: 10px;
@@ -644,7 +710,15 @@ input[type="url"]::placeholder {
     .streak-info .longest {
         font-size: 0.8em;
     }
-    /* ***** Fim dos Ajustes Responsivos ***** */
+
+     /* Ajustes Responsivos Lista de Capítulos */
+     .chapter-item label {
+         font-size: 0.9em; /* Reduz um pouco o texto do capítulo */
+     }
+     .chapter-item input[type="checkbox"] {
+         width: 16px; height: 16px; /* Levemente menor */
+     }
+
 }
 
 /* --- END OF FILE styles.css --- */
