@@ -12,7 +12,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
 *   **Gerenciamento de Múltiplos Planos:**
     *   Crie quantos planos de leitura desejar (ex: Bíblia Completa, Novo Testamento, Salmos, etc.).
     *   Dê um nome personalizado para cada plano.
-    *   Associe um link opcional do Google Drive (Documento/Pasta) a cada plano para acesso rápido a notas ou materiais relacionados.
+    *   Associe um link opcional do Google Drive (Documento/Pasta) a cada plano para acesso rápido a notas ou materiais relacionados (ícone do Drive visível no modal de gerenciamento).
     *   Alterne facilmente entre os planos ativos usando um seletor no cabeçalho.
     *   Gerencie seus planos (ativar, excluir, acessar link do Drive) através de um modal dedicado.
 *   **Criação de Planos Personalizados:**
@@ -28,10 +28,14 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
         *   O plano distribuirá os capítulos apenas nos dias selecionados, pulando os demais.
 *   **Acompanhamento de Progresso Detalhado:**
     *   Visualização da leitura designada para o dia atual do plano ativo, incluindo a data agendada (considerando recálculos).
+    *   **Ícone do Google Drive:** Acesso rápido ao link do Drive associado ao plano ativo, posicionado ao lado do título do plano para melhor visibilidade em todas as telas.
     *   **Barra de Progresso Visual:** Acompanhe o avanço geral no plano ativo com uma barra gráfica.
     *   Botão "Marcar como Lido" para avançar no plano (pula automaticamente dias sem leitura configurados na periodicidade e atualiza a sequência).
     *   Exibição do progresso (Dia X de Y - considerando dias de calendário e datas de início/fim).
-    *   **Tracker Semanal:** Visualização gráfica do progresso na semana corrente (Domingo a Sábado), indicando os dias em que houve leitura registrada (`Mark as Read`).
+    *   **Tracker Semanal:** Visualização gráfica do progresso na semana corrente (Domingo a Sábado), indicando:
+        *   Dias em que a leitura foi marcada como concluída (`✓`).
+        *   Dias que eram de leitura permitida no passado, mas não foram marcados (`✕` vermelho).
+        *   Dias em que a leitura não é permitida pelas configurações do plano (`-` cinza).
     *   **Leituras Atrasadas e Próximas:** Seções dedicadas que mostram automaticamente as leituras agendadas que passaram da data e as próximas leituras programadas em todos os planos.
 *   **Painel de Sequência de Leitura:**
     *   Motiva a consistência exibindo um painel visual com a sequência atual de dias *consecutivos* em que o usuário interagiu com a leitura (usando "Marcar como Lido" em qualquer plano).
@@ -48,7 +52,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
         *   Manter a data final original e aumentar o ritmo diário (nos dias de leitura).
         *   Definir um novo ritmo de capítulos por *dia de leitura*.
     *   O recálculo preserva o histórico de leitura e ajusta as datas futuras a partir do dia atual.
-*   **Interface Responsiva:** Design moderno e otimizado para dispositivos móveis (Mobile-First).
+*   **Interface Responsiva:** Design moderno e otimizado para dispositivos móveis (Mobile-First), com atenção à visibilidade de elementos importantes como o link do Drive.
 
 ## Tech Stack
 
@@ -57,6 +61,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
     *   Firebase Authentication (Autenticação por Email/Senha)
     *   Cloud Firestore (Banco de Dados NoSQL em tempo real)
 *   **Fontes:** Google Fonts (Inter)
+*   **Ícones:** SVG (incluindo ícone padrão do Google Drive)
 
 ## Configuração do Firebase
 
@@ -111,7 +116,7 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
 3.  **Acompanhamento (Plano Ativo):**
     *   O plano selecionado como ativo será exibido, juntamente com o *painel de sequência de leitura*.
     *   Use o seletor no cabeçalho para trocar rapidamente entre seus planos.
-    *   Veja a leitura do dia, a barra de progresso geral e o tracker semanal de marcações.
+    *   Veja a leitura do dia, o link do Drive (se houver) ao lado do título, a barra de progresso geral e o tracker semanal de marcações (completas, perdidas ou inativas).
     *   Verifique as seções de *Leituras Atrasadas* e *Próximas Leituras*.
     *   Clique em "Marcar como Lido" para avançar no plano ativo *e atualizar sua sequência de leitura*.
 4.  **Recalcular/Histórico/Stats:** Use os botões correspondentes na seção do plano ativo para ajustar o ritmo, ver o histórico de leitura daquele plano ou visualizar estatísticas.
@@ -123,4 +128,5 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
 *   `script.js`: Lógica da aplicação, interações com Firebase, manipulação do DOM.
 *   `README.md`: Este arquivo.
 *   `logo.png`: Imagem do logotipo.
-*   `favicon.ico`: Ícone da aba do navegador (Corrigido de `favicon.png` para `.ico` como no HTML).
+*   `favicon.ico`: Ícone da aba do navegador.
+*   `manifest.json`: Configuração do Progressive Web App (PWA).
