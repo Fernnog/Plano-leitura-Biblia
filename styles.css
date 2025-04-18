@@ -33,19 +33,24 @@
     --disabled-text-color: #9e9e9e;
     --marker-inactive-color: #f0f0f5; /* Cor de fundo marcador inativo (padrão) */
     --marker-inactive-border: #dbe0e4;
-    --marker-active-bg: var(--primary-action); /* Fundo marcador ativo (lido) */
-    --marker-active-border: var(--gradient-mid); /* Borda marcador ativo (lido) */
-    --marker-active-shadow: rgba(var(--primary-action-rgb), 0.4); /* Sombra marcador ativo (lido) */
+    --marker-active-bg: var(--primary-action); /* Fundo marcador ativo (lido HOJE) */
+    --marker-active-border: var(--gradient-mid); /* Borda marcador ativo (lido HOJE) */
+    --marker-active-shadow: rgba(var(--primary-action-rgb), 0.4); /* Sombra marcador ativo (lido HOJE) */
     /* Cores para dia inativo do PLANO */
     --marker-plan-inactive-bg: #e0e0e0;   /* Fundo cinza claro */
     --marker-plan-inactive-border: #bdbdbd; /* Borda cinza médio */
     --marker-plan-inactive-text: #757575; /* Cor do texto/ícone cinza escuro */
     --marker-plan-inactive-opacity: 0.7;  /* Opacidade */
-    /* Cores para Dia Perdido (Refinamento 2) */
+    /* Cores para Dia Perdido (Passado e não lido) */
     --marker-missed-bg: #fee2e2; /* Fundo vermelho bem claro */
     --marker-missed-border: #fca5a5; /* Borda vermelha clara */
     --marker-missed-text: #b91c1c; /* Texto 'X' vermelho escuro */
     --marker-missed-shadow: rgba(220, 53, 69, 0.2); /* Sombra sutil vermelha */
+    /* *** NOVO: Cores para Dia Lido Adiantado *** */
+    --marker-readahead-bg: #e6fffa; /* Fundo verde bem claro (teal) */
+    --marker-readahead-border: #38a169; /* Borda verde média */
+    --marker-readahead-text: #2f855a; /* Texto '✓' verde escuro */
+    --marker-readahead-shadow: rgba(56, 161, 105, 0.2); /* Sombra sutil verde */
 
     --font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --box-shadow-sm: 0 2px 5px rgba(var(--primary-action-rgb), 0.08);
@@ -260,11 +265,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     line-height: 1;
 }
 
-/* Estilo para Dia Lido (Ativo) */
-.day-indicator.active .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); }
-.day-indicator.active .day-marker::after { content: '✓'; color: var(--text-color-light); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
-
-/* Estilo para Dias INATIVOS conforme o Plano */
+/* --- PRIORIDADE 4: Dia Inativo PELO PLANO (cinza) --- */
 .day-indicator.inactive-plan-day .day-marker {
     background-color: var(--marker-plan-inactive-bg);
     border-color: var(--marker-plan-inactive-border);
@@ -283,52 +284,9 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     opacity: 0.8;
 }
 
-/* Estilo para Dia PERDIDO (Refinamento 2) */
+/* --- PRIORIDADE 3: Dia PERDIDO (vermelho 'X') --- */
+/* Aplicado a dias passados que eram permitidos mas não foram marcados */
 .day-indicator.missed-day .day-marker {
-    background-color: var(--marker-missed-bg); /* Fundo vermelho claro */
-    border-color: var(--marker-missed-border); /* Borda vermelha mais clara */
-    box-shadow: 0 0 8px var(--marker-missed-shadow); /* Sombra vermelha sutil */
-    transform: scale(1.05); /* Leve destaque */
-    opacity: 1; /* Garante opacidade total */
-    cursor: help; /* Indica que algo aconteceu aqui */
-}
-.day-indicator.missed-day .day-marker::after {
-    content: '✕'; /* Ou 'X', mas ✕ é mais estilizado */
-    color: var(--marker-missed-text); /* Texto vermelho escuro */
-    text-shadow: none;
-}
-.day-indicator.missed-day .day-label {
-    color: var(--marker-missed-text); /* Label também fica vermelho */
-    opacity: 1;
-}
-
-
-/* Garante prioridades corretas (Lido > Perdido > Inativo pelo Plano > Padrão) */
-/* Lido (active) sobrepõe Perdido e Inativo */
-.day-indicator.active.missed-day .day-marker,
-.day-indicator.active.inactive-plan-day .day-marker {
-    background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
-    border-color: transparent;
-    color: var(--text-color-light);
-    box-shadow: 0 0 12px var(--marker-active-shadow);
-    transform: scale(1.1);
-    cursor: default;
-    opacity: 1;
-}
-.day-indicator.active.missed-day .day-marker::after,
-.day-indicator.active.inactive-plan-day .day-marker::after {
-    content: '✓';
-    color: var(--text-color-light);
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
-}
-.day-indicator.active.missed-day .day-label,
-.day-indicator.active.inactive-plan-day .day-label {
-    color: var(--text-color-muted); /* Volta ao label normal */
-    opacity: 1;
-}
-
-/* Perdido (missed) sobrepõe Inativo pelo Plano (caso ocorra essa combinação por erro de lógica) */
-.day-indicator.missed-day.inactive-plan-day .day-marker {
     background-color: var(--marker-missed-bg);
     border-color: var(--marker-missed-border);
     box-shadow: 0 0 8px var(--marker-missed-shadow);
@@ -336,15 +294,107 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     opacity: 1;
     cursor: help;
 }
-.day-indicator.missed-day.inactive-plan-day .day-marker::after {
+.day-indicator.missed-day .day-marker::after {
     content: '✕';
     color: var(--marker-missed-text);
     text-shadow: none;
 }
-.day-indicator.missed-day.inactive-plan-day .day-label {
+.day-indicator.missed-day .day-label {
     color: var(--marker-missed-text);
     opacity: 1;
 }
+
+/* --- *** NOVO: PRIORIDADE 2: Dia Lido ADIANTADO (verde '✓') *** --- */
+/* Aplicado a dias FUTUROS marcados via readAheadDates */
+.day-indicator.read-ahead-day .day-marker {
+    background-color: var(--marker-readahead-bg);
+    border-color: var(--marker-readahead-border);
+    box-shadow: 0 0 8px var(--marker-readahead-shadow);
+    transform: scale(1.05);
+    opacity: 1;
+    cursor: help;
+}
+.day-indicator.read-ahead-day .day-marker::after {
+    content: '✓';
+    color: var(--marker-readahead-text); /* Verde escuro */
+    text-shadow: none;
+}
+.day-indicator.read-ahead-day .day-label {
+    color: var(--marker-readahead-text);
+    opacity: 1;
+}
+
+/* --- PRIORIDADE 1: Dia Lido HOJE/Passado (roxo/gradiente '✓') --- */
+/* Aplicado a dias com interação REAL na data correspondente */
+.day-indicator.active .day-marker {
+    background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
+    border-color: transparent;
+    color: var(--text-color-light);
+    box-shadow: 0 0 12px var(--marker-active-shadow);
+    transform: scale(1.1);
+    opacity: 1; /* Garante opacidade total */
+    cursor: default; /* Volta cursor padrão */
+}
+.day-indicator.active .day-marker::after {
+    content: '✓';
+    color: var(--text-color-light); /* Branco */
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+}
+.day-indicator.active .day-label {
+    color: var(--text-color-muted); /* Volta label ao normal */
+    opacity: 1;
+}
+
+/* --- Overrides de Prioridade (Active sempre vence) --- */
+/* Se um dia foi marcado adiantado OU perdido, mas DEPOIS interação real ocorreu, 'active' prevalece */
+.day-indicator.active.read-ahead-day .day-marker,
+.day-indicator.active.missed-day .day-marker,
+.day-indicator.active.inactive-plan-day .day-marker {
+    /* Reaplicar todos os estilos de .active */
+    background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
+    border-color: transparent;
+    color: var(--text-color-light);
+    box-shadow: 0 0 12px var(--marker-active-shadow);
+    transform: scale(1.1);
+    opacity: 1;
+    cursor: default;
+}
+.day-indicator.active.read-ahead-day .day-marker::after,
+.day-indicator.active.missed-day .day-marker::after,
+.day-indicator.active.inactive-plan-day .day-marker::after {
+    content: '✓';
+    color: var(--text-color-light);
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+}
+.day-indicator.active.read-ahead-day .day-label,
+.day-indicator.active.missed-day .day-label,
+.day-indicator.active.inactive-plan-day .day-label {
+    color: var(--text-color-muted);
+    opacity: 1;
+}
+
+/* Read Ahead também sobrepõe Missed/Inactive (se ocorrer essa combinação) */
+.day-indicator.read-ahead-day.missed-day .day-marker,
+.day-indicator.read-ahead-day.inactive-plan-day .day-marker {
+    background-color: var(--marker-readahead-bg);
+    border-color: var(--marker-readahead-border);
+    box-shadow: 0 0 8px var(--marker-readahead-shadow);
+    transform: scale(1.05);
+    opacity: 1;
+    cursor: help;
+}
+.day-indicator.read-ahead-day.missed-day .day-marker::after,
+.day-indicator.read-ahead-day.inactive-plan-day .day-marker::after {
+    content: '✓';
+    color: var(--marker-readahead-text);
+    text-shadow: none;
+}
+.day-indicator.read-ahead-day.missed-day .day-label,
+.day-indicator.read-ahead-day.inactive-plan-day .day-label {
+    color: var(--marker-readahead-text);
+    opacity: 1;
+}
+
 
 /* --- Leitura Diária e Ações --- */
 .daily-reading-display {
