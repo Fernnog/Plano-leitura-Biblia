@@ -1,5 +1,3 @@
-// --- START OF FILE script.js ---
-
 // Import Firebase modular SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
@@ -123,6 +121,7 @@ const progressBarFill = document.getElementById('progress-bar-fill');
 const progressText = document.getElementById('progress-text');
 const dailyReadingDiv = document.getElementById('daily-reading');
 const markAsReadButton = document.getElementById('mark-as-read');
+const updatePlanButton = document.getElementById('update-plan-button'); // ***** NOVO ELEMENTO *****
 const deleteCurrentPlanButton = document.getElementById('delete-current-plan-button');
 const planLoadingViewDiv = document.getElementById('plan-loading-view');
 const weeklyTrackerContainer = document.getElementById('weekly-tracker');
@@ -278,17 +277,57 @@ function getEffectiveDateForDay(planData, targetDayNumber) {
         targetDayNumber >= planData.recalculationBaseDay)
     {
         const readingDaysSinceBase = targetDayNumber - planData.recalculationBaseDay;
-        const targetDayFromBase = readingDaysSinceBase + 1;
+        const targetDayFromBase = readingDaysSinceBase + 1; // O dia base é o 1º dia a partir da data base
         const calculatedDate = calculateDateForDay(planData.recalculationBaseDate, targetDayFromBase, planData.allowedDays);
+        // console.log(`getEffectiveDate (recalc): Day ${targetDayNumber}, BaseDate ${planData.recalculationBaseDate}, BaseDay ${planData.recalculationBaseDay} -> TargetFromBase ${targetDayFromBase} -> Date ${calculatedDate}`);
         return calculatedDate;
 
     } else {
         // Nenhum recálculo aplicável a este dia, usa a data de início original
         const calculatedDate = calculateDateForDay(planData.startDate, targetDayNumber, planData.allowedDays);
+        // console.log(`getEffectiveDate (original): Day ${targetDayNumber}, StartDate ${planData.startDate} -> Date ${calculatedDate}`);
         return calculatedDate;
     }
 }
 
+
+/**
+ * Encontra a data do dia de leitura válido *anterior* a uma data base.
+ * @param {string} baseDateStr - Data base no formato 'YYYY-MM-DD' a partir da qual buscar para trás.
+ * @param {number[]} allowedDaysOfWeek - Array com os dias da semana permitidos (0=Dom, 1=Seg...). Se vazio, considera todos.
+ * @returns {string|null} A data do dia anterior válido no formato 'YYYY-MM-DD', ou null se não encontrado (dentro de um limite).
+ */
+function findPreviousValidReadingDay(baseDateStr, allowedDaysOfWeek) {
+    if (!baseDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(baseDateStr)) {
+        console.error("Invalid base date provided to findPreviousValidReadingDay:", baseDateStr);
+        return null;
+    }
+
+    const baseDate = new Date(baseDateStr + 'T00:00:00Z');
+    if (isNaN(baseDate.getTime())) {
+        console.error("Invalid base date object in findPreviousValidReadingDay:", baseDateStr);
+        return null;
+    }
+
+    const validAllowedDays = (Array.isArray(allowedDaysOfWeek) && allowedDaysOfWeek.length > 0)
+        ? allowedDaysOfWeek
+        : [0, 1, 2, 3, 4, 5, 6];
+
+    let previousDate = new Date(baseDate);
+    const maxAttempts = 366; // Limite para evitar loops infinitos (1 ano)
+
+    for (let i = 0; i < maxAttempts; i++) {
+        previousDate.setUTCDate(previousDate.getUTCDate() - 1); // Vai um dia para trás
+        const dayOfWeek = previousDate.getUTCDay();
+
+        if (validAllowedDays.includes(dayOfWeek)) {
+            return previousDate.toISOString().split('T')[0]; // Encontrado!
+        }
+    }
+
+    console.warn("Could not find a previous valid reading day within", maxAttempts, "attempts for date", baseDateStr, "and allowed days", validAllowedDays);
+    return null; // Não encontrado dentro do limite
+}
 
 /** Popula os seletores de livros no formulário de criação */
 function populateBookSelectors() {
@@ -427,8 +466,10 @@ function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays) {
         const remaining = chaptersToRead.slice(chapterIndex);
         if (planMap[totalReadingDays.toString()]) {
              planMap[totalReadingDays.toString()].push(...remaining);
+        } else if (totalReadingDays > 0) {
+             planMap[totalReadingDays.toString()] = remaining; // Adiciona ao último dia existente
         } else {
-             planMap["1"] = remaining;
+             planMap["1"] = remaining; // Caso raro: 0 dias, mas capítulos
         }
     }
 
@@ -554,6 +595,7 @@ function updateUIBasedOnAuthState(user) {
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
         if (streakCounterSection) streakCounterSection.style.display = 'none';
+        if (updatePlanButton) updatePlanButton.style.display = 'none'; // Esconde o botão ao deslogar
         planSelectorContainer.style.display = 'none';
         logoutButton.style.display = 'none';
         userEmailSpan.style.display = 'none';
@@ -837,6 +879,7 @@ async function loadActivePlanData(userId, planId) {
         if (docSnap.exists()) {
             const data = docSnap.data();
 
+            // Validação mais robusta dos campos essenciais
             const mandatoryFieldsValid = data &&
                                        typeof data.plan === 'object' && !Array.isArray(data.plan) && data.plan !== null &&
                                        typeof data.currentDay === 'number' &&
@@ -845,8 +888,9 @@ async function loadActivePlanData(userId, planId) {
                                        typeof data.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.endDate) &&
                                        Array.isArray(data.allowedDays);
 
-            const recalcFieldsValid = (!data.recalculationBaseDay || typeof data.recalculationBaseDay === 'number') &&
-                                     (!data.recalculationBaseDate || (typeof data.recalculationBaseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.recalculationBaseDate)));
+            // Validação dos campos de recálculo (podem ser null ou ter o tipo correto)
+            const recalcFieldsValid = (data.recalculationBaseDay === null || typeof data.recalculationBaseDay === 'number') &&
+                                      (data.recalculationBaseDate === null || (typeof data.recalculationBaseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.recalculationBaseDate)));
 
             if (!mandatoryFieldsValid || !recalcFieldsValid) {
                 console.error("Invalid plan data format loaded:", data);
@@ -858,10 +902,13 @@ async function loadActivePlanData(userId, planId) {
 
             currentReadingPlan = { id: planId, ...data };
 
+            // Inicializa interações da semana se não existirem ou for semana diferente
             if (data.weeklyInteractions && data.weeklyInteractions.weekId === currentWeekId) {
                 currentWeeklyInteractions = data.weeklyInteractions;
             } else {
                 currentWeeklyInteractions = { weekId: currentWeekId, interactions: {} };
+                // Opcional: Poderia atualizar no Firestore aqui, mas pode causar escritas extras.
+                // Melhor atualizar apenas quando uma interação ocorrer.
             }
 
             loadDailyReadingUI();
@@ -882,7 +929,7 @@ async function loadActivePlanData(userId, planId) {
             planCreationSection.style.display = userPlansList.length === 0 ? 'block' : 'none';
             updateWeeklyTrackerUI();
             updateProgressBarUI();
-            populatePlanSelector();
+            populatePlanSelector(); // Atualiza o seletor mesmo se o plano não for encontrado
         }
     } catch (error) {
         console.error("Error loading active plan data:", error);
@@ -915,16 +962,34 @@ async function loadUserDataAndPlans() {
         await fetchUserInfo(userId);
         await fetchUserPlansList(userId);
         populatePlanSelector();
-        await loadActivePlanData(userId, activePlanId);
-        await displayScheduledReadings();
+        await loadActivePlanData(userId, activePlanId); // Carrega plano ativo se houver
+        await displayScheduledReadings(); // Mostra leituras de TODOS os planos
+
+        // Exibe o painel de streak se logado
+        if (streakCounterSection) streakCounterSection.style.display = 'flex';
+
+        // Decide qual seção principal mostrar:
+        if (!activePlanId && userPlansList.length === 0) {
+            planCreationSection.style.display = 'block'; // Força criação se não há planos
+        } else if (activePlanId && currentReadingPlan) {
+             readingPlanSection.style.display = 'block'; // Mostra plano ativo
+        } else {
+            // Nenhum plano ativo selecionado OU plano ativo não carregou,
+            // mas existem outros planos. Não força criação.
+            // Poderia mostrar uma mensagem ou o modal de gerenciamento.
+            console.log("Usuário logado, mas nenhum plano ativo carregado/selecionado.");
+            if (managePlansButton) managePlansButton.focus(); // Sugere gerenciar planos
+        }
 
     } catch (error) {
         console.error("Error during initial data load sequence:", error);
+        // Estado de fallback em caso de erro grave no carregamento
         readingPlanSection.style.display = 'none';
         planCreationSection.style.display = 'block';
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
         if (streakCounterSection) streakCounterSection.style.display = 'none';
+        showErrorMessage(planViewErrorDiv, `Erro ao carregar dados iniciais: ${error.message}`);
     } finally {
         showLoading(planLoadingViewDiv, false);
     }
@@ -941,17 +1006,22 @@ async function setActivePlan(planId) {
         await updateDoc(userDocRef, { activePlanId: planId });
         activePlanId = planId;
         if (userInfo) userInfo.activePlanId = planId;
+
+        // Atualiza o select no header imediatamente
         if (planSelect) planSelect.value = planId;
 
+        // Recarrega os dados do plano ativo e leituras agendadas
         await loadActivePlanData(userId, planId);
-        await displayScheduledReadings();
+        await displayScheduledReadings(); // Recalcula próximas/atrasadas
 
-        if (managePlansModal.style.display === 'flex') {
+        // Atualiza o modal de gerenciamento se estiver aberto
+        if (managePlansModal.style.display === 'flex' || managePlansModal.style.display === 'block') { // Checa ambos por segurança
             populateManagePlansModal();
         }
     } catch (error) {
         console.error("Error setting active plan:", error);
         showErrorMessage(planViewErrorDiv, `Erro ao ativar plano: ${error.message}`);
+        // Tenta reverter a seleção visual no header em caso de erro
         if (planSelect && currentReadingPlan) planSelect.value = currentReadingPlan.id;
         else if (planSelect) planSelect.value = '';
     } finally {
@@ -970,6 +1040,7 @@ async function saveNewPlanToFirestore(userId, planData) {
     const plansCollectionRef = collection(db, 'users', userId, 'plans');
 
     try {
+        // Validações básicas antes de salvar
         if(typeof planData.plan !== 'object' || Array.isArray(planData.plan) || planData.plan === null) throw new Error("Formato interno do plano inválido.");
         if (!planData.name || planData.name.trim() === '') throw new Error("O nome do plano é obrigatório.");
         if (!planData.startDate || !planData.endDate) throw new Error("Datas de início e/ou fim não foram definidas para o plano.");
@@ -981,16 +1052,28 @@ async function saveNewPlanToFirestore(userId, planData) {
         const currentWeekId = getUTCWeekId();
         const dataToSave = {
             ...planData,
-            weeklyInteractions: { weekId: currentWeekId, interactions: {} },
+            weeklyInteractions: { weekId: currentWeekId, interactions: {} }, // Inicializa interações
             createdAt: serverTimestamp(),
+            // Garante que campos de recálculo sejam nulos inicialmente
             recalculationBaseDay: null,
             recalculationBaseDate: null
         };
 
         const newPlanDocRef = await addDoc(plansCollectionRef, dataToSave);
-        userPlansList.unshift({ id: newPlanDocRef.id, ...dataToSave });
+
+        // Atualiza lista local (adiciona no início por causa do orderBy)
+        const savedDataWithId = { id: newPlanDocRef.id, ...planData, createdAt: new Date() }; // Simula timestamp local
+        userPlansList.unshift(savedDataWithId);
+
+        // Define o novo plano como ativo
         await setActivePlan(newPlanDocRef.id);
-        return newPlanDocRef.id;
+
+        // Limpa o formulário e atualiza UI relacionada
+        resetFormFields();
+        populatePlanSelector(); // Atualiza header
+        // A função setActivePlan já chama loadActivePlanData e displayScheduledReadings
+
+        return newPlanDocRef.id; // Retorna o ID do novo plano
 
     } catch (error) {
         console.error("Error saving new plan to Firestore:", error);
@@ -1003,42 +1086,41 @@ async function saveNewPlanToFirestore(userId, planData) {
     }
 }
 
-/** Atualiza o progresso (dia atual, interações semanais, log) no Firestore */
-async function updateProgressInFirestore(userId, planId, newDay, updatedWeeklyInteractions, logEntry = null) {
-    if (!userId || !planId || !currentReadingPlan) {
-        console.error("Erro ao atualizar progresso: Usuário/Plano não carregado ou ID inválido.");
-        showErrorMessage(planViewErrorDiv, "Erro crítico ao salvar progresso. Recarregue.");
+/** Atualiza dados específicos de um plano no Firestore */
+async function updatePlanDataInFirestore(userId, planId, dataToUpdate) {
+    if (!userId || !planId || !dataToUpdate || Object.keys(dataToUpdate).length === 0) {
+        console.error("Erro ao atualizar dados do plano: Parâmetros inválidos.", { userId, planId, dataToUpdate });
+        showErrorMessage(planViewErrorDiv, "Erro crítico ao salvar dados do plano. Recarregue.");
         return false;
     }
 
     const planDocRef = doc(db, 'users', userId, 'plans', planId);
 
     try {
-        const dataToUpdate = {
-            currentDay: newDay,
-            weeklyInteractions: updatedWeeklyInteractions
-        };
-
-        if (logEntry && logEntry.date && /^\d{4}-\d{2}-\d{2}$/.test(logEntry.date) && Array.isArray(logEntry.chapters)) {
-            dataToUpdate[`readLog.${logEntry.date}`] = logEntry.chapters;
-        } else if (logEntry) {
-            console.warn("Log entry provided but invalid, not saving log.", logEntry);
-        }
-
         await updateDoc(planDocRef, dataToUpdate);
-
-        // Atualiza estado local do PLANO
-        currentReadingPlan.currentDay = newDay;
-        currentWeeklyInteractions = updatedWeeklyInteractions;
-        if (logEntry && logEntry.date && Array.isArray(logEntry.chapters)) {
-            if (!currentReadingPlan.readLog) currentReadingPlan.readLog = {};
-            currentReadingPlan.readLog[logEntry.date] = logEntry.chapters;
-        }
+        console.log(`Plan ${planId} updated successfully with:`, dataToUpdate);
         return true;
-
     } catch (error) {
-        console.error("Error updating progress in Firestore:", error);
-        showErrorMessage(planViewErrorDiv, `Erro ao salvar progresso do plano: ${error.message}. Tente novamente.`);
+        console.error(`Error updating plan ${planId} data in Firestore:`, error);
+        showErrorMessage(planViewErrorDiv, `Erro ao salvar dados do plano: ${error.message}. Tente novamente.`);
+        return false;
+    }
+}
+
+/** Atualiza os dados de sequência (streak) do usuário no Firestore */
+async function updateUserStreakInFirestore(userId, streakUpdateData) {
+    if (!userId || !streakUpdateData || Object.keys(streakUpdateData).length === 0) {
+        console.warn("Nenhum dado de streak para atualizar no Firestore.");
+        return false; // Não é um erro, apenas nada a fazer
+    }
+    const userDocRef = doc(db, 'users', userId);
+    try {
+        await updateDoc(userDocRef, streakUpdateData);
+        console.log("Streak data saved to Firestore:", streakUpdateData);
+        return true;
+    } catch (error) {
+        console.error("Error updating user streak data in Firestore:", error);
+        showErrorMessage(planViewErrorDiv, `Erro ao salvar sequência: ${error.message}`);
         return false;
     }
 }
@@ -1053,18 +1135,22 @@ async function saveRecalculatedPlanToFirestore(userId, planId, updatedPlanData) 
     const planDocRef = doc(db, 'users', userId, 'plans', planId);
 
     try {
+        // Validações antes de salvar
         if(typeof updatedPlanData.plan !== 'object' || Array.isArray(updatedPlanData.plan) || updatedPlanData.plan === null) throw new Error("Formato interno do plano recalculado inválido.");
         if(!updatedPlanData.startDate || !updatedPlanData.endDate) throw new Error("Datas de início/fim ausentes no plano recalculado.");
         if(typeof updatedPlanData.currentDay !== 'number') throw new Error("Dia atual ausente ou inválido no plano recalculado.");
+        // Campos de recálculo agora são esperados
         if(typeof updatedPlanData.recalculationBaseDay !== 'number') throw new Error("Dia base do recálculo inválido.");
         if(typeof updatedPlanData.recalculationBaseDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(updatedPlanData.recalculationBaseDate)) throw new Error("Data base do recálculo inválida.");
 
+        // Usar setDoc para sobrescrever com os novos dados recalculados
         await setDoc(planDocRef, updatedPlanData);
 
+        // Atualiza estado local
         currentReadingPlan = { id: planId, ...updatedPlanData };
         const index = userPlansList.findIndex(p => p.id === planId);
         if (index > -1) {
-            userPlansList[index] = { id: planId, ...updatedPlanData };
+            userPlansList[index] = { id: planId, ...updatedPlanData }; // Atualiza na lista geral também
         }
 
         return true;
@@ -1090,35 +1176,41 @@ async function deletePlanFromFirestore(userId, planIdToDelete) {
     const userDocRef = doc(db, 'users', userId);
 
     try {
-        await deleteDoc(planDocRef);
+        await deleteDoc(planDocRef); // Deleta o plano
+
+        // Atualiza lista local
         userPlansList = userPlansList.filter(p => p.id !== planIdToDelete);
 
+        // Se o plano deletado era o ativo, define um novo ativo (o primeiro da lista, se houver)
         if (activePlanId === planIdToDelete) {
             activePlanId = null;
             currentReadingPlan = null;
-            currentWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} };
+            currentWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} }; // Reseta interações
 
+            // Encontra o próximo plano para ativar (o mais recente na lista, que agora está em [0])
             const nextActivePlanId = userPlansList.length > 0 ? userPlansList[0].id : null;
-            await updateDoc(userDocRef, { activePlanId: nextActivePlanId });
-            activePlanId = nextActivePlanId;
+            await updateDoc(userDocRef, { activePlanId: nextActivePlanId }); // Atualiza no perfil do usuário
+            activePlanId = nextActivePlanId; // Atualiza estado local
 
+            // Atualiza o header e carrega o novo plano ativo (ou nenhum)
             populatePlanSelector();
-            await loadActivePlanData(userId, activePlanId);
-            await displayScheduledReadings();
+            await loadActivePlanData(userId, activePlanId); // Carrega o novo plano ou limpa a UI
 
         } else {
+            // Se o plano deletado não era o ativo, apenas atualiza o header e o modal (se aberto)
             populatePlanSelector();
-            if (managePlansModal.style.display === 'flex') {
+            if (managePlansModal.style.display === 'flex' || managePlansModal.style.display === 'block') {
                 populateManagePlansModal();
             }
-            await displayScheduledReadings();
         }
 
+        // Recalcula próximas/atrasadas após a exclusão
+        await displayScheduledReadings();
         return true;
 
     } catch (error) {
         console.error("Error deleting plan from Firestore:", error);
-        const errorTargetDiv = (managePlansModal.style.display === 'flex') ? managePlansErrorDiv : planViewErrorDiv;
+        const errorTargetDiv = (managePlansModal.style.display === 'flex' || managePlansModal.style.display === 'block') ? managePlansErrorDiv : planViewErrorDiv;
         showErrorMessage(errorTargetDiv, `Erro ao deletar plano: ${error.message}`);
         return false;
     }
@@ -1138,10 +1230,12 @@ function togglePlanCreationOptions() {
     if (intervalOptionsDiv) intervalOptionsDiv.style.display = creationMethod === 'interval' ? 'block' : 'none';
     if (selectionOptionsDiv) selectionOptionsDiv.style.display = (creationMethod === 'selection' || creationMethod === 'chapters-per-day') ? 'block' : 'none';
 
+    // Determina qual opção de duração mostrar
     const showDaysOption = durationMethod === 'days' && creationMethod !== 'chapters-per-day';
     const showEndDateOption = durationMethod === 'end-date' && creationMethod !== 'chapters-per-day';
     const showChaptersPerDayOption = creationMethod === 'chapters-per-day';
 
+    // Controla a visibilidade e o estado 'disabled'
     if (daysOptionDiv) daysOptionDiv.style.display = showDaysOption ? 'block' : 'none';
     if (endDateOptionDiv) endDateOptionDiv.style.display = showEndDateOption ? 'block' : 'none';
     if (chaptersPerDayOptionDiv) chaptersPerDayOptionDiv.style.display = showChaptersPerDayOption ? 'block' : 'none';
@@ -1151,15 +1245,20 @@ function togglePlanCreationOptions() {
     if (endDateInput) endDateInput.disabled = !showEndDateOption;
     if (chaptersPerDayInput) chaptersPerDayInput.disabled = !showChaptersPerDayOption;
 
+    // Desabilita as opções de duração se 'chapters-per-day' está selecionado
     if (durationMethodRadios) {
         durationMethodRadios.forEach(r => r.disabled = showChaptersPerDayOption);
     }
+    // Garante que as outras opções de duração estejam escondidas se 'chapters-per-day' estiver ativo
     if (showChaptersPerDayOption) {
         if (daysOptionDiv) daysOptionDiv.style.display = 'none';
         if (endDateOptionDiv) endDateOptionDiv.style.display = 'none';
     }
+
+    // Define data inicial padrão se 'end-date' for selecionado e não houver data
     if (showEndDateOption && startDateInput && !startDateInput.value) {
         try {
+            // Usa data local para o input date
             const todayLocal = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000));
             startDateInput.value = todayLocal.toISOString().split('T')[0];
         } catch (e) { console.error("Erro ao definir data inicial padrão:", e); }
@@ -1172,28 +1271,33 @@ function showPlanCreationSection() {
     readingPlanSection.style.display = 'none';
     if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
     if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
-    if (streakCounterSection) streakCounterSection.style.display = 'none';
+    if (streakCounterSection) streakCounterSection.style.display = 'none'; // Esconde streak
     planCreationSection.style.display = 'block';
     if (cancelCreationButton) {
+        // Mostra cancelar apenas se houver outros planos para onde voltar
         cancelCreationButton.style.display = userPlansList.length > 0 ? 'inline-block' : 'none';
     }
-    window.scrollTo(0, 0);
+    window.scrollTo(0, 0); // Rola para o topo
 }
 
 /** Cancela a criação do plano e volta para a visualização do plano ativo (se houver) */
 function cancelPlanCreation() {
     planCreationSection.style.display = 'none';
-    showErrorMessage(planErrorDiv, '');
+    showErrorMessage(planErrorDiv, ''); // Limpa erros da criação
 
+    // Tenta voltar para o plano ativo
     if (currentReadingPlan && activePlanId) {
         readingPlanSection.style.display = 'block';
-        if (streakCounterSection) streakCounterSection.style.display = 'flex';
+        if (streakCounterSection) streakCounterSection.style.display = 'flex'; // Mostra streak
+        // Reexibe próximas/atrasadas se elas têm conteúdo
         if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p') ? 'block' : 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p') ? 'block' : 'none';
     } else {
+        // Se não havia plano ativo, apenas garante que as seções de leitura estejam escondidas
+        // e mostra o painel de streak (pois o usuário está logado)
         console.log("Cancel creation: No active plan to return to.");
         if (currentUser && streakCounterSection) streakCounterSection.style.display = 'flex';
-        displayScheduledReadings();
+        displayScheduledReadings(); // Mostra próximas/atrasadas (pode estar vazio)
     }
 }
 
@@ -1208,6 +1312,7 @@ async function createReadingPlan() {
     const planName = planNameInput.value.trim();
     const googleDriveLink = googleDriveLinkInput.value.trim();
 
+    // Validações de Entrada
     if (!planName) { showErrorMessage(planErrorDiv, "Por favor, dê um nome ao seu plano."); planNameInput.focus(); return; }
     if (googleDriveLink && !(googleDriveLink.startsWith('http://') || googleDriveLink.startsWith('https://'))) {
         showErrorMessage(planErrorDiv, "O link do Google Drive parece inválido. Use o endereço completo (http:// ou https://).");
@@ -1217,12 +1322,14 @@ async function createReadingPlan() {
     const allowedDaysOfWeek = Array.from(periodicityCheckboxes)
                                .filter(cb => cb.checked)
                                .map(cb => parseInt(cb.value, 10));
+    // Se nenhum dia for selecionado, considera todos os dias para cálculos internos
     const validAllowedDaysForCalculation = allowedDaysOfWeek.length > 0 ? allowedDaysOfWeek : [0, 1, 2, 3, 4, 5, 6];
 
 
     let chaptersToRead = [];
 
     try {
+        // --- 1. Coleta de Capítulos ---
         const creationMethodRadio = document.querySelector('input[name="creation-method"]:checked');
         const creationMethod = creationMethodRadio ? creationMethodRadio.value : null;
         if (!creationMethod) throw new Error("Método de criação não selecionado.");
@@ -1234,20 +1341,24 @@ async function createReadingPlan() {
             const endChap = parseInt(endChapterInput.value, 10);
             if (!startBook || isNaN(startChap) || !endBook || isNaN(endChap)) { throw new Error("Selecione os livros e capítulos inicial/final corretamente."); }
             const generatedChapters = generateChaptersInRange(startBook, startChap, endBook, endChap);
-            if (generatedChapters === null) return;
+            if (generatedChapters === null) return; // generateChaptersInRange já mostra erro
             chaptersToRead = generatedChapters;
 
         } else if (creationMethod === 'selection' || creationMethod === 'chapters-per-day') {
             const selectedBooks = booksSelect ? Array.from(booksSelect.selectedOptions).map(opt => opt.value) : [];
             const chaptersText = chaptersInput ? chaptersInput.value.trim() : "";
             if (selectedBooks.length === 0 && !chaptersText) { throw new Error("Escolha livros na lista OU digite capítulos/intervalos."); }
+
             let chaptersFromSelectedBooks = [];
             selectedBooks.forEach(book => {
                 if (!bibleBooksChapters[book]) return;
                 const maxChap = bibleBooksChapters[book];
                 for (let i = 1; i <= maxChap; i++) chaptersFromSelectedBooks.push(`${book} ${i}`);
             });
+
             let chaptersFromTextInput = parseChaptersInput(chaptersText);
+
+            // Combina e ordena
             const combinedSet = new Set([...chaptersFromSelectedBooks, ...chaptersFromTextInput]);
             const combinedChapters = Array.from(combinedSet);
             combinedChapters.sort((a, b) => {
@@ -1264,7 +1375,8 @@ async function createReadingPlan() {
 
         if (!chaptersToRead || chaptersToRead.length === 0) { throw new Error("Nenhum capítulo válido foi selecionado ou gerado para o plano."); }
 
-        let startDateStr = getCurrentUTCDateString();
+        // --- 2. Cálculo de Datas e Distribuição ---
+        let startDateStr = getCurrentUTCDateString(); // Padrão é hoje
         let totalReadingDays = 0;
         let planMap = {};
         let endDateStr = '';
@@ -1274,9 +1386,9 @@ async function createReadingPlan() {
         if (creationMethod === 'chapters-per-day') {
             const chapPerDay = parseInt(chaptersPerDayInput.value, 10);
             if (isNaN(chapPerDay) || chapPerDay <= 0) throw new Error("Número inválido de capítulos por dia de leitura.");
-            totalReadingDays = Math.ceil(chaptersToRead.length / chapPerDay);
-            if (totalReadingDays < 1) totalReadingDays = 1;
+            totalReadingDays = Math.max(1, Math.ceil(chaptersToRead.length / chapPerDay)); // Garante pelo menos 1 dia
             planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+            // Data de início padrão (hoje) já definida
 
         } else if (durationMethod === 'days') {
             const totalCalendarDaysInput = parseInt(daysInput.value, 10);
@@ -1286,13 +1398,14 @@ async function createReadingPlan() {
             for (let i = 0; i < totalCalendarDaysInput; i++) {
                 if (validAllowedDaysForCalculation.includes(tempDate.getUTCDay())) { readingDaysInPeriod++; }
                 tempDate.setUTCDate(tempDate.getUTCDate() + 1);
-                 if (i > 365*10) { console.warn("Loop break: calculating reading days in period (days)."); break; }
+                 if (i > 365*10) { console.warn("Loop break: calculating reading days in period (days)."); break; } // Safety break
             }
-            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            totalReadingDays = Math.max(1, readingDaysInPeriod); // Pelo menos 1 dia de leitura
             planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+            // Data de início padrão (hoje) já definida
 
         } else if (durationMethod === 'end-date') {
-            const inputStartDateStr = startDateInput.value || startDateStr;
+            const inputStartDateStr = startDateInput.value || startDateStr; // Usa input ou padrão hoje
             const inputEndDateStr = endDateInput.value;
             if (!inputEndDateStr) throw new Error("Selecione a data final.");
             if (!/^\d{4}-\d{2}-\d{2}$/.test(inputStartDateStr) || !/^\d{4}-\d{2}-\d{2}$/.test(inputEndDateStr)) throw new Error("Formato de data inválido (use YYYY-MM-DD).");
@@ -1301,54 +1414,71 @@ async function createReadingPlan() {
             if (isNaN(start.getTime()) || isNaN(end.getTime())) throw new Error("Datas inválidas.");
             if (end < start) throw new Error("A data final não pode ser anterior à data inicial.");
 
-            startDateStr = inputStartDateStr;
-            const calendarDuration = dateDiffInDays(inputStartDateStr, inputEndDateStr) + 1;
+            startDateStr = inputStartDateStr; // Atualiza data de início se fornecida
+            const calendarDuration = dateDiffInDays(inputStartDateStr, inputEndDateStr) + 1; // Inclui data final
             let readingDaysInPeriod = 0;
             let tempDate = new Date(start);
             for (let i = 0; i < calendarDuration; i++) {
                 if (validAllowedDaysForCalculation.includes(tempDate.getUTCDay())) { readingDaysInPeriod++; }
                 tempDate.setUTCDate(tempDate.getUTCDate() + 1);
-                if (i > 365*10) { console.warn("Loop break: calculating reading days in period (end-date)."); break; }
+                if (i > 365*10) { console.warn("Loop break: calculating reading days in period (end-date)."); break; } // Safety break
             }
-            totalReadingDays = Math.max(1, readingDaysInPeriod);
+            totalReadingDays = Math.max(1, readingDaysInPeriod); // Pelo menos 1 dia
             planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
         } else {
+            // Só deve acontecer se creationMethod for 'chapters-per-day', já tratado
              if(creationMethod !== 'chapters-per-day') { throw new Error("Método de duração inválido ou não determinado."); }
         }
 
+        // --- 3. Calcula Data Final ---
         endDateStr = calculateDateForDay(startDateStr, totalReadingDays, allowedDaysOfWeek);
+
+        // Tratamento de caso onde não há dias de leitura no período/ritmo
         if (!endDateStr) {
+             // Se temos capítulos para ler, mas nenhum dia de leitura calculado (totalReadingDays=0)
+             // OU se calculateDateForDay retorna null (ex: nenhum dia permitido selecionado)
             if (totalReadingDays === 0 && chaptersToRead.length > 0) {
-                showErrorMessage(periodicityWarningDiv, "Aviso: O período definido (dias ou datas) não contém nenhum dos dias selecionados para leitura. O plano será criado, mas pode não ter leituras agendadas. Considere aumentar o período ou ajustar os dias da semana.");
-                endDateStr = calculateDateForDay(startDateStr, totalReadingDays, [0,1,2,3,4,5,6]);
-                if (!endDateStr) throw new Error("Falha crítica ao calcular data final alternativa.");
+                showErrorMessage(periodicityWarningDiv, "Aviso: O período/ritmo definido não resulta em dias de leitura com a periodicidade selecionada. O plano será criado, mas pode não ter leituras agendadas. Considere aumentar o período/duração ou ajustar os dias da semana.");
+                 // Tenta calcular uma data final usando todos os dias só para ter uma referência, mesmo que não seja usada na prática
+                 endDateStr = calculateDateForDay(startDateStr, 1, [0,1,2,3,4,5,6]); // Calcula para o 1º dia possível
+                 if (!endDateStr) endDateStr = startDateStr; // Se nem isso funcionar, usa a data de início
+            } else if (totalReadingDays > 0 && chaptersToRead.length > 0) {
+                 // Temos dias de leitura calculados, mas calculateDateForDay falhou
+                 // (Provavelmente nenhum dia permitido selecionado)
+                 showErrorMessage(periodicityWarningDiv, "Aviso: Nenhum dos dias da semana selecionados para leitura foi encontrado a partir da data de início. O plano será criado, mas pode não ter uma data final ou leituras agendadas válidas. Verifique os dias selecionados.");
+                 endDateStr = startDateStr; // Define data final como a de início
             } else {
-                 throw new Error("Não foi possível calcular a data final do plano. Verifique os dias da semana selecionados ou o período.");
+                 // Caso geral de falha no cálculo da data final
+                 throw new Error("Não foi possível calcular a data final do plano. Verifique as opções de duração e os dias da semana selecionados.");
             }
         }
-        if (totalReadingDays === 0 && chaptersToRead.length > 0 && allowedDaysOfWeek.length > 0) {
-            showErrorMessage(periodicityWarningDiv, "Aviso: Com os dias selecionados, não há dias de leitura no período definido. O plano foi criado, mas pode não ter uma data final válida ou pode terminar imediatamente. Verifique as datas/duração ou dias da semana.");
+
+        // Aviso adicional se não foram selecionados dias de leitura explicitamente
+        if (allowedDaysOfWeek.length === 0) {
+             showErrorMessage(periodicityWarningDiv, "Aviso: Nenhum dia específico foi selecionado para leitura, então o plano considerará todos os dias da semana.");
         }
 
 
+        // --- 4. Monta e Salva o Plano ---
         const newPlanData = {
             name: planName,
             plan: planMap,
             currentDay: 1,
             totalChapters: chaptersToRead.length,
-            chaptersList: chaptersToRead,
-            allowedDays: allowedDaysOfWeek,
+            chaptersList: chaptersToRead, // Salva a lista completa para referência
+            allowedDays: allowedDaysOfWeek, // Salva os dias selecionados pelo usuário
             startDate: startDateStr,
             endDate: endDateStr,
-            readLog: {},
-            googleDriveLink: googleDriveLink || null,
-            recalculationBaseDay: null,
-            recalculationBaseDate: null
+            readLog: {}, // Log de leitura começa vazio
+            googleDriveLink: googleDriveLink || null, // Salva link ou null
+            recalculationBaseDay: null, // Inicialmente nulo
+            recalculationBaseDate: null // Inicialmente nulo
         };
 
         const newPlanId = await saveNewPlanToFirestore(userId, newPlanData);
         if (newPlanId) {
             alert(`Plano "${planName}" criado com sucesso! Iniciando em ${formatUTCDateStringToBrasilian(startDateStr)} e terminando em ${formatUTCDateStringToBrasilian(endDateStr)}.`);
+            // UI já é atualizada por setActivePlan dentro de saveNewPlanToFirestore
         }
 
     } catch (error) {
@@ -1360,7 +1490,8 @@ async function createReadingPlan() {
 
 /** Atualiza a UI para mostrar a leitura do dia atual (com data e link) */
 function loadDailyReadingUI() {
-    if (!dailyReadingDiv || !markAsReadButton || !recalculatePlanButton || !deleteCurrentPlanButton || !readingPlanTitle || !activePlanDriveLink || !readingPlanSection || !planCreationSection) {
+    // Adiciona 'updatePlanButton' aos checks
+    if (!dailyReadingDiv || !markAsReadButton || !updatePlanButton || !recalculatePlanButton || !deleteCurrentPlanButton || !readingPlanTitle || !activePlanDriveLink || !readingPlanSection || !planCreationSection) {
         console.warn("Elementos da UI do plano ou de criação não encontrados em loadDailyReadingUI.");
         if(readingPlanSection) readingPlanSection.style.display = 'none';
         if(planCreationSection) planCreationSection.style.display = 'none';
@@ -1368,20 +1499,23 @@ function loadDailyReadingUI() {
         return;
     }
 
-    updateProgressBarUI();
+    updateProgressBarUI(); // Atualiza a barra de progresso
 
     if (!currentReadingPlan || !activePlanId) {
+        // Estado: Nenhum plano ativo
         dailyReadingDiv.innerHTML = "<p>Nenhum plano ativo selecionado.</p>";
         markAsReadButton.style.display = 'none';
+        updatePlanButton.style.display = 'none'; // Esconde botão Atualizar
         recalculatePlanButton.style.display = 'none';
         deleteCurrentPlanButton.style.display = 'none';
         showStatsButton.style.display = 'none';
         showHistoryButton.style.display = 'none';
-        readingPlanSection.style.display = 'none';
+        readingPlanSection.style.display = 'none'; // Esconde seção do plano
         if(readingPlanTitle) readingPlanTitle.textContent = "Nenhum Plano Ativo";
         if(activePlanDriveLink) activePlanDriveLink.style.display = 'none';
         if(progressBarContainer) progressBarContainer.style.display = 'none';
 
+        // Se logado e sem planos, mostra criação
         if (currentUser && userPlansList.length === 0) {
             planCreationSection.style.display = 'block';
         } else {
@@ -1390,6 +1524,7 @@ function loadDailyReadingUI() {
         return;
     }
 
+    // Estado: Plano ativo carregado
     readingPlanSection.style.display = 'block';
     planCreationSection.style.display = 'none';
 
@@ -1397,6 +1532,7 @@ function loadDailyReadingUI() {
     const totalReadingDaysInPlan = Object.keys(plan || {}).length;
     const isCompleted = currentDay > totalReadingDaysInPlan;
 
+    // Atualiza título e link do Drive
     if (readingPlanTitle) {
         readingPlanTitle.textContent = name ? `${name}` : "Plano de Leitura Ativo";
     }
@@ -1410,30 +1546,38 @@ function loadDailyReadingUI() {
         }
     }
 
+    // Controla visibilidade e estado dos botões de ação
     markAsReadButton.style.display = 'inline-block';
+    updatePlanButton.style.display = 'inline-block'; // Mostra botão Atualizar
     recalculatePlanButton.style.display = 'inline-block';
     deleteCurrentPlanButton.style.display = 'inline-block';
     showStatsButton.style.display = 'inline-block';
     showHistoryButton.style.display = 'inline-block';
 
     markAsReadButton.disabled = isCompleted;
+    updatePlanButton.disabled = isCompleted; // Desabilita se completo
     recalculatePlanButton.disabled = isCompleted;
+    // Os outros botões (stats, history, delete) podem continuar ativos mesmo se completo
 
     if (isCompleted) {
+        // Estado: Plano concluído
         dailyReadingDiv.innerHTML = `
             <p style="font-weight: bold; color: var(--success-color);">Parabéns!</p>
             <p>Plano "${name || ''}" concluído!</p>
             <small>(${formatUTCDateStringToBrasilian(startDate)} - ${formatUTCDateStringToBrasilian(endDate)})</small>`;
-        markAsReadButton.style.display = 'none';
-        recalculatePlanButton.style.display = 'none';
+        markAsReadButton.style.display = 'none'; // Esconde Marcar Lido
+        updatePlanButton.style.display = 'none'; // Esconde Atualizar Plano
+        recalculatePlanButton.style.display = 'none'; // Esconde Recalcular
 
     } else if (currentDay > 0 && currentDay <= totalReadingDaysInPlan && allowedDays) {
+        // Estado: Plano em andamento, exibe leitura do dia
         const currentDayStr = currentDay.toString();
         const readingChapters = plan[currentDayStr] || [];
         const readingText = (readingChapters.length > 0)
             ? readingChapters.join(", ")
             : "Dia sem leitura designada (ou erro no plano).";
 
+        // Calcula a data efetiva para o dia atual
         const currentDateOfReadingStr = getEffectiveDateForDay(currentReadingPlan, currentDay);
         const formattedDate = currentDateOfReadingStr
             ? formatUTCDateStringToBrasilian(currentDateOfReadingStr)
@@ -1449,25 +1593,91 @@ function loadDailyReadingUI() {
             <p style="margin-top: 5px;">${readingText}</p>`;
 
     } else {
+        // Estado: Erro ou dados inválidos
         dailyReadingDiv.innerHTML = "<p>Erro: Dia inválido ou dados do plano incompletos para exibir leitura.</p>";
         console.error("Erro ao exibir leitura diária:", currentReadingPlan);
         markAsReadButton.style.display = 'none';
+        updatePlanButton.style.display = 'none'; // Esconde Atualizar
         recalculatePlanButton.style.display = 'none';
+        deleteCurrentPlanButton.style.display = 'inline-block'; // Manter delete?
         showStatsButton.style.display = 'none';
         showHistoryButton.style.display = 'none';
         if(activePlanDriveLink) activePlanDriveLink.style.display = 'none';
     }
 }
 
-/** Marca o dia atual como lido, avança para o próximo dia de leitura e atualiza a sequência */
+/**
+ * Calcula as informações atualizadas da sequência (streak).
+ * @param {string} interactionDateStr - A data da interação (YYYY-MM-DD).
+ * @param {object} currentStreakData - O objeto atual { lastInteractionDate, current, longest }.
+ * @returns {object} Um objeto contendo { updatedStreakData, firestoreStreakUpdate }.
+ *                   `updatedStreakData` é o novo estado local (ou null se não mudar).
+ *                   `firestoreStreakUpdate` é o objeto para enviar ao Firestore (ou objeto vazio).
+ */
+function getUpdatedStreakInfo(interactionDateStr, currentStreakData) {
+    const result = {
+        updatedStreakData: null,
+        firestoreStreakUpdate: {}
+    };
+
+    // Se não há dados de streak ou já marcou hoje, não faz nada
+    if (!currentStreakData || currentStreakData.lastInteractionDate === interactionDateStr) {
+        // console.log("Streak: Already marked today or no previous data.");
+        return result; // Sem mudança
+    }
+
+    let newStreakData = { ...currentStreakData }; // Copia para não modificar o original diretamente
+    let daysDiff = Infinity;
+
+    // Calcula a diferença de dias desde a última interação
+    if (newStreakData.lastInteractionDate && /^\d{4}-\d{2}-\d{2}$/.test(newStreakData.lastInteractionDate)) {
+        daysDiff = dateDiffInDays(newStreakData.lastInteractionDate, interactionDateStr);
+    } else {
+        // Se não há data anterior válida, considera como primeira interação
+        daysDiff = Infinity;
+    }
+
+    if (daysDiff === 1) {
+        // Sequência continua: incrementa
+        newStreakData.current = (newStreakData.current || 0) + 1;
+    } else if (daysDiff > 1 || daysDiff === Infinity || daysDiff < 0) { // Inclui casos de datas inválidas ou futuras
+        // Sequência quebrada ou primeira interação: reseta para 1
+        console.log(`Streak reset. Days diff: ${daysDiff}`);
+        newStreakData.current = 1;
+    } else if (daysDiff === 0) {
+        // Marcou no mesmo dia novamente (não deveria acontecer pela checagem inicial, mas por segurança)
+         console.log("Streak: Same day interaction again (should have been caught).");
+         return result; // Sem mudança
+    }
+
+
+    // Atualiza a maior sequência se a atual for maior
+    newStreakData.longest = Math.max(newStreakData.longest || 0, newStreakData.current);
+    // Define a nova data da última interação
+    newStreakData.lastInteractionDate = interactionDateStr;
+
+    // Prepara os resultados
+    result.updatedStreakData = newStreakData;
+    result.firestoreStreakUpdate = {
+        lastStreakInteractionDate: newStreakData.lastInteractionDate,
+        currentStreak: newStreakData.current,
+        longestStreak: newStreakData.longest
+    };
+
+    console.log("Streak Update Calculated:", result.updatedStreakData);
+    return result;
+}
+
+
+/** Marca o dia atual como lido e avança para o próximo dia de leitura */
 async function markAsRead() {
     if (!currentReadingPlan || !currentUser || !activePlanId || markAsReadButton.disabled) return;
 
     const userId = currentUser.uid;
-    const userDocRef = doc(db, 'users', userId);
     const { plan, currentDay } = currentReadingPlan;
     const totalReadingDaysInPlan = Object.keys(plan || {}).length;
 
+    // Verifica se o plano está em andamento
     if (currentDay > 0 && currentDay <= totalReadingDaysInPlan) {
         const currentDayStr = currentDay.toString();
         const chaptersJustRead = plan[currentDayStr] || [];
@@ -1475,91 +1685,205 @@ async function markAsRead() {
         const currentWeekId = getUTCWeekId();
         const nextReadingDayNumber = currentDay + 1;
 
-        let updatedStreakData = { ...userStreakData };
-        let firestoreStreakUpdate = {};
+        // --- 1. Calcula Atualização de Streak ---
+        const { updatedStreakData, firestoreStreakUpdate } = getUpdatedStreakInfo(actualDateMarkedStr, userStreakData);
 
-        if (updatedStreakData.lastInteractionDate !== actualDateMarkedStr) {
-            let daysDiff = Infinity;
-
-            if (updatedStreakData.lastInteractionDate) {
-                daysDiff = dateDiffInDays(updatedStreakData.lastInteractionDate, actualDateMarkedStr);
-            }
-
-            if (daysDiff === 1) {
-                updatedStreakData.current += 1;
-            } else if (daysDiff > 1 || daysDiff === Infinity){
-                updatedStreakData.current = 1;
-            } else {
-                console.log("Streak: Interaction date not sequential or same day.", { last: updatedStreakData.lastInteractionDate, current: actualDateMarkedStr, diff: daysDiff });
-                updatedStreakData = null;
-            }
-
-            if (updatedStreakData) {
-                updatedStreakData.longest = Math.max(updatedStreakData.longest, updatedStreakData.current);
-                updatedStreakData.lastInteractionDate = actualDateMarkedStr;
-                firestoreStreakUpdate = {
-                    lastStreakInteractionDate: updatedStreakData.lastInteractionDate,
-                    currentStreak: updatedStreakData.current,
-                    longestStreak: updatedStreakData.longest
-                };
-                console.log("Streak Updated:", updatedStreakData);
-            }
-
-        } else {
-            console.log("Streak: Already marked today.");
-            updatedStreakData = null;
-        }
-
+        // --- 2. Prepara Atualização de Interações Semanais ---
         let updatedWeeklyData = JSON.parse(JSON.stringify(currentWeeklyInteractions || { weekId: null, interactions: {} }));
-        if (updatedWeeklyData.weekId !== currentWeekId) {
+        if (updatedWeeklyData.weekId !== currentWeekId) { // Reseta se mudou a semana
             updatedWeeklyData = { weekId: currentWeekId, interactions: {} };
         }
         if (!updatedWeeklyData.interactions) updatedWeeklyData.interactions = {};
-        updatedWeeklyData.interactions[actualDateMarkedStr] = true;
+        updatedWeeklyData.interactions[actualDateMarkedStr] = true; // Marca hoje
 
-        const logEntry = {
-            date: actualDateMarkedStr,
-            chapters: chaptersJustRead
+        // --- 3. Prepara Atualização do Plano (dia, log, interações) ---
+        const planUpdateData = {
+            currentDay: nextReadingDayNumber,
+            weeklyInteractions: updatedWeeklyData,
+            [`readLog.${actualDateMarkedStr}`]: chaptersJustRead // Usa dot notation para o log
         };
 
+        // Desabilita botões durante a operação
         if (markAsReadButton) markAsReadButton.disabled = true;
+        if (updatePlanButton) updatePlanButton.disabled = true;
 
         try {
-            const planUpdateSuccess = await updateProgressInFirestore(userId, activePlanId, nextReadingDayNumber, updatedWeeklyData, logEntry);
+            // Atualiza o plano no Firestore
+            const planUpdateSuccess = await updatePlanDataInFirestore(userId, activePlanId, planUpdateData);
 
             if (planUpdateSuccess) {
-                if (firestoreStreakUpdate && Object.keys(firestoreStreakUpdate).length > 0) {
-                    await updateDoc(userDocRef, firestoreStreakUpdate);
-                    userStreakData = { ...updatedStreakData };
+                // Atualiza estado local do plano
+                currentReadingPlan.currentDay = nextReadingDayNumber;
+                currentWeeklyInteractions = updatedWeeklyData;
+                if (!currentReadingPlan.readLog) currentReadingPlan.readLog = {};
+                currentReadingPlan.readLog[actualDateMarkedStr] = chaptersJustRead;
+
+                // Se a streak mudou, atualiza no Firestore e localmente
+                if (updatedStreakData) {
+                    const streakUpdateSuccess = await updateUserStreakInFirestore(userId, firestoreStreakUpdate);
+                    if (streakUpdateSuccess) {
+                        userStreakData = updatedStreakData; // Atualiza estado local do streak
+                    }
+                    // Mesmo se falhar, atualiza a UI com o cálculo local
                     updateStreakCounterUI();
-                    console.log("Streak data saved to Firestore.");
                 } else {
-                    updateStreakCounterUI();
+                     // Se não houve mudança na streak, ainda atualiza a UI (pode ser a 1a interação)
+                     updateStreakCounterUI();
                 }
 
-                loadDailyReadingUI();
-                updateWeeklyTrackerUI();
-                await displayScheduledReadings();
+                // Atualiza resto da UI
+                loadDailyReadingUI(); // Mostra novo dia ou conclusão
+                updateWeeklyTrackerUI(); // Atualiza marcador semanal
+                await displayScheduledReadings(); // Recalcula próximas/atrasadas
 
+                // Alerta de conclusão
                 if (nextReadingDayNumber > totalReadingDaysInPlan) {
                      setTimeout(() => alert(`Você concluiu o plano "${currentReadingPlan.name || ''}"! Parabéns!`), 100);
-                } else {
-                    if (markAsReadButton) markAsReadButton.disabled = false;
                 }
             } else {
+                // Falha ao salvar progresso do plano
                 showErrorMessage(planViewErrorDiv, "Falha ao salvar o progresso do plano. Tente novamente.");
-                if (markAsReadButton) markAsReadButton.disabled = false;
             }
 
         } catch (error) {
             console.error("Error during markAsRead Firestore updates:", error);
             showErrorMessage(planViewErrorDiv, `Erro ao salvar: ${error.message}`);
-            if (markAsReadButton) markAsReadButton.disabled = false;
+        } finally {
+            // Reabilita os botões apenas se o plano não estiver completo após a operação
+            const isNowCompleted = currentReadingPlan.currentDay > totalReadingDaysInPlan;
+            if (markAsReadButton) markAsReadButton.disabled = isNowCompleted;
+            if (updatePlanButton) updatePlanButton.disabled = isNowCompleted;
         }
 
     } else {
         console.warn("Tentativa de marcar como lido quando plano já concluído ou inválido.", currentReadingPlan);
-        if (markAsReadButton) markAsReadButton.disabled = true;
+        if (markAsReadButton) markAsReadButton.disabled = true; // Garante que fique desabilitado se concluído
+        if (updatePlanButton) updatePlanButton.disabled = true;
+    }
+}
+
+
+/**
+ * Marca o dia atual como lido, avança o dia E antecipa o cronograma restante.
+ */
+async function handleUpdateAndAdvancePlan() {
+    if (!currentReadingPlan || !currentUser || !activePlanId || updatePlanButton.disabled) return;
+
+    const userId = currentUser.uid;
+    const { plan, currentDay, allowedDays, startDate, recalculationBaseDate, recalculationBaseDay, name } = currentReadingPlan;
+    const totalReadingDaysInPlan = Object.keys(plan || {}).length;
+
+    // Verifica se o plano está em andamento
+    if (currentDay <= 0 || currentDay > totalReadingDaysInPlan) {
+        console.warn("Update & Advance: Plano já concluído ou em estado inválido.");
+        if (updatePlanButton) updatePlanButton.disabled = true;
+        return;
+    }
+
+    // --- 1. Marcar como Lido (Lógica similar ao markAsRead) ---
+    const currentDayStr = currentDay.toString();
+    const chaptersJustRead = plan[currentDayStr] || [];
+    const actualDateMarkedStr = getCurrentUTCDateString();
+    const currentWeekId = getUTCWeekId();
+
+    // Calcula atualização de streak
+    const { updatedStreakData, firestoreStreakUpdate } = getUpdatedStreakInfo(actualDateMarkedStr, userStreakData);
+
+    // Prepara atualização de interações semanais
+    let updatedWeeklyData = JSON.parse(JSON.stringify(currentWeeklyInteractions || { weekId: null, interactions: {} }));
+    if (updatedWeeklyData.weekId !== currentWeekId) {
+        updatedWeeklyData = { weekId: currentWeekId, interactions: {} };
+    }
+    if (!updatedWeeklyData.interactions) updatedWeeklyData.interactions = {};
+    updatedWeeklyData.interactions[actualDateMarkedStr] = true;
+
+    // --- 2. Avançar o Dia do Plano ---
+    const nextReadingDayNumber = currentDay + 1;
+
+    // --- 3. Antecipar o Cronograma (Ação Principal) ---
+    // Determinar a data base ATUAL que está sendo usada para calcular a data do 'currentDay'
+    const currentEffectiveBaseDateStr = recalculationBaseDate || startDate;
+    if (!currentEffectiveBaseDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(currentEffectiveBaseDateStr)){
+         showErrorMessage(planViewErrorDiv, "Erro: Data base atual do plano é inválida. Não é possível antecipar.");
+         return;
+    }
+
+    // Encontrar o dia de leitura válido ANTERIOR à data base atual
+    const newBaseDateStr = findPreviousValidReadingDay(currentEffectiveBaseDateStr, allowedDays);
+
+    if (!newBaseDateStr) {
+        showErrorMessage(planViewErrorDiv, "Não foi possível encontrar um dia de leitura válido anterior para antecipar o plano. Verifique os dias da semana permitidos ou se já está no primeiro dia possível.");
+        return; // Não prosseguir se não puder encontrar a data anterior
+    }
+
+    console.log(`Antecipando plano: Nova data base ${newBaseDateStr} será usada para calcular a data do dia ${nextReadingDayNumber} em diante.`);
+
+    // --- 4. Preparar Dados para Salvar no Firestore ---
+    // Os campos `recalculationBaseDay` e `recalculationBaseDate` definem
+    // a partir de qual *dia do plano* a *nova data base* será usada.
+    const planUpdateData = {
+        currentDay: nextReadingDayNumber, // Avança o dia atual
+        weeklyInteractions: updatedWeeklyData, // Salva interações
+        [`readLog.${actualDateMarkedStr}`]: chaptersJustRead, // Registra o log
+        recalculationBaseDay: nextReadingDayNumber, // O *novo* dia atual (avançado) se torna a referência
+        recalculationBaseDate: newBaseDateStr      // A *nova data base* encontrada (dia anterior)
+    };
+
+    // Desabilita botões durante a operação
+    if (markAsReadButton) markAsReadButton.disabled = true;
+    if (updatePlanButton) updatePlanButton.disabled = true;
+
+    try {
+        // Atualiza o plano no Firestore com todos os dados modificados
+        const planUpdateSuccess = await updatePlanDataInFirestore(userId, activePlanId, planUpdateData);
+
+        if (planUpdateSuccess) {
+            // Atualiza estado local do plano com os mesmos dados salvos
+            currentReadingPlan.currentDay = nextReadingDayNumber;
+            currentWeeklyInteractions = updatedWeeklyData;
+            if (!currentReadingPlan.readLog) currentReadingPlan.readLog = {};
+            currentReadingPlan.readLog[actualDateMarkedStr] = chaptersJustRead;
+            currentReadingPlan.recalculationBaseDay = nextReadingDayNumber;
+            currentReadingPlan.recalculationBaseDate = newBaseDateStr;
+
+            // Se a streak mudou, atualiza no Firestore e localmente
+            if (updatedStreakData) {
+                const streakUpdateSuccess = await updateUserStreakInFirestore(userId, firestoreStreakUpdate);
+                if (streakUpdateSuccess) {
+                    userStreakData = updatedStreakData; // Atualiza estado local
+                }
+                 // Mesmo se falhar, atualiza a UI com o cálculo local
+                updateStreakCounterUI();
+            } else {
+                 updateStreakCounterUI(); // Atualiza UI do streak mesmo sem mudança
+            }
+
+
+            // Atualiza resto da UI para refletir as mudanças
+            loadDailyReadingUI();
+            updateWeeklyTrackerUI();
+            await displayScheduledReadings();
+
+             alert("Plano atualizado e cronograma antecipado com sucesso!");
+
+             // Verifica se o plano foi concluído APÓS esta operação
+             if (nextReadingDayNumber > totalReadingDaysInPlan) {
+                 setTimeout(() => alert(`Você concluiu o plano "${name || ''}"! Parabéns!`), 100);
+             }
+
+        } else {
+            // Falha ao salvar a atualização do plano
+            showErrorMessage(planViewErrorDiv, "Falha ao salvar a atualização do plano. Tente novamente.");
+        }
+
+    } catch (error) {
+        console.error("Error during handleUpdateAndAdvancePlan Firestore updates:", error);
+        showErrorMessage(planViewErrorDiv, `Erro ao atualizar e antecipar: ${error.message}`);
+    } finally {
+        // Reabilita os botões apenas se o plano não estiver completo após a operação
+        const isNowCompleted = currentReadingPlan.currentDay > totalReadingDaysInPlan;
+        if (markAsReadButton) markAsReadButton.disabled = isNowCompleted;
+        if (updatePlanButton) updatePlanButton.disabled = isNowCompleted;
     }
 }
 
@@ -1572,17 +1896,24 @@ function handleDeleteSpecificPlan(planIdToDelete) {
     const planName = planToDelete?.name || `ID ${planIdToDelete.substring(0,5)}...`;
 
     if (confirm(`Tem certeza que deseja excluir o plano "${planName}" permanentemente? Todo o progresso e histórico serão perdidos.`)) {
-        if (managePlansModal.style.display === 'flex') { showLoading(managePlansLoadingDiv, true); }
+        // Mostra loading no local apropriado (modal ou visão do plano)
+        const isInModal = managePlansModal.style.display === 'flex' || managePlansModal.style.display === 'block';
+        if (isInModal) { showLoading(managePlansLoadingDiv, true); }
+        else { showLoading(planLoadingViewDiv, true); } // Mostra loading na visão principal
 
         deletePlanFromFirestore(userId, planIdToDelete)
             .then(success => {
                 if (success) {
                     alert(`Plano "${planName}" excluído com sucesso.`);
-                    if (managePlansModal.style.display === 'flex') { closeModal('manage-plans-modal'); }
+                    if (isInModal) { closeModal('manage-plans-modal'); }
+                    // A UI principal é atualizada dentro de deletePlanFromFirestore se o plano ativo foi deletado
                 }
+                // Mensagem de erro já é mostrada por deletePlanFromFirestore se falhar
             })
             .finally(() => {
-                 if (managePlansModal.style.display === 'flex') { showLoading(managePlansLoadingDiv, false); }
+                 // Esconde loading
+                 if (isInModal) { showLoading(managePlansLoadingDiv, false); }
+                 else { showLoading(planLoadingViewDiv, false); }
             });
     }
 }
@@ -1593,14 +1924,19 @@ function handleDeleteSpecificPlan(planIdToDelete) {
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+        // Limpa erros anteriores
         const errorDiv = modal.querySelector('.error-message');
         if (errorDiv) showErrorMessage(errorDiv, '');
-        const extendOption = modal.querySelector('input[name="recalc-option"][value="extend_date"]');
-        if (extendOption) extendOption.checked = true; // Padrão: estender data
-        const paceInput = modal.querySelector('#new-pace-input');
-        if (paceInput) paceInput.value = '3'; // Padrão: 3 capítulos/dia
 
-        modal.style.display = 'flex';
+        // Reseta opções específicas (ex: recálculo)
+        if (modalId === 'recalculate-modal') {
+            const extendOption = modal.querySelector('input[name="recalc-option"][value="extend_date"]');
+            if (extendOption) extendOption.checked = true; // Padrão: estender data
+            const paceInput = modal.querySelector('#new-pace-input');
+            if (paceInput) paceInput.value = '3'; // Padrão: 3 capítulos/dia
+        }
+
+        modal.style.display = 'flex'; // Usa flex para centralizar
     } else {
         console.error(`Modal com ID "${modalId}" não encontrado.`);
     }
@@ -1614,7 +1950,7 @@ function closeModal(modalId) {
 
 /** Lida com a lógica de recálculo do plano ativo */
 async function handleRecalculate() {
-    if (!currentReadingPlan || !currentUser || !activePlanId || confirmRecalculateButton.disabled) return;
+    if (!currentReadingPlan || !currentUser || !activePlanId || (confirmRecalculateButton && confirmRecalculateButton.disabled)) return;
 
     const userId = currentUser.uid;
     const recalcOptionRadio = document.querySelector('input[name="recalc-option"]:checked');
@@ -1624,85 +1960,113 @@ async function handleRecalculate() {
 
     showLoading(recalculateLoadingDiv, true);
     showErrorMessage(recalculateErrorDiv, '');
-    confirmRecalculateButton.disabled = true;
+    if (confirmRecalculateButton) confirmRecalculateButton.disabled = true;
 
-    const { chaptersList, currentDay, plan: originalPlanMap, startDate: originalStartDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink, endDate: currentEndDate } = JSON.parse(JSON.stringify(currentReadingPlan)); // Copia profunda
+    // Cria uma cópia profunda para não alterar o estado atual antes de salvar
+    const originalPlanData = JSON.parse(JSON.stringify(currentReadingPlan));
+    const { chaptersList, currentDay, plan: originalPlanMap, startDate: originalStartDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink, endDate: currentEndDate } = originalPlanData;
     const totalReadingDaysOriginal = Object.keys(originalPlanMap || {}).length;
-    const validAllowedDays = (Array.isArray(allowedDays) && allowedDays.length > 0) ? allowedDays : [0, 1, 2, 3, 4, 5, 6]; // Usa dias selecionados ou todos
+
+    // Usa os dias permitidos definidos no plano, ou todos se vazio
+    const validAllowedDays = (Array.isArray(allowedDays) && allowedDays.length > 0) ? allowedDays : [0, 1, 2, 3, 4, 5, 6];
 
     try {
+        // --- 1. Calcula Capítulos Restantes ---
+        // Conta quantos capítulos *deveriam* ter sido lidos até o dia ANTERIOR ao atual
         let chaptersDesignatedBeforeCurrent = 0;
-        for (let dayKey in originalPlanMap) {
-            const dayNum = parseInt(dayKey, 10);
-            if (dayNum < currentDay && Array.isArray(originalPlanMap[dayKey])) {
+        for (let dayNum = 1; dayNum < currentDay; dayNum++) {
+            const dayKey = dayNum.toString();
+            if (originalPlanMap[dayKey] && Array.isArray(originalPlanMap[dayKey])) {
                  chaptersDesignatedBeforeCurrent += originalPlanMap[dayKey].length;
             }
         }
+        // Garante que não exceda o total (caso de erro no plano original)
         chaptersDesignatedBeforeCurrent = Math.min(chaptersDesignatedBeforeCurrent, chaptersList.length);
         const remainingChapters = chaptersList.slice(chaptersDesignatedBeforeCurrent);
 
-        if (remainingChapters.length === 0) throw new Error("Não há capítulos restantes para recalcular. O plano já cobriu todo o conteúdo.");
+        if (remainingChapters.length === 0) {
+             // Não há mais capítulos a serem lidos a partir deste ponto
+             throw new Error("Não há capítulos restantes para recalcular. O plano já cobriu todo o conteúdo designado até este dia.");
+        }
 
+        // --- 2. Calcula Novos Dias/Ritmo para o Restante ---
         let newTotalReadingDaysForRemainder = 0;
         let newPlanMapForRemainder = {};
+        const todayStr = getCurrentUTCDateString(); // Data atual para referência
+
+        // Determina a data a partir da qual o novo cronograma deve começar.
+        // Geralmente é hoje, mas se a data agendada para o dia ATUAL ainda está no futuro,
+        // o recálculo deve começar a partir dessa data futura.
+        const scheduledDateForCurrentDayStr = getEffectiveDateForDay(originalPlanData, currentDay);
+        let recalcEffectiveStartDate = todayStr;
+        if (scheduledDateForCurrentDayStr && scheduledDateForCurrentDayStr > todayStr) {
+            recalcEffectiveStartDate = scheduledDateForCurrentDayStr;
+        } else if (!scheduledDateForCurrentDayStr) {
+            console.warn("Recalculate: Could not determine scheduled date for current day. Using today as base.");
+            recalcEffectiveStartDate = todayStr;
+        }
+         console.log(`Recálculo usará como data base para o dia ${currentDay} (recalcEffectiveStartDate): ${recalcEffectiveStartDate}`);
+
 
         if (recalcOption === 'extend_date') {
+            // Manter ritmo original: Calcula ritmo médio do plano inteiro
             const originalReadingDaysWithContent = Object.values(originalPlanMap || {}).filter(chaps => Array.isArray(chaps) && chaps.length > 0).length;
+            // Usa teto para garantir que termine, mínimo de 1 cap/dia, padrão 3 se não houver dados
             const avgPace = originalReadingDaysWithContent > 0 ? Math.max(1, Math.ceil(chaptersList.length / originalReadingDaysWithContent)) : 3;
             newTotalReadingDaysForRemainder = Math.max(1, Math.ceil(remainingChapters.length / avgPace));
             newPlanMapForRemainder = distributeChaptersOverReadingDays(remainingChapters, newTotalReadingDaysForRemainder);
 
         } else if (recalcOption === 'increase_pace') {
-            const todayDate = new Date(getCurrentUTCDateString() + 'T00:00:00Z');
+            // Manter data final original: Calcula quantos dias de leitura existem entre a data de início do recálculo e a data final original
             const originalEndDate = new Date(currentEndDate + 'T00:00:00Z');
+            const recalcStartDate = new Date(recalcEffectiveStartDate + 'T00:00:00Z');
 
-            const originalScheduledDateForCurrentDayStr = getEffectiveDateForDay(currentReadingPlan, currentDay);
-            let countStartDate = todayDate;
-            if (originalScheduledDateForCurrentDayStr && new Date(originalScheduledDateForCurrentDayStr + 'T00:00:00Z') > todayDate) {
-                countStartDate = new Date(originalScheduledDateForCurrentDayStr + 'T00:00:00Z');
-            }
-
-            if (isNaN(originalEndDate.getTime()) || originalEndDate < countStartDate) {
-                 console.warn("Recalculate: Data final original inválida ou já passou para 'increase_pace'. Estendendo a data.");
+            if (isNaN(originalEndDate.getTime()) || originalEndDate < recalcStartDate) {
+                 console.warn("Recalculate: Data final original inválida ou já passou para 'increase_pace'. Estendendo a data como fallback.");
+                 // Fallback: Usa a mesma lógica de 'extend_date'
                  const originalReadingDaysWithContent = Object.values(originalPlanMap || {}).filter(chaps => Array.isArray(chaps) && chaps.length > 0).length;
                  const avgPace = originalReadingDaysWithContent > 0 ? Math.max(1, Math.ceil(chaptersList.length / originalReadingDaysWithContent)) : 3;
                  newTotalReadingDaysForRemainder = Math.max(1, Math.ceil(remainingChapters.length / avgPace));
             } else {
+                // Conta dias de leitura permitidos entre a data de início do recálculo e a data final original (inclusive)
                 let remainingReadingDaysCount = 0;
-                let currentDate = new Date(countStartDate);
+                let currentDate = new Date(recalcStartDate);
                 while (currentDate <= originalEndDate) {
-                     if (validAllowedDays.includes(currentDate.getUTCDay())) { remainingReadingDaysCount++; }
+                     if (validAllowedDays.includes(currentDate.getUTCDay())) {
+                         remainingReadingDaysCount++;
+                     }
                      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-                     if(remainingReadingDaysCount > 365*10) { console.warn("Safety break: increase_pace date count exceeded limit."); break; }
+                     // Safety break para evitar loops infinitos
+                     if(remainingReadingDaysCount > remainingChapters.length + 366) {
+                        console.warn("Safety break: increase_pace date count exceeded limit.");
+                        throw new Error("Excedido limite de cálculo de dias para manter data final.");
+                     }
                 }
-                 newTotalReadingDaysForRemainder = Math.max(1, remainingReadingDaysCount);
+                 newTotalReadingDaysForRemainder = Math.max(1, remainingReadingDaysCount); // Garante pelo menos 1 dia
             }
             newPlanMapForRemainder = distributeChaptersOverReadingDays(remainingChapters, newTotalReadingDaysForRemainder);
 
         } else if (recalcOption === 'new_pace') {
+            // Novo ritmo definido pelo usuário
             const newPacePerReadingDay = parseInt(newPaceInput.value, 10);
             if (isNaN(newPacePerReadingDay) || newPacePerReadingDay <= 0) throw new Error("Novo ritmo de capítulos por dia de leitura inválido.");
             newTotalReadingDaysForRemainder = Math.max(1, Math.ceil(remainingChapters.length / newPacePerReadingDay));
             newPlanMapForRemainder = distributeChaptersOverReadingDays(remainingChapters, newTotalReadingDaysForRemainder);
         }
 
+        // Verifica se a distribuição funcionou
         if (Object.keys(newPlanMapForRemainder).length === 0 && remainingChapters.length > 0) {
              throw new Error("Falha ao redistribuir os capítulos restantes. Verifique a lógica de cálculo dos dias.");
         }
 
-        const todayStr = getCurrentUTCDateString();
-        const scheduledDateForCurrentDayStr = getEffectiveDateForDay(currentReadingPlan, currentDay);
-        let recalcEffectiveStartDate = todayStr;
-        if (scheduledDateForCurrentDayStr && scheduledDateForCurrentDayStr > todayStr) {
-            recalcEffectiveStartDate = scheduledDateForCurrentDayStr;
-        }
-        console.log(`Recálculo usará como data base para o dia ${currentDay} (recalcEffectiveStartDate): ${recalcEffectiveStartDate}`);
-
+        // --- 3. Monta o Novo Mapa Completo do Plano ---
         const updatedFullPlanMap = {};
-        for (let dayKey in originalPlanMap) {
-            const dayNum = parseInt(dayKey, 10);
-            if (dayNum < currentDay) { updatedFullPlanMap[dayKey] = originalPlanMap[dayKey]; }
+        // Copia a parte já lida (ou pulada) do plano original
+        for (let dayNum = 1; dayNum < currentDay; dayNum++) {
+            const dayKey = dayNum.toString();
+             updatedFullPlanMap[dayKey] = originalPlanMap[dayKey] || []; // Mantém dias vazios se existiam
         }
+        // Adiciona a parte recalculada, renumerando os dias
         let newMapDayCounter = 0;
         Object.keys(newPlanMapForRemainder).sort((a,b) => parseInt(a) - parseInt(b)).forEach(remDayKey => {
             const newDayKey = (currentDay + newMapDayCounter).toString();
@@ -1710,39 +2074,48 @@ async function handleRecalculate() {
             newMapDayCounter++;
         });
 
+        // --- 4. Calcula Nova Data Final ---
+        // A nova data final é calculada a partir da `recalcEffectiveStartDate` contando `newTotalReadingDaysForRemainder` dias de leitura
         const newEndDateStr = calculateDateForDay(recalcEffectiveStartDate, newTotalReadingDaysForRemainder, allowedDays);
         if (!newEndDateStr) throw new Error(`Falha ao calcular a nova data final após recálculo, partindo de ${recalcEffectiveStartDate} por ${newTotalReadingDaysForRemainder} dias de leitura.`);
 
+        // --- 5. Monta Objeto Final e Salva ---
         const updatedPlanData = {
+            // Campos que não mudam com o recálculo
             name: name,
             chaptersList: chaptersList,
             totalChapters: chaptersList.length,
             allowedDays: allowedDays,
             readLog: readLog || {},
             weeklyInteractions: weeklyInteractions || { weekId: getUTCWeekId(), interactions: {} },
-            createdAt: createdAt || serverTimestamp(),
+            createdAt: createdAt || serverTimestamp(), // Mantém timestamp original se existir
             googleDriveLink: googleDriveLink || null,
-            startDate: originalStartDate,
+            startDate: originalStartDate, // Data de início original é preservada
 
-            plan: updatedFullPlanMap,
-            currentDay: currentDay,
-            endDate: newEndDateStr,
+            // Campos atualizados pelo recálculo
+            plan: updatedFullPlanMap, // O novo mapa de distribuição
+            currentDay: currentDay, // O dia atual não muda com o recálculo
+            endDate: newEndDateStr, // A nova data final calculada
 
-            recalculationBaseDay: currentDay,
-            recalculationBaseDate: recalcEffectiveStartDate
+            // Campos de referência do recálculo
+            recalculationBaseDay: currentDay, // O dia a partir do qual o novo cálculo se aplica
+            recalculationBaseDate: recalcEffectiveStartDate // A data a partir da qual o novo cálculo começa
         };
 
+        // Salva o plano recalculado no Firestore (sobrescreve)
         const success = await saveRecalculatedPlanToFirestore(userId, activePlanId, updatedPlanData);
 
         if (success) {
             alert("Seu plano foi recalculado com sucesso! O cronograma restante foi ajustado.");
             closeModal('recalculate-modal');
+            // Atualiza a UI para refletir as mudanças
             loadDailyReadingUI();
             updateProgressBarUI();
             updateWeeklyTrackerUI();
-            await displayScheduledReadings();
-            populatePlanSelector();
+            await displayScheduledReadings(); // Recalcula próximas/atrasadas com base no novo cronograma
+            populatePlanSelector(); // Atualiza datas no header/modal
         }
+        // Mensagem de erro é tratada dentro de saveRecalculatedPlanToFirestore
 
     } catch (error) {
         console.error("Erro ao recalcular plano:", error);
@@ -1757,47 +2130,52 @@ async function handleRecalculate() {
 
 /** Exibe o histórico de leitura do plano ativo no modal */
 function displayReadingHistory() {
-    if (!currentReadingPlan || !historyListDiv) {
-        if(historyListDiv) historyListDiv.innerHTML = '<p>Nenhum plano ativo selecionado ou histórico disponível.</p>';
+    if (!historyModal || !historyListDiv) return; // Verifica se o modal existe
+
+    openModal('history-modal'); // Abre o modal
+    showLoading(historyLoadingDiv, true);
+    showErrorMessage(historyErrorDiv, '');
+    historyListDiv.innerHTML = ''; // Limpa conteúdo anterior
+
+    if (!currentReadingPlan) {
+        historyListDiv.innerHTML = '<p>Nenhum plano ativo selecionado.</p>';
+        showLoading(historyLoadingDiv, false);
         return;
     }
 
-    showLoading(historyLoadingDiv, false);
-    showErrorMessage(historyErrorDiv, '');
-    historyListDiv.innerHTML = '';
-
     const readLog = currentReadingPlan.readLog || {};
     const sortedDates = Object.keys(readLog)
-                          .filter(dateStr => /^\d{4}-\d{2}-\d{2}$/.test(dateStr))
-                          .sort()
+                          .filter(dateStr => /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) // Filtra apenas datas válidas
+                          .sort() // Ordena cronologicamente
                           .reverse(); // Mais recentes primeiro
 
     if (sortedDates.length === 0) {
         historyListDiv.innerHTML = '<p>Nenhum registro de leitura encontrado para este plano.</p>';
-        return;
+    } else {
+        sortedDates.forEach(dateStr => {
+            const chaptersRead = readLog[dateStr] || [];
+            const entryDiv = document.createElement('div');
+            entryDiv.classList.add('history-entry');
+            const formattedDate = formatUTCDateStringToBrasilian(dateStr);
+            const chaptersText = chaptersRead.length > 0 ? chaptersRead.join(', ') : 'Nenhum capítulo registrado nesta data.';
+            entryDiv.innerHTML = `
+                <span class="history-date">${formattedDate}</span>
+                <span class="history-chapters">${chaptersText}</span>
+            `;
+            historyListDiv.appendChild(entryDiv);
+        });
     }
-
-    sortedDates.forEach(dateStr => {
-        const chaptersRead = readLog[dateStr] || [];
-        const entryDiv = document.createElement('div');
-        entryDiv.classList.add('history-entry');
-        const formattedDate = formatUTCDateStringToBrasilian(dateStr);
-        const chaptersText = chaptersRead.length > 0 ? chaptersRead.join(', ') : 'Nenhum capítulo registrado nesta data.';
-        entryDiv.innerHTML = `
-            <span class="history-date">${formattedDate}</span>
-            <span class="history-chapters">${chaptersText}</span>
-        `;
-        historyListDiv.appendChild(entryDiv);
-    });
+     showLoading(historyLoadingDiv, false);
 }
 
 /** Calcula e exibe estatísticas no modal */
 async function calculateAndShowStats() {
-    if (!currentUser || !statsContentDiv) return;
+     if (!statsModal || !statsContentDiv) return; // Verifica elementos
 
+    openModal('stats-modal'); // Abre o modal
     showLoading(statsLoadingDiv, true);
     showErrorMessage(statsErrorDiv, '');
-    statsContentDiv.style.display = 'none';
+    statsContentDiv.style.display = 'none'; // Esconde conteúdo enquanto calcula
 
     try {
         let activePlanName = "--";
@@ -1808,17 +2186,22 @@ async function calculateAndShowStats() {
         let planIsCompleted = false;
 
         if (currentReadingPlan && activePlanId) {
+            // Stats do Plano Ativo
             activePlanName = currentReadingPlan.name || `ID ${activePlanId.substring(0,5)}...`;
             activePlanTotalReadingDays = Object.keys(currentReadingPlan.plan || {}).length;
 
             if (activePlanTotalReadingDays > 0) {
-                const effectiveCurrentDay = Math.max(1, currentReadingPlan.currentDay || 0);
-                const progress = ((effectiveCurrentDay - 1) / activePlanTotalReadingDays) * 100;
+                // Usa currentDay, mas não deixa passar do total para cálculo de progresso
+                const effectiveCurrentDayForProgress = Math.min(currentReadingPlan.currentDay || 1, activePlanTotalReadingDays + 1);
+                const progress = ((effectiveCurrentDayForProgress - 1) / activePlanTotalReadingDays) * 100;
                 activePlanProgress = Math.min(100, Math.max(0, progress));
-                planIsCompleted = effectiveCurrentDay > activePlanTotalReadingDays;
-                if (planIsCompleted) activePlanProgress = 100;
             }
 
+            // Verifica conclusão baseado no currentDay
+            planIsCompleted = currentReadingPlan.currentDay > activePlanTotalReadingDays;
+            if (planIsCompleted) activePlanProgress = 100;
+
+            // Calcula capítulos lidos e dias lidos a partir do LOG do plano ativo
             const readLog = currentReadingPlan.readLog || {};
             Object.values(readLog).forEach(chaptersArray => {
                 if (Array.isArray(chaptersArray)) {
@@ -1827,16 +2210,22 @@ async function calculateAndShowStats() {
                 }
             });
         }
+        // TODO: Adicionar cálculo de planos concluídos geral (requer buscar todos os planos e verificar currentDay > totalDays)
+        // let totalPlansCompletedCount = 0;
+        // if (userPlansList) {
+        //    totalPlansCompletedCount = userPlansList.filter(p => p.plan && p.currentDay > Object.keys(p.plan).length).length;
+        // }
 
+        // Atualiza UI do Modal
         statsActivePlanName.textContent = activePlanName;
         statsActivePlanProgress.textContent = `${Math.round(activePlanProgress)}%`;
         statsTotalChapters.textContent = activePlanChaptersReadFromLog > 0 ? activePlanChaptersReadFromLog : "--";
-        statsPlansCompleted.textContent = planIsCompleted ? "Sim" : (activePlanId ? "Não" : "--");
+        statsPlansCompleted.textContent = planIsCompleted ? "Sim" : (activePlanId ? "Não" : "--"); // Refere-se apenas ao plano ativo
 
         const avgPace = activePlanDaysReadFromLog > 0 ? (activePlanChaptersReadFromLog / activePlanDaysReadFromLog).toFixed(1) : "--";
         statsAvgPace.textContent = avgPace;
 
-        statsContentDiv.style.display = 'block';
+        statsContentDiv.style.display = 'block'; // Mostra conteúdo calculado
 
     } catch (error) {
         console.error("Error calculating stats:", error);
@@ -1848,8 +2237,8 @@ async function calculateAndShowStats() {
 
 // --- Função para Leituras Atrasadas e Próximas ---
 /**
- * Busca e exibe leituras atrasadas e as próximas N leituras agendadas.
- * @param {number} upcomingCount - Quantas próximas leituras exibir.
+ * Busca e exibe leituras atrasadas e as próximas N leituras agendadas de TODOS os planos.
+ * @param {number} upcomingCount - Quantas próximas leituras exibir por plano (aproximadamente).
  */
 async function displayScheduledReadings(upcomingCount = 3) {
     if (!overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv || !currentUser) {
@@ -1861,37 +2250,42 @@ async function displayScheduledReadings(upcomingCount = 3) {
 
     showLoading(overdueReadingsLoadingDiv, true);
     showLoading(upcomingReadingsLoadingDiv, true);
+    // Mostra as seções para indicar carregamento, esconde se ficar vazio depois
     overdueReadingsSection.style.display = 'block';
     upcomingReadingsSection.style.display = 'block';
     overdueReadingsListDiv.innerHTML = '';
     upcomingReadingsListDiv.innerHTML = '';
-    showErrorMessage(planViewErrorDiv, '');
+    showErrorMessage(planViewErrorDiv, ''); // Limpa erro da visão principal
 
     const overdueList = [];
     const upcomingList = [];
     const todayStr = getCurrentUTCDateString();
 
-    if (userPlansList.length === 0) {
+    if (!userPlansList || userPlansList.length === 0) {
         overdueReadingsListDiv.innerHTML = '<p>Nenhum plano para verificar.</p>';
         upcomingReadingsListDiv.innerHTML = '<p>Você ainda não tem planos de leitura.</p>';
         showLoading(overdueReadingsLoadingDiv, false);
         showLoading(upcomingReadingsLoadingDiv, false);
+        // Mantém as seções visíveis com a mensagem "nenhum plano"
         return;
     }
 
     try {
+        // Itera sobre todos os planos do usuário
         for (const plan of userPlansList) {
+            // Validação mínima do plano para processamento
             if (!plan.id || !plan.plan || typeof plan.currentDay !== 'number' || !plan.startDate || !plan.allowedDays || typeof plan.plan !== 'object' || Object.keys(plan.plan).length === 0) {
                 console.warn(`Plano ${plan.id || 'desconhecido'} (${plan.name || 'sem nome'}) pulado por falta de dados ou plano vazio.`);
-                continue;
+                continue; // Pula para o próximo plano
             }
 
             const totalReadingDays = Object.keys(plan.plan).length;
 
+            // Se o plano já está concluído, não há leituras atrasadas ou próximas
             if (plan.currentDay > totalReadingDays) continue;
 
+            // Verifica Leitura Atrasada (apenas o dia atual do plano)
             const currentScheduledDateStr = getEffectiveDateForDay(plan, plan.currentDay);
-
             if (currentScheduledDateStr && currentScheduledDateStr < todayStr) {
                  const chaptersForDay = plan.plan[plan.currentDay.toString()] || [];
                  if (chaptersForDay.length > 0) {
@@ -1905,14 +2299,17 @@ async function displayScheduledReadings(upcomingCount = 3) {
                  }
             }
 
+            // Busca Próximas Leituras (a partir do dia atual do plano)
             let upcomingFoundForThisPlan = 0;
             for (let dayOffset = 0; upcomingFoundForThisPlan < upcomingCount; dayOffset++) {
                 const targetDayNumber = plan.currentDay + dayOffset;
+                // Para se chegar ao fim do plano
                 if (targetDayNumber > totalReadingDays) break;
 
                 const dateStr = getEffectiveDateForDay(plan, targetDayNumber);
 
                 if (dateStr) {
+                    // Considera apenas datas de hoje em diante como "próximas"
                     if (dateStr >= todayStr) {
                          const chaptersForDay = plan.plan[targetDayNumber.toString()] || [];
                          if (chaptersForDay.length > 0) {
@@ -1921,25 +2318,28 @@ async function displayScheduledReadings(upcomingCount = 3) {
                                  planId: plan.id,
                                  planName: plan.name || `Plano ${plan.id.substring(0,5)}...`,
                                  chapters: chaptersForDay.join(', '),
-                                 isOverdue: false
+                                 isOverdue: false // Marcador para diferenciar
                              });
                              upcomingFoundForThisPlan++;
                          }
                     }
                 } else {
+                     // Se getEffectiveDateForDay falhar, não podemos continuar para este plano
                      console.warn(`Não foi possível calcular data efetiva para dia ${targetDayNumber} do plano ${plan.id}. Parando busca de próximas para este plano.`);
-                     break;
+                     break; // Sai do loop de offset para este plano
                 }
 
-                 if (dayOffset > totalReadingDays + upcomingCount + 7) {
+                 // Safety break para evitar loops muito longos se algo der errado
+                 if (dayOffset > totalReadingDays + upcomingCount + 14) { // Ex: fim do plano + count + 2 semanas
                      console.warn(`Safety break atingido ao buscar próximas leituras para plano ${plan.id}`);
                      break;
                  }
             }
-        }
+        } // Fim do loop por planos
 
+        // --- Renderiza Leituras Atrasadas ---
         if (overdueList.length > 0) {
-            overdueList.sort((a, b) => a.date.localeCompare(b.date));
+            overdueList.sort((a, b) => a.date.localeCompare(b.date)); // Ordena por data
             overdueList.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('overdue-reading-item');
@@ -1948,20 +2348,26 @@ async function displayScheduledReadings(upcomingCount = 3) {
                     <div class="overdue-plan-name">${item.planName}</div>
                     <div class="overdue-chapters">${item.chapters}</div>
                 `;
+                // Adiciona clique para ativar o plano e rolar
                 itemDiv.addEventListener('click', () => {
-                    if (item.planId !== activePlanId) { setActivePlan(item.planId); }
-                    else { readingPlanSection.scrollIntoView({ behavior: 'smooth' }); }
+                    if (item.planId !== activePlanId) {
+                        setActivePlan(item.planId); // Ativa o plano se não for o atual
+                    } else if (readingPlanSection) {
+                        readingPlanSection.scrollIntoView({ behavior: 'smooth' }); // Rola se já for o ativo
+                    }
                 });
                 itemDiv.style.cursor = 'pointer';
                 overdueReadingsListDiv.appendChild(itemDiv);
             });
         } else {
-            overdueReadingsListDiv.innerHTML = '<p>Nenhuma leitura atrasada encontrada.</p>';
+            overdueReadingsListDiv.innerHTML = '<p>Nenhuma leitura atrasada encontrada. 👍</p>';
         }
 
+        // --- Renderiza Próximas Leituras ---
         if (upcomingList.length > 0) {
-            upcomingList.sort((a, b) => a.date.localeCompare(b.date));
-            const itemsToShow = upcomingList.slice(0, upcomingCount);
+            upcomingList.sort((a, b) => a.date.localeCompare(b.date)); // Ordena por data
+            // Mostra apenas as N primeiras encontradas no geral
+            const itemsToShow = upcomingList.slice(0, upcomingCount * 2); // Mostra um pouco mais que o pedido por plano
             itemsToShow.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('upcoming-reading-item');
@@ -1970,136 +2376,169 @@ async function displayScheduledReadings(upcomingCount = 3) {
                     <div class="upcoming-plan-name">${item.planName}</div>
                     <div class="upcoming-chapters">${item.chapters}</div>
                 `;
-                itemDiv.addEventListener('click', () => {
-                     if (item.planId !== activePlanId) { setActivePlan(item.planId); }
-                     else { readingPlanSection.scrollIntoView({ behavior: 'smooth' }); }
-                });
+                 // Adiciona clique para ativar o plano e rolar
+                 itemDiv.addEventListener('click', () => {
+                     if (item.planId !== activePlanId) {
+                         setActivePlan(item.planId);
+                     } else if (readingPlanSection){
+                          readingPlanSection.scrollIntoView({ behavior: 'smooth' });
+                     }
+                 });
                 itemDiv.style.cursor = 'pointer';
                 upcomingReadingsListDiv.appendChild(itemDiv);
             });
         } else {
-            upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima encontrada.</p>';
+            upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima agendada encontrada.</p>';
         }
 
     } catch (error) {
         console.error("Erro ao buscar leituras agendadas:", error);
         if (overdueReadingsListDiv) overdueReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao verificar atrasos.</p>';
         if (upcomingReadingsListDiv) upcomingReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao carregar próximas leituras.</p>';
-        showErrorMessage(planViewErrorDiv, `Erro nas leituras agendadas: ${error.message}`);
+        showErrorMessage(planViewErrorDiv, `Erro nas leituras agendadas: ${error.message}`); // Mostra erro na seção principal
     } finally {
         showLoading(overdueReadingsLoadingDiv, false);
         showLoading(upcomingReadingsLoadingDiv, false);
 
-        overdueReadingsSection.style.display = (overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p')) || userPlansList.length === 0 ? 'block' : 'none';
-        upcomingReadingsSection.style.display = (upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p')) || userPlansList.length === 0 ? 'block' : 'none';
+        // Esconde as seções se não houver itens E houver planos (mostra se não houver planos)
+        const hasOverdueItems = overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p');
+        const hasUpcomingItems = upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p');
+
+        overdueReadingsSection.style.display = (hasOverdueItems || userPlansList.length === 0) ? 'block' : 'none';
+        upcomingReadingsSection.style.display = (hasUpcomingItems || userPlansList.length === 0) ? 'block' : 'none';
     }
 }
 
+// --- Função para Painel de Sequência ---
 /** Atualiza a UI do painel de sequência */
 function updateStreakCounterUI() {
     if (!streakCounterSection || !currentStreakValue || !longestStreakValue) return;
 
-    if (currentUser && userInfo) {
+    // Mostra apenas se o usuário estiver logado
+    if (currentUser && userStreakData) {
         const current = Number.isFinite(userStreakData?.current) ? userStreakData.current : 0;
         const longest = Number.isFinite(userStreakData?.longest) ? userStreakData.longest : 0;
 
         currentStreakValue.textContent = current;
         longestStreakValue.textContent = longest;
+
+        // Mostra o painel, exceto se a seção de criação estiver visível
         if (planCreationSection.style.display !== 'block') {
             streakCounterSection.style.display = 'flex';
         } else {
              streakCounterSection.style.display = 'none';
         }
     } else {
+        // Esconde se não estiver logado
         streakCounterSection.style.display = 'none';
     }
 }
 
+
 // --- Inicialização e Event Listeners ---
 document.addEventListener("DOMContentLoaded", () => {
-    if (!loginButton || !createPlanButton || !markAsReadButton || !recalculateModal || !managePlansModal ||
-        !statsModal || !historyModal || !planSelect || !periodicityCheckboxes ||
-        !overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv ||
-        !googleDriveLinkInput || !readingPlanTitle || !activePlanDriveLink ||
-        !streakCounterSection || !currentStreakValue || !longestStreakValue
-       ) {
-        console.error("Erro crítico: Elementos essenciais da UI não encontrados.");
-        document.body.innerHTML = '<p style="color: red; text-align: center; padding: 50px;">Erro ao carregar a página. Elementos faltando.</p>';
-        return;
+    // Checagem mais robusta dos elementos essenciais
+    const essentialElements = [
+        loginForm, signupForm, loginButton, signupButton, logoutButton, authSection,
+        planCreationSection, createPlanButton, planNameInput,
+        readingPlanSection, markAsReadButton, updatePlanButton, recalculatePlanButton, deleteCurrentPlanButton, dailyReadingDiv, readingPlanTitle, progressBarContainer, weeklyTrackerContainer,
+        recalculateModal, confirmRecalculateButton,
+        managePlansModal, managePlansButton, planListDiv, createNewPlanButton, planSelect, planSelectorContainer,
+        statsModal, showStatsButton, statsContentDiv,
+        historyModal, showHistoryButton, historyListDiv,
+        overdueReadingsSection, overdueReadingsListDiv, upcomingReadingsSection, upcomingReadingsListDiv,
+        streakCounterSection, currentStreakValue, longestStreakValue
+    ];
+    const missingElement = essentialElements.find(el => !el);
+    if (missingElement) {
+        // Tenta obter o ID do elemento faltante, se possível
+        const missingId = Object.entries({loginForm, signupForm, /*... add others*/}).find(([key, val]) => val === missingElement)?.[0] || 'desconhecido';
+        console.error(`Erro crítico: Elemento essencial da UI não encontrado (ID provável: ${missingId}). A aplicação pode não funcionar corretamente.`);
+        // document.body.innerHTML = `<p style="color: red; text-align: center; padding: 50px;">Erro ao carregar a página. Elemento essencial (ID: ${missingId}) faltando.</p>`;
+        // return; // Considerar parar a execução aqui se for crítico
     }
 
+    // Popula seletores e ajusta UI inicial
     populateBookSelectors();
     togglePlanCreationOptions();
 
     // --- Listeners Auth ---
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); if (loginButton.disabled) return;
-        showLoading(authLoadingDiv, true); showErrorMessage(authErrorDiv, ''); loginButton.disabled = true;
+    if (loginForm) loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); if (loginButton && loginButton.disabled) return;
+        showLoading(authLoadingDiv, true); showErrorMessage(authErrorDiv, ''); if(loginButton) loginButton.disabled = true;
         try {
             await signInWithEmailAndPassword(auth, loginEmailInput.value, loginPasswordInput.value);
         } catch (error) {
             console.error("Login error:", error);
             showErrorMessage(authErrorDiv, `Erro de login: ${error.code} - ${error.message}`);
         } finally {
-             showLoading(authLoadingDiv, false); loginButton.disabled = false;
+             showLoading(authLoadingDiv, false); if(loginButton) loginButton.disabled = false;
         }
     });
-    signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); if (signupButton.disabled) return;
-        showLoading(authLoadingDiv, true); showErrorMessage(signupErrorDiv, ''); signupButton.disabled = true;
+    if (signupForm) signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); if (signupButton && signupButton.disabled) return;
+        showLoading(authLoadingDiv, true); showErrorMessage(signupErrorDiv, ''); if(signupButton) signupButton.disabled = true;
         try {
             await createUserWithEmailAndPassword(auth, signupEmailInput.value, signupPasswordInput.value);
              alert("Cadastro realizado com sucesso! Você já está logado.");
              if (signupEmailInput) signupEmailInput.value = '';
              if (signupPasswordInput) signupPasswordInput.value = '';
+             // O observer onAuthStateChanged cuidará da atualização da UI
         } catch (error) {
             console.error("Signup error:", error);
             showErrorMessage(signupErrorDiv, `Erro no cadastro: ${error.code} - ${error.message}`);
         } finally {
-            showLoading(authLoadingDiv, false); signupButton.disabled = false;
+            showLoading(authLoadingDiv, false); if(signupButton) signupButton.disabled = false;
         }
     });
-    logoutButton.addEventListener('click', async () => {
+    if (logoutButton) logoutButton.addEventListener('click', async () => {
         if (logoutButton.disabled) return;
         logoutButton.disabled = true;
         try { await signOut(auth); }
         catch (error) { console.error("Sign out error:", error); alert(`Erro ao sair: ${error.message}`); }
+        finally { logoutButton.disabled = false; } // Reabilita mesmo se der erro
     });
-    showSignupLink.addEventListener('click', (e) => { e.preventDefault(); toggleForms(false); });
-    showLoginLink.addEventListener('click', (e) => { e.preventDefault(); toggleForms(true); });
+    if (showSignupLink) showSignupLink.addEventListener('click', (e) => { e.preventDefault(); toggleForms(false); });
+    if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); toggleForms(true); });
 
     // --- Listeners Plan Creation ---
-    createPlanButton.addEventListener('click', createReadingPlan);
+    if (createPlanButton) createPlanButton.addEventListener('click', createReadingPlan);
     if (cancelCreationButton) cancelCreationButton.addEventListener('click', cancelPlanCreation);
-    creationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
-    durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
+    if (creationMethodRadios) creationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
+    if (durationMethodRadios) durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
     if (chaptersInput) chaptersInput.addEventListener('input', updateBookSuggestions);
 
      // --- Listeners Reading Plan ---
-     markAsReadButton.addEventListener('click', markAsRead);
-     deleteCurrentPlanButton.addEventListener('click', () => {
+     if (markAsReadButton) markAsReadButton.addEventListener('click', markAsRead);
+     if (updatePlanButton) updatePlanButton.addEventListener('click', handleUpdateAndAdvancePlan); // ***** NOVO LISTENER *****
+     if (deleteCurrentPlanButton) deleteCurrentPlanButton.addEventListener('click', () => {
          if(activePlanId && currentReadingPlan) { handleDeleteSpecificPlan(activePlanId); }
          else { alert("Nenhum plano ativo para deletar."); }
      });
-     recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
-     showStatsButton.addEventListener('click', () => { calculateAndShowStats(); openModal('stats-modal'); });
-     showHistoryButton.addEventListener('click', () => { displayReadingHistory(); openModal('history-modal'); });
+     if (recalculatePlanButton) recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
+     if (showStatsButton) showStatsButton.addEventListener('click', () => calculateAndShowStats()); // Função já abre o modal
+     if (showHistoryButton) showHistoryButton.addEventListener('click', () => displayReadingHistory()); // Função já abre o modal
 
      // --- Listener Header Plan Selector ---
-     planSelect.addEventListener('change', (e) => {
+     if (planSelect) planSelect.addEventListener('change', (e) => {
          const selectedPlanId = e.target.value;
          if (selectedPlanId && selectedPlanId !== activePlanId) { setActivePlan(selectedPlanId); }
      });
-     managePlansButton.addEventListener('click', () => { populateManagePlansModal(); openModal('manage-plans-modal'); });
+     if (managePlansButton) managePlansButton.addEventListener('click', () => { populateManagePlansModal(); openModal('manage-plans-modal'); });
 
      // --- Listeners Modals ---
-     confirmRecalculateButton.addEventListener('click', handleRecalculate);
-     createNewPlanButton.addEventListener('click', () => { closeModal('manage-plans-modal'); showPlanCreationSection(); });
+     if (confirmRecalculateButton) confirmRecalculateButton.addEventListener('click', handleRecalculate);
+     if (createNewPlanButton) createNewPlanButton.addEventListener('click', () => { closeModal('manage-plans-modal'); showPlanCreationSection(); });
+
+     // Adiciona listeners de fechamento genéricos para todos os modais
      [recalculateModal, managePlansModal, statsModal, historyModal].forEach(modal => {
          if (modal) {
+             // Fechar ao clicar fora do conteúdo
              modal.addEventListener('click', (event) => { if (event.target === modal) { closeModal(modal.id); } });
+             // Fechar ao clicar no botão 'X'
              const closeBtn = modal.querySelector('.close-button');
              if (closeBtn) {
+                 // Evita adicionar múltiplos listeners se o script rodar novamente
                  if (!closeBtn.dataset.listenerAttached) {
                     closeBtn.addEventListener('click', () => closeModal(modal.id));
                     closeBtn.dataset.listenerAttached = 'true';
@@ -2110,13 +2549,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Firebase Auth State Observer ---
     onAuthStateChanged(auth, (user) => {
+        // Reabilita botões de auth para evitar ficarem presos em estado de loading se algo falhar
         if (loginButton) loginButton.disabled = false;
         if (signupButton) signupButton.disabled = false;
-        if (logoutButton) logoutButton.disabled = false;
-        updateUIBasedOnAuthState(user);
+        if (logoutButton) logoutButton.disabled = false; // A lógica de desabilitar/reabilitar está no próprio listener de clique
+
+        updateUIBasedOnAuthState(user); // Função central para atualizar UI baseada no login/logout
     });
 
     console.log("Event listeners attached and application initialized.");
 });
-
-// --- END OF FILE script.js ---
