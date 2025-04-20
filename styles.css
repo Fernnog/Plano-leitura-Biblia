@@ -400,7 +400,7 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
 }
 
 .drive-link-icon:hover {
-    transform: scale(1.25);                 /* ALTERADO - Escala maior */
+    transform: scale(1.5);                 /* ALTERADO - Escala maior */
     background-color: rgba(var(--primary-action-rgb), 0.1); /* ALTERADO - Fundo mais visível */
 }
 
