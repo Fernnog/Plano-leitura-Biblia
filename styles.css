@@ -7,7 +7,7 @@
     --gradient-end: #00BFFF;   /* Azul Céu */
     --primary-action: #8A2BE2; /* Roxo Azulado (Violeta) */
     --primary-action-dark: #701ebd;
-    --primary-action-rgb: 138, 43, 226; /* ALTERADO - Garante que esta variável exista */
+    --primary-action-rgb: 138, 43, 226; /* Garante que esta variável exista */
     --accent-color: var(--gradient-start); /* Laranja como acento */
     --accent-color-dark: #E07B00;
     --accent-color-rgb: 255, 140, 0;
@@ -28,7 +28,7 @@
     --warning-item-border: #ef4444; /* Borda item Atrasado */
     --warning-item-text: #dc2626; /* Cor data Atrasada */
     --drive-blue: #4285F4; /* Azul Google Drive */
-    --drive-blue-rgb: 66, 133, 244; /* NOVO - RGB para drop-shadow */
+    --drive-blue-rgb: 66, 133, 244; /* RGB para drop-shadow, se usar */
     --drive-text-blue: #0b57d0; /* Azul texto link Drive */
     --disabled-color: #e0e0e0; /* Cinza para desabilitado */
     --disabled-text-color: #9e9e9e;
@@ -382,53 +382,55 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
 }
 #reading-plan-title { margin: 0; padding: 0; border: none; color: var(--primary-action); font-size: 1.5em; font-weight: 700; line-height: 1.3; }
 
-/* --- Ícone do Drive (Link <a>) - ESTILOS ALTERADOS/NOVOS --- */
+/* --- Ícone do Drive (Link <a>) - ESTILOS ATUALIZADOS --- */
 .drive-link-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     line-height: 0;
     flex-shrink: 0;
-    padding: 3px;                          /* NOVO - Espaço para fundo/sombra */
-    border-radius: 5px;                     /* NOVO - Bordas para fundo */
-    cursor: pointer;                        /* NOVO - Garante a mãozinha */
-    /* ALTERADO - Transição para incluir background e filter */
-    transition: transform var(--transition-fast), background-color var(--transition-fast), filter var(--transition-fast);
-    /* Tamanho base do container do ícone */
+    padding: 3px;           /* Espaço para fundo */
+    border-radius: 5px;      /* Bordas para fundo */
+    cursor: pointer;         /* Mãozinha */
+    background-color: transparent; /* Fundo transparente normal */
+    /* Transição para escala, fundo e sombra */
+    transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+    /* Tamanho base do container */
     width: 28px;
     height: 28px;
 }
 
 .drive-link-icon:hover {
-    transform: scale(1.5);                 /* ALTERADO - Escala maior */
-    background-color: rgba(var(--primary-action-rgb), 0.1); /* ALTERADO - Fundo mais visível */
+    transform: scale(1.5); /* Escala 1.5 */
+    background-color: rgba(var(--primary-action-rgb), 0.08); /* Fundo sutil */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra sutil */
 }
 
-/* Aplica o brilho ao ícone (SVG ou IMG) DENTRO do link no hover */
-.drive-link-icon:hover svg,
-.drive-link-icon:hover img.drive-png-icon { /* NOVO - Aplica drop-shadow */
-    filter: drop-shadow(0 0 3px rgba(var(--drive-blue-rgb), 0.6));
-}
+/* Remove/Comenta o drop-shadow se não quiser combinar com o box-shadow */
+/* .drive-link-icon:hover svg, */
+/* .drive-link-icon:hover img.drive-png-icon { */
+     /* filter: drop-shadow(0 0 3px rgba(var(--drive-blue-rgb), 0.6)); */
+/* } */
 
 /* Estilos para o conteúdo do ícone (SVG ou IMG) */
-.drive-link-icon svg { /* Para caso esteja usando SVG */
-    width: 100%;    /* Ocupa o tamanho do container <a> */
+.drive-link-icon svg {
+    width: 100%;
     height: 100%;
-    fill: var(--drive-blue); /* Mantém a cor original do Drive */
+    fill: var(--drive-blue);
 }
-.drive-link-icon img.drive-png-icon { /* Para caso esteja usando IMG */
+.drive-link-icon img.drive-png-icon {
     display: block;
-    width: 100%;    /* Ocupa o tamanho do container <a> */
-    height: auto;   /* Mantém proporção */
+    width: 100%;
+    height: auto;
 }
 
-/* Ícone do Drive no Modal Gerenciar Planos (sem mudanças necessárias aqui) */
+/* Ícone do Drive no Modal Gerenciar Planos */
 .plan-list-item .actions .manage-drive-link { color: var(--drive-blue); text-decoration: none; font-size: 1.3em; line-height: 1; padding: 0 3px; transition: transform var(--transition-fast); display: inline-flex; align-items: center; margin-right: 5px; }
 .plan-list-item .actions .manage-drive-link svg { fill: currentColor; }
 .plan-list-item .actions .manage-drive-link:hover { transform: scale(1.2); }
 
 /* --- Estilos Painel de Sequência de Leitura --- */
-.streak-counter { align-items: center; gap: 15px; padding: 12px 20px; border-radius: var(--base-border-radius); background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); color: var(--text-color-light); box-shadow: var(--box-shadow-sm); transition: all var(--transition-base); }
+.streak-counter { display: flex; align-items: center; gap: 15px; padding: 12px 20px; border-radius: var(--base-border-radius); background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); color: var(--text-color-light); box-shadow: var(--box-shadow-sm); transition: all var(--transition-base); }
 .streak-counter:hover { box-shadow: var(--box-shadow); transform: translateY(-2px); }
 .streak-icon { font-size: 2.5em; line-height: 1; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
 .streak-info p { margin: 0 0 3px 0; font-size: 1em; font-weight: 400; }
@@ -449,9 +451,11 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
      .upcoming-readings-container { grid-template-columns: 1fr; }
      #reading-plan-title { font-size: 1.4em; }
      /* Ajuste Responsivo do Ícone Drive */
-     .drive-link-icon { /* ALTERADO - Ajusta tamanho base */
+     .drive-link-icon {
         width: 26px;
         height: 26px;
+        /* padding: 2px; */ /* Se ajustou o padding base, ajuste aqui */
+        /* border-radius: 4px; */ /* Se ajustou o radius base, ajuste aqui */
      }
      .day-marker { width: 30px; height: 30px; }
      .day-marker::after { font-size: 16px; }
@@ -488,9 +492,11 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     .plan-list-item { flex-direction: column; align-items: flex-start; gap: 5px;} .plan-list-item .actions { margin-top: 5px; align-self: flex-end; }
     .plan-list-item .actions .manage-drive-link { order: -1; margin-right: auto; margin-left: 0; font-size: 1.4em; }
     /* Ajuste Responsivo do Ícone Drive */
-    .drive-link-icon { /* ALTERADO - Ajusta tamanho base */
+    .drive-link-icon {
         width: 24px;
         height: 24px;
+        /* padding: 2px; */ /* Se ajustou o padding base, ajuste aqui */
+        /* border-radius: 4px; */ /* Se ajustou o radius base, ajuste aqui */
     }
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
