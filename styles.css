@@ -544,24 +544,53 @@ input[type="url"]::placeholder {
     font-weight: 700;
     line-height: 1.3; /* Melhora espaçamento vertical */
 }
-.drive-link-icon { /* Ícone do Drive */
-    display: inline-flex; /* Usa inline-flex para alinhar SVG interno */
+/* Estilos para o container do ícone (o link <a>) */
+.drive-link-icon {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 0;
+    line-height: 0; /* Ajuda a alinhar a imagem */
     transition: transform var(--transition-fast);
-    flex-shrink: 0; /* Impede que o ícone encolha */
-    padding: 2px; /* Pequeno espaço interno */
-    border-radius: 4px; /* Borda levemente arredondada no hover */
+    flex-shrink: 0;
+    padding: 2px;
+    border-radius: 4px;
+    /* Defina o tamanho do container do ícone aqui */
+    width: 28px;
+    height: 28px;
 }
+
 .drive-link-icon:hover {
     transform: scale(1.15);
-    background-color: rgba(var(--primary-action-rgb), 0.05); /* Fundo sutil no hover */
+    background-color: rgba(var(--primary-action-rgb), 0.05);
 }
-.drive-link-icon svg {
-    width: 28px; /* Tamanho base */
+
+/* Estilos para a imagem PNG dentro do link */
+.drive-link-icon img.drive-png-icon {
+    display: block; /* Remove espaço extra abaixo da imagem */
+    width: 100%;   /* Faz a imagem ocupar o tamanho do container <a> */
+    height: auto;  /* Mantém a proporção da imagem */
+}
+
+/* Remova ou comente a regra antiga que aplicava 'fill' ao SVG */
+/* .drive-link-icon svg {
+    width: 28px;
     height: 28px;
-    fill: var(--drive-blue);
+    fill: var(--drive-blue); // NÃO MAIS NECESSÁRIO PARA PNG
+} */
+
+/* Ajustes Responsivos (adapte os tamanhos conforme necessário) */
+@media (max-width: 768px) {
+    .drive-link-icon {
+        width: 26px;
+        height: 26px;
+    }
+}
+
+@media (max-width: 600px) {
+    .drive-link-icon {
+        width: 24px;
+        height: 24px;
+    }
 }
 
 /* Ícone do Drive no Modal Gerenciar Planos (sem mudanças necessárias aqui) */
