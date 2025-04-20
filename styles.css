@@ -7,7 +7,7 @@
     --gradient-end: #00BFFF;   /* Azul Céu */
     --primary-action: #8A2BE2; /* Roxo Azulado (Violeta) */
     --primary-action-dark: #701ebd;
-    --primary-action-rgb: 138, 43, 226;
+    --primary-action-rgb: 138, 43, 226; /* ALTERADO - Garante que esta variável exista */
     --accent-color: var(--gradient-start); /* Laranja como acento */
     --accent-color-dark: #E07B00;
     --accent-color-rgb: 255, 140, 0;
@@ -28,6 +28,7 @@
     --warning-item-border: #ef4444; /* Borda item Atrasado */
     --warning-item-text: #dc2626; /* Cor data Atrasada */
     --drive-blue: #4285F4; /* Azul Google Drive */
+    --drive-blue-rgb: 66, 133, 244; /* NOVO - RGB para drop-shadow */
     --drive-text-blue: #0b57d0; /* Azul texto link Drive */
     --disabled-color: #e0e0e0; /* Cinza para desabilitado */
     --disabled-text-color: #9e9e9e;
@@ -259,92 +260,29 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     font-weight: bold;
     line-height: 1;
 }
-
 /* Estilo para Dia Lido (Ativo) */
 .day-indicator.active .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); }
 .day-indicator.active .day-marker::after { content: '✓'; color: var(--text-color-light); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
-
 /* Estilo para Dias INATIVOS conforme o Plano */
-.day-indicator.inactive-plan-day .day-marker {
-    background-color: var(--marker-plan-inactive-bg);
-    border-color: var(--marker-plan-inactive-border);
-    box-shadow: none;
-    transform: none;
-    cursor: not-allowed;
-    opacity: var(--marker-plan-inactive-opacity);
-}
-.day-indicator.inactive-plan-day .day-marker::after {
-    content: '-';
-    color: var(--marker-plan-inactive-text);
-    text-shadow: none;
-}
-.day-indicator.inactive-plan-day .day-label {
-    color: var(--text-color-muted);
-    opacity: 0.8;
-}
-
+.day-indicator.inactive-plan-day .day-marker { background-color: var(--marker-plan-inactive-bg); border-color: var(--marker-plan-inactive-border); box-shadow: none; transform: none; cursor: not-allowed; opacity: var(--marker-plan-inactive-opacity); }
+.day-indicator.inactive-plan-day .day-marker::after { content: '-'; color: var(--marker-plan-inactive-text); text-shadow: none; }
+.day-indicator.inactive-plan-day .day-label { color: var(--text-color-muted); opacity: 0.8; }
 /* Estilo para Dia PERDIDO (Refinamento 2) */
-.day-indicator.missed-day .day-marker {
-    background-color: var(--marker-missed-bg); /* Fundo vermelho claro */
-    border-color: var(--marker-missed-border); /* Borda vermelha mais clara */
-    box-shadow: 0 0 8px var(--marker-missed-shadow); /* Sombra vermelha sutil */
-    transform: scale(1.05); /* Leve destaque */
-    opacity: 1; /* Garante opacidade total */
-    cursor: help; /* Indica que algo aconteceu aqui */
-}
-.day-indicator.missed-day .day-marker::after {
-    content: '✕'; /* Ou 'X', mas ✕ é mais estilizado */
-    color: var(--marker-missed-text); /* Texto vermelho escuro */
-    text-shadow: none;
-}
-.day-indicator.missed-day .day-label {
-    color: var(--marker-missed-text); /* Label também fica vermelho */
-    opacity: 1;
-}
-
-
+.day-indicator.missed-day .day-marker { background-color: var(--marker-missed-bg); border-color: var(--marker-missed-border); box-shadow: 0 0 8px var(--marker-missed-shadow); transform: scale(1.05); opacity: 1; cursor: help; }
+.day-indicator.missed-day .day-marker::after { content: '✕'; color: var(--marker-missed-text); text-shadow: none; }
+.day-indicator.missed-day .day-label { color: var(--marker-missed-text); opacity: 1; }
 /* Garante prioridades corretas (Lido > Perdido > Inativo pelo Plano > Padrão) */
 /* Lido (active) sobrepõe Perdido e Inativo */
 .day-indicator.active.missed-day .day-marker,
-.day-indicator.active.inactive-plan-day .day-marker {
-    background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
-    border-color: transparent;
-    color: var(--text-color-light);
-    box-shadow: 0 0 12px var(--marker-active-shadow);
-    transform: scale(1.1);
-    cursor: default;
-    opacity: 1;
-}
+.day-indicator.active.inactive-plan-day .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); cursor: default; opacity: 1; }
 .day-indicator.active.missed-day .day-marker::after,
-.day-indicator.active.inactive-plan-day .day-marker::after {
-    content: '✓';
-    color: var(--text-color-light);
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
-}
+.day-indicator.active.inactive-plan-day .day-marker::after { content: '✓'; color: var(--text-color-light); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
 .day-indicator.active.missed-day .day-label,
-.day-indicator.active.inactive-plan-day .day-label {
-    color: var(--text-color-muted); /* Volta ao label normal */
-    opacity: 1;
-}
-
-/* Perdido (missed) sobrepõe Inativo pelo Plano (caso ocorra essa combinação por erro de lógica) */
-.day-indicator.missed-day.inactive-plan-day .day-marker {
-    background-color: var(--marker-missed-bg);
-    border-color: var(--marker-missed-border);
-    box-shadow: 0 0 8px var(--marker-missed-shadow);
-    transform: scale(1.05);
-    opacity: 1;
-    cursor: help;
-}
-.day-indicator.missed-day.inactive-plan-day .day-marker::after {
-    content: '✕';
-    color: var(--marker-missed-text);
-    text-shadow: none;
-}
-.day-indicator.missed-day.inactive-plan-day .day-label {
-    color: var(--marker-missed-text);
-    opacity: 1;
-}
+.day-indicator.active.inactive-plan-day .day-label { color: var(--text-color-muted); opacity: 1; }
+/* Perdido (missed) sobrepõe Inativo pelo Plano */
+.day-indicator.missed-day.inactive-plan-day .day-marker { background-color: var(--marker-missed-bg); border-color: var(--marker-missed-border); box-shadow: 0 0 8px var(--marker-missed-shadow); transform: scale(1.05); opacity: 1; cursor: help; }
+.day-indicator.missed-day.inactive-plan-day .day-marker::after { content: '✕'; color: var(--marker-missed-text); text-shadow: none; }
+.day-indicator.missed-day.inactive-plan-day .day-label { color: var(--marker-missed-text); opacity: 1; }
 
 /* --- Leitura Diária e Ações --- */
 .daily-reading-display {
@@ -360,7 +298,6 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     line-height: 1.7;
 }
 .daily-reading-display p { margin-top: 0; }
-
 .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .plan-actions button { flex-grow: 1; min-width: 150px; }
 
@@ -410,247 +347,93 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
 .history-chapters { font-size: 0.95em; color: var(--text-color-muted); word-wrap: break-word; line-height: 1.5; }
 
 /* --- Estilos Seção Leituras Atrasadas --- */
-#overdue-readings {
-    background-color: var(--warning-bg-light);
-    border: 1px solid var(--warning-border-light);
-    padding: 20px 25px;
-}
-#overdue-readings h2 {
-    color: var(--warning-text-dark);
-    border-bottom-color: var(--warning-border-strong);
-    font-size: 1.4em;
-    /* Reset margin/padding from generic section h2 */
-    margin-bottom: 15px; padding-bottom: 10px;
-}
-.overdue-readings-container {
-    display: grid;
-    grid-template-columns: 1fr; /* Apenas uma coluna para destaque */
-    gap: 15px;
-    margin-top: 15px;
-}
-.overdue-reading-item {
-    background-color: var(--background-card);
-    padding: 15px;
-    border-radius: var(--base-border-radius);
-    border: 1px solid var(--border-color);
-    border-left: 5px solid var(--warning-item-border); /* Borda vermelha */
-    box-shadow: var(--box-shadow-sm);
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    cursor: pointer;
-}
-.overdue-reading-item:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--box-shadow);
-}
-.overdue-date {
-    font-weight: 700;
-    font-size: 1.1em;
-    color: var(--warning-item-text); /* Vermelho */
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
-}
-.overdue-plan-name {
-    font-weight: 600;
-    font-size: 0.95em;
-    color: var(--text-color-dark);
-    margin-bottom: 5px;
-}
-.overdue-chapters {
-    font-size: 0.9em;
-    color: var(--text-color-muted);
-    line-height: 1.5;
-    word-break: break-word;
-}
+#overdue-readings { background-color: var(--warning-bg-light); border: 1px solid var(--warning-border-light); padding: 20px 25px; }
+#overdue-readings h2 { color: var(--warning-text-dark); border-bottom-color: var(--warning-border-strong); font-size: 1.4em; margin-bottom: 15px; padding-bottom: 10px; }
+.overdue-readings-container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
+.overdue-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); border-left: 5px solid var(--warning-item-border); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; }
+.overdue-reading-item:hover { transform: translateY(-3px); box-shadow: var(--box-shadow); }
+.overdue-date { font-weight: 700; font-size: 1.1em; color: var(--warning-item-text); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+.overdue-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 5px; }
+.overdue-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
 
 /* --- Estilos Seção Próximas Leituras (Ajustados) --- */
-#upcoming-readings {
-    background-color: rgba(var(--primary-action-rgb), 0.03);
-    border: 1px solid var(--border-color);
-    padding: 20px 25px;
-}
-#upcoming-readings h2 {
-    border-bottom-color: var(--primary-action);
-    font-size: 1.4em;
-     /* Reset margin/padding from generic section h2 */
-    margin-bottom: 15px; padding-bottom: 10px;
-}
-.upcoming-readings-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-    margin-top: 15px;
-}
-.upcoming-reading-item {
-    background-color: var(--background-card);
-    padding: 15px;
-    border-radius: var(--base-border-radius);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-sm);
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    cursor: pointer;
-}
-.upcoming-reading-item:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--box-shadow);
-}
-.upcoming-date {
-    font-weight: 700;
-    font-size: 1.1em;
-    color: var(--primary-action);
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 5px;
-}
-.upcoming-plan-name {
-    font-weight: 600;
-    font-size: 0.95em;
-    color: var(--text-color-dark);
-    margin-bottom: 5px;
-}
-.upcoming-chapters {
-    font-size: 0.9em;
-    color: var(--text-color-muted);
-    line-height: 1.5;
-    word-break: break-word;
-}
+#upcoming-readings { background-color: rgba(var(--primary-action-rgb), 0.03); border: 1px solid var(--border-color); padding: 20px 25px; }
+#upcoming-readings h2 { border-bottom-color: var(--primary-action); font-size: 1.4em; margin-bottom: 15px; padding-bottom: 10px; }
+.upcoming-readings-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
+.upcoming-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; }
+.upcoming-reading-item:hover { transform: translateY(-3px); box-shadow: var(--box-shadow); }
+.upcoming-date { font-weight: 700; font-size: 1.1em; color: var(--primary-action); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+.upcoming-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 5px; }
+.upcoming-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
 
 /* --- Estilos Google Drive Link --- */
-input[type="url"] {
-    font-size: 0.95em;
-    color: var(--drive-text-blue); /* Azul google */
-}
-input[type="url"]::placeholder {
-    font-style: italic;
-    font-size: 0.9em;
-}
+input[type="url"] { font-size: 0.95em; color: var(--drive-text-blue); }
+input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
 
-/* Container para título e ícone do drive no plano ativo (Refinamento 1) */
+/* Container para título e ícone do drive no plano ativo */
 .plan-header-info {
     display: flex;
-    align-items: center; /* Alinha verticalmente título e ícone */
-    gap: 10px; /* Espaço entre título e ícone */
+    align-items: center;
+    gap: 10px;
     margin-bottom: 15px;
-    border-bottom: 2px solid var(--accent-color); /* Mantém borda H2 original */
+    border-bottom: 2px solid var(--accent-color);
     padding-bottom: 10px;
-    flex-wrap: wrap; /* Permite quebra de linha se necessário */
+    flex-wrap: wrap;
 }
-#reading-plan-title { /* Título do plano */
-    margin: 0;
-    padding: 0;
-    border: none;
-    color: var(--primary-action);
-    font-size: 1.5em;
-    font-weight: 700;
-    line-height: 1.3; /* Melhora espaçamento vertical */
-}
-/* Estilos para o container do ícone (o link <a>) */
+#reading-plan-title { margin: 0; padding: 0; border: none; color: var(--primary-action); font-size: 1.5em; font-weight: 700; line-height: 1.3; }
+
+/* --- Ícone do Drive (Link <a>) - ESTILOS ALTERADOS/NOVOS --- */
 .drive-link-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    line-height: 0; /* Ajuda a alinhar a imagem */
-    transition: transform var(--transition-fast);
+    line-height: 0;
     flex-shrink: 0;
-    padding: 2px;
-    border-radius: 4px;
-    /* Defina o tamanho do container do ícone aqui */
+    padding: 3px;                          /* NOVO - Espaço para fundo/sombra */
+    border-radius: 5px;                     /* NOVO - Bordas para fundo */
+    cursor: pointer;                        /* NOVO - Garante a mãozinha */
+    /* ALTERADO - Transição para incluir background e filter */
+    transition: transform var(--transition-fast), background-color var(--transition-fast), filter var(--transition-fast);
+    /* Tamanho base do container do ícone */
     width: 28px;
     height: 28px;
 }
 
 .drive-link-icon:hover {
-    transform: scale(1.15);
-    background-color: rgba(var(--primary-action-rgb), 0.05);
+    transform: scale(1.25);                 /* ALTERADO - Escala maior */
+    background-color: rgba(var(--primary-action-rgb), 0.1); /* ALTERADO - Fundo mais visível */
 }
 
-/* Estilos para a imagem PNG dentro do link */
-.drive-link-icon img.drive-png-icon {
-    display: block; /* Remove espaço extra abaixo da imagem */
-    width: 100%;   /* Faz a imagem ocupar o tamanho do container <a> */
-    height: auto;  /* Mantém a proporção da imagem */
+/* Aplica o brilho ao ícone (SVG ou IMG) DENTRO do link no hover */
+.drive-link-icon:hover svg,
+.drive-link-icon:hover img.drive-png-icon { /* NOVO - Aplica drop-shadow */
+    filter: drop-shadow(0 0 3px rgba(var(--drive-blue-rgb), 0.6));
 }
 
-/* Remova ou comente a regra antiga que aplicava 'fill' ao SVG */
-/* .drive-link-icon svg {
-    width: 28px;
-    height: 28px;
-    fill: var(--drive-blue); // NÃO MAIS NECESSÁRIO PARA PNG
-} */
-
-/* Ajustes Responsivos (adapte os tamanhos conforme necessário) */
-@media (max-width: 768px) {
-    .drive-link-icon {
-        width: 26px;
-        height: 26px;
-    }
+/* Estilos para o conteúdo do ícone (SVG ou IMG) */
+.drive-link-icon svg { /* Para caso esteja usando SVG */
+    width: 100%;    /* Ocupa o tamanho do container <a> */
+    height: 100%;
+    fill: var(--drive-blue); /* Mantém a cor original do Drive */
 }
-
-@media (max-width: 600px) {
-    .drive-link-icon {
-        width: 24px;
-        height: 24px;
-    }
+.drive-link-icon img.drive-png-icon { /* Para caso esteja usando IMG */
+    display: block;
+    width: 100%;    /* Ocupa o tamanho do container <a> */
+    height: auto;   /* Mantém proporção */
 }
 
 /* Ícone do Drive no Modal Gerenciar Planos (sem mudanças necessárias aqui) */
-.plan-list-item .actions .manage-drive-link {
-    color: var(--drive-blue);
-    text-decoration: none;
-    font-size: 1.3em;
-    line-height: 1;
-    padding: 0 3px;
-    transition: transform var(--transition-fast);
-    display: inline-flex; /* Para alinhar bem com botões */
-    align-items: center; /* Centraliza SVG verticalmente */
-    margin-right: 5px; /* Espaço antes dos botões */
-}
-.plan-list-item .actions .manage-drive-link svg { /* Garante que o SVG interno pegue a cor */
-    fill: currentColor;
-}
-.plan-list-item .actions .manage-drive-link:hover {
-    transform: scale(1.2);
-}
+.plan-list-item .actions .manage-drive-link { color: var(--drive-blue); text-decoration: none; font-size: 1.3em; line-height: 1; padding: 0 3px; transition: transform var(--transition-fast); display: inline-flex; align-items: center; margin-right: 5px; }
+.plan-list-item .actions .manage-drive-link svg { fill: currentColor; }
+.plan-list-item .actions .manage-drive-link:hover { transform: scale(1.2); }
 
 /* --- Estilos Painel de Sequência de Leitura --- */
-.streak-counter {
-    /* display: flex; // Será definido via JS ('flex' ou 'none') */
-    align-items: center;
-    gap: 15px;
-    padding: 12px 20px; /* Slim padding */
-    border-radius: var(--base-border-radius);
-    background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); /* Gradiente vibrante */
-    color: var(--text-color-light);
-    box-shadow: var(--box-shadow-sm);
-    transition: all var(--transition-base);
-}
-
-.streak-counter:hover {
-    box-shadow: var(--box-shadow);
-    transform: translateY(-2px);
-}
-
-.streak-icon {
-    font-size: 2.5em; /* Tamanho do ícone */
-    line-height: 1;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-}
-
-.streak-info p {
-    margin: 0 0 3px 0; /* Espaçamento entre linhas */
-    font-size: 1em;
-    font-weight: 400;
-}
-
-.streak-info strong {
-    font-weight: 700;
-    font-size: 1.1em; /* Destaca o número */
-}
-
-.streak-info .longest {
-    font-size: 0.85em; /* "Maior sequência" um pouco menor */
-    opacity: 0.9;
-}
+.streak-counter { align-items: center; gap: 15px; padding: 12px 20px; border-radius: var(--base-border-radius); background: linear-gradient(110deg, var(--primary-action), var(--gradient-mid), var(--accent-color)); color: var(--text-color-light); box-shadow: var(--box-shadow-sm); transition: all var(--transition-base); }
+.streak-counter:hover { box-shadow: var(--box-shadow); transform: translateY(-2px); }
+.streak-icon { font-size: 2.5em; line-height: 1; text-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+.streak-info p { margin: 0 0 3px 0; font-size: 1em; font-weight: 400; }
+.streak-info strong { font-weight: 700; font-size: 1.1em; }
+.streak-info .longest { font-size: 0.85em; opacity: 0.9; }
 
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
@@ -664,80 +447,57 @@ input[type="url"]::placeholder {
      .header-content { align-items: center; }
      .user-status-container { gap: 5px;} #user-email { max-width: 100px;} #logout-button { padding: 5px 10px; font-size: 0.8em; }
      .upcoming-readings-container { grid-template-columns: 1fr; }
-     /* Título e Ícone Drive no Mobile Médio */
      #reading-plan-title { font-size: 1.4em; }
-     .drive-link-icon svg { width: 26px; height: 26px; }
+     /* Ajuste Responsivo do Ícone Drive */
+     .drive-link-icon { /* ALTERADO - Ajusta tamanho base */
+        width: 26px;
+        height: 26px;
+     }
      .day-marker { width: 30px; height: 30px; }
-     .day-marker::after { font-size: 16px; } /* Ajuste ícone interno */
+     .day-marker::after { font-size: 16px; }
 }
 
 @media (max-width: 600px) {
     body { font-size: 15px; }
     header { flex-direction: column; align-items: center; padding: 15px; text-align: center; position: static; min-height: auto; }
-    header img#header-logo {
-        --new-logo-size: 60px; height: var(--new-logo-size); width: var(--new-logo-size);
-        --new-logo-border: 5px; --new-logo-padding: 3px;
-        border-width: var(--new-logo-border); padding: var(--new-logo-padding);
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25); margin-bottom: 15px;
-    }
+    header img#header-logo { --new-logo-size: 60px; height: var(--new-logo-size); width: var(--new-logo-size); --new-logo-border: 5px; --new-logo-padding: 3px; border-width: var(--new-logo-border); padding: var(--new-logo-padding); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25); margin-bottom: 15px; }
     .header-content { width: 100%; align-items: center; } header h1 { font-size: 1.3em; margin: 0 0 5px 0; }
     .plan-selector-container { justify-content: center; width: 100%;} #plan-select { max-width: 180px; }
     .user-status-container { width: 100%; margin-top: 10px; flex-direction: column; gap: 8px; }
     #user-email { max-width: 90%; text-align: center; } #logout-button { width: auto; padding: 8px 15px; }
-
     main { margin: 15px auto; padding: 0 10px; }
     section { padding: 15px; margin-bottom: 20px; }
-    section h2 { font-size: 1.3em; /* Reduzido */ }
-    #overdue-readings h2, #upcoming-readings h2 { font-size: 1.2em; /* Reduzido */ }
+    section h2 { font-size: 1.3em; }
+    #overdue-readings h2, #upcoming-readings h2 { font-size: 1.2em; }
     .modal-content { padding: 20px; max-width: calc(100% - 20px); } .modal h2 { font-size: 1.4em; }
-
     .plan-actions { flex-direction: column; gap: 8px; } .plan-actions button { width: 100%; margin: 0; min-width: auto; }
     input[type="email"], input[type="password"], input[type="number"], input[type="text"], input[type="date"], input[type="url"], select { padding: 10px 14px; min-height: 44px; }
     select[multiple] { height: 140px; }
     fieldset label { display: block; margin-right: 0; margin-bottom: 10px; }
     .modal fieldset label:has(#new-pace-input){ flex-wrap: wrap; justify-content: space-between; }
     #new-pace-input { margin-top: 5px; width: 100% !important; text-align: center; }
-
     #periodicity-options .checkbox-group { justify-content: space-around; gap: 8px; }
     #periodicity-options .checkbox-group label { font-size: 0.85em; padding: 4px 6px; }
-
     .weekly-tracker-container { padding: 15px 10px; }
-    .week-days { gap: 5px; } /* Reduz espaçamento entre dias */
-    .day-indicator { min-width: 32px; flex-basis: calc(100% / 7 - 6px); } /* Ajuste base e gap */
+    .week-days { gap: 5px; }
+    .day-indicator { min-width: 32px; flex-basis: calc(100% / 7 - 6px); }
     .day-label { font-size: 0.7em; }
-    .day-marker { width: 28px; height: 28px; } /* Reduz marcador */
-    .day-marker::after { font-size: 14px; } /* Reduz ícone interno */
+    .day-marker { width: 28px; height: 28px; }
+    .day-marker::after { font-size: 14px; }
     .daily-reading-display { padding: 15px 20px; }
     .plan-list-item { flex-direction: column; align-items: flex-start; gap: 5px;} .plan-list-item .actions { margin-top: 5px; align-self: flex-end; }
     .plan-list-item .actions .manage-drive-link { order: -1; margin-right: auto; margin-left: 0; font-size: 1.4em; }
-
-    /* Título e Ícone Drive no Mobile Pequeno (Refinamento 1) */
-    .plan-header-info {
-        /* A quebra de linha já é permitida pelo flex-wrap: wrap adicionado antes */
+    /* Ajuste Responsivo do Ícone Drive */
+    .drive-link-icon { /* ALTERADO - Ajusta tamanho base */
+        width: 24px;
+        height: 24px;
     }
-    #reading-plan-title { font-size: 1.3em; /* Reduz tamanho do título */ }
-    .drive-link-icon svg { width: 24px; height: 24px; /* Reduz tamanho do ícone */ }
-
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
-
-    /* Ajustes Responsivos para o Painel de Sequência */
-    .streak-counter {
-        padding: 10px 15px;
-        gap: 10px;
-        flex-direction: column; /* Empilha no mobile */
-        text-align: center;
-    }
-    .streak-icon {
-        font-size: 2.2em;
-        margin-bottom: 5px;
-    }
-    .streak-info p {
-        font-size: 0.95em;
-    }
-    .streak-info .longest {
-        font-size: 0.8em;
-    }
+    .streak-counter { padding: 10px 15px; gap: 10px; flex-direction: column; text-align: center; }
+    .streak-icon { font-size: 2.2em; margin-bottom: 5px; }
+    .streak-info p { font-size: 0.95em; }
+    .streak-info .longest { font-size: 0.8em; }
 }
 
 /* --- END OF FILE styles.css --- */
