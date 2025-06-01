@@ -32,10 +32,12 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
     *   **Barra de Progresso Visual:** Acompanhe o avanço geral no plano ativo com uma barra gráfica.
     *   Botão "Marcar como Lido" para avançar no plano (pula automaticamente dias sem leitura configurados na periodicidade e atualiza a sequência).
     *   Exibição do progresso (Dia X de Y - considerando dias de calendário e datas de início/fim).
-    *   **Tracker Semanal:** Visualização gráfica do progresso na semana corrente (Domingo a Sábado), indicando:
-        *   Dias em que a leitura foi marcada como concluída (`✓`).
-        *   Dias que eram de leitura permitida no passado, mas não foram marcados (`✕` vermelho).
-        *   Dias em que a leitura não é permitida pelas configurações do plano (`-` cinza).
+    *   <!-- MODIFICADO -->
+        **Tracker Semanal Global:** Um painel único, posicionado logo abaixo do painel de sequência de leitura, exibe o progresso de interações do usuário ao longo da semana corrente (Domingo a Sábado). Este tracker indica:
+        *   Dias em que o usuário marcou *qualquer* leitura como concluída (`✓`).
+        *   Dias passados na semana corrente em que *nenhuma* leitura foi marcada como concluída (`✕` vermelho).
+        Este tracker global não bloqueia dias; ele reflete a atividade geral de leitura do usuário na semana.
+        <!-- /MODIFICADO -->
     *   **Leituras Atrasadas e Próximas:** Seções dedicadas que mostram automaticamente as leituras agendadas que passaram da data e as próximas leituras programadas em todos os planos.
 *   **Painel de Sequência de Leitura:**
     *   Motiva a consistência exibindo um painel visual com a sequência atual de dias *consecutivos* em que o usuário interagiu com a leitura (usando "Marcar como Lido" em qualquer plano).
@@ -76,7 +78,7 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
     *   **Firestore Database:** Crie um banco de dados Firestore (comece no modo de teste, mas **configure regras de segurança para produção!**).
 
 6.  **Regras de Segurança do Firestore (Essencial!):** Com a estrutura de múltiplos planos (`users/{userId}/plans/{planId}`) e dados do usuário (`users/{userId}`), use regras como estas para proteger os dados:
-
+    <!-- MODIFICADO: Adicionada permissão para globalWeeklyInteractions -->
     ```firestore-rules
     rules_version = '2';
     service cloud.firestore {
@@ -84,7 +86,7 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
 
         // Regra para a coleção 'users'
         match /users/{userId} {
-          // Permite ler/escrever próprio doc de usuário (para activePlanId, streak data, etc.)
+          // Permite ler/escrever próprio doc de usuário (para activePlanId, streak data, globalWeeklyInteractions, etc.)
           allow read, write: if request.auth != null && request.auth.uid == userId;
 
           // Regra para a subcoleção 'plans'
@@ -96,6 +98,7 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
       }
     }
     ```
+    <!-- /MODIFICADO -->
     *Publique essas regras na aba "Regras" do seu Firestore.*
 
 ## Como Executar Localmente
@@ -115,10 +118,13 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
     *   Ao criar, preencha o nome, link opcional do Drive, selecione o conteúdo, defina a duração e escolha os dias da semana para leitura.
 3.  **Acompanhamento (Plano Ativo):**
     *   O plano selecionado como ativo será exibido, juntamente com o *painel de sequência de leitura*.
+    *   <!-- MODIFICADO -->
+        **Abaixo do painel de sequência**, você verá o *tracker semanal global*, que mostra os dias da semana em que você interagiu com *qualquer* leitura.
+        <!-- /MODIFICADO -->
     *   Use o seletor no cabeçalho para trocar rapidamente entre seus planos.
-    *   Veja a leitura do dia, o link do Drive (se houver) ao lado do título, a barra de progresso geral e o tracker semanal de marcações (completas, perdidas ou inativas).
+    *   Veja a leitura do dia do plano ativo, o link do Drive (se houver) ao lado do título, e a barra de progresso geral daquele plano.
     *   Verifique as seções de *Leituras Atrasadas* e *Próximas Leituras*.
-    *   Clique em "Marcar como Lido" para avançar no plano ativo *e atualizar sua sequência de leitura*.
+    *   Clique em "Marcar como Lido" para avançar no plano ativo, atualizar sua sequência de leitura e marcar o dia no tracker semanal global.
 4.  **Recalcular/Histórico/Stats:** Use os botões correspondentes na seção do plano ativo para ajustar o ritmo, ver o histórico de leitura daquele plano ou visualizar estatísticas.
 
 ## Estrutura de Arquivos Principais
