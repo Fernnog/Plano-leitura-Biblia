@@ -172,17 +172,31 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-        <!-- ***** NOVO: Painel de Sequência de Leitura ***** -->
+        <!-- Painel de Sequência de Leitura -->
         <section id="streak-counter-section" class="streak-counter" style="display: none;">
-             <div class="streak-icon">🔥</div> <!-- Ícone de chama (perseverança) -->
+             <div class="streak-icon">🔥</div>
              <div class="streak-info">
                  <p>Sequência Atual: <strong id="current-streak-value">0</strong> dias</p>
                  <p class="longest">Maior Sequência: <strong id="longest-streak-value">0</strong> dias</p>
              </div>
         </section>
-        <!-- ************************************************ -->
 
-         <!-- ***** Seção Leituras Atrasadas ***** -->
+        <!-- ***** NOVO: Painel de Progresso Semanal Global ***** -->
+        <section id="global-weekly-tracker-section" class="weekly-tracker-container" style="display: none;">
+             <h3>Suas Interações na Semana</h3>
+             <div class="week-days" id="global-week-days-indicators">
+                 <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
+             </div>
+        </section>
+        <!-- **************************************************** -->
+
+         <!-- Seção Leituras Atrasadas -->
          <section id="overdue-readings" style="display: none;">
               <h2>⚠️ Leituras Atrasadas</h2>
               <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
@@ -190,7 +204,6 @@
                   <!-- Itens de leitura atrasada serão adicionados pelo script.js -->
               </div>
          </section>
-         <!-- ***************************************** -->
 
          <!-- Seção Próximas Leituras -->
          <section id="upcoming-readings" style="display: none;">
@@ -200,21 +213,15 @@
                   <!-- Itens serão adicionados pelo script.js -->
               </div>
          </section>
-         <!-- ***************************************** -->
 
         <!-- Seção do Plano de Leitura Ativo -->
         <section id="reading-plan" style="display: none;">
-             <!-- ***** TÍTULO E LINK DRIVE MOVIDOS PARA UM WRAPPER ***** -->
              <div class="plan-header-info">
                  <h2 id="reading-plan-title">Seu Plano de Leitura Ativo</h2>
-                 <!-- Ícone/Link do Drive -->
-                                           <a id="active-plan-drive-link" href="#" target="_blank" class="drive-link-icon" style="display: none;" title="Abrir link do Google Drive associado">
-                 <img src="drive_icon.png" alt="Ícone Google Drive" class="drive-png-icon">
-             </a>
-       
-        
+                 <a id="active-plan-drive-link" href="#" target="_blank" class="drive-link-icon" style="display: none;" title="Abrir link do Google Drive associado">
+                    <img src="drive_icon.png" alt="Ícone Google Drive" class="drive-png-icon">
+                 </a>
              </div>
-             <!-- ******************************************************** -->
 
              <div id="plan-loading-view" class="loading-indicator" style="display: none;">Carregando plano...</div>
              <div id="plan-view-error" class="error-message" style="display: none;"></div>
@@ -227,19 +234,7 @@
                 </div>
             </div>
 
-            <!-- Quadro Semanal -->
-            <div id="weekly-tracker" class="weekly-tracker-container">
-                <h3>Progresso Semanal (Marcações)</h3>
-                <div class="week-days">
-                    <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
-                    <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
-                </div>
-            </div>
+            <!-- Quadro Semanal REMOVIDO daqui -->
 
             <!-- Leitura do Dia (Agora com data) -->
             <div id="daily-reading" class="daily-reading-display">Carregando leitura...</div>
@@ -335,7 +330,6 @@
             const modal = document.getElementById(modalId);
             if (modal) modal.style.display = 'none';
         }
-        // Considerar remover o onclick direto nos botões e usar addEventListener no JS
     </script>
 </body>
 </html>
