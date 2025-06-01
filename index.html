@@ -83,10 +83,21 @@
              <label for="plan-name">Nome do Plano:</label>
              <input type="text" id="plan-name" placeholder="Ex: Bíblia Completa, Novo Testamento" required>
 
-             <!-- ***** NOVO: Link Google Drive ***** -->
+             <!-- ***** Link Google Drive ***** -->
              <label for="google-drive-link">Link Google Drive (Documento/Pasta - Opcional):</label>
              <input type="url" id="google-drive-link" placeholder="https://docs.google.com/document/d/... ou https://drive.google.com/drive/folders/...">
              <!-- ********************************** -->
+
+             <!-- ***** NOVO: Links para Anotações (Google Forms/Sheets CSV) ***** -->
+             <label for="google-form-link">Link do Google Form para Anotações (Opcional):</label>
+             <input type="url" id="google-form-link" placeholder="https://docs.google.com/forms/d/e/...">
+             <small>Crie um Form com campos para Data, Leitura, suas Anotações, ID do Plano (opcional), etc.</small>
+
+             <label for="google-sheet-csv-link">Link CSV Público da Planilha de Anotações (Opcional):</label>
+             <input type="url" id="google-sheet-csv-link" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv">
+             <small>Na planilha de respostas do Form: Arquivo > Compartilhar > Publicar na web > Selecione a aba correta > CSV.</small>
+             <!-- ******************************************************************** -->
+
 
              <!-- Opções de Criação (Método) -->
              <fieldset>
@@ -181,7 +192,7 @@
              </div>
         </section>
 
-        <!-- ***** NOVO: Painel de Progresso Semanal Global ***** -->
+        <!-- Painel de Progresso Semanal Global -->
         <section id="global-weekly-tracker-section" class="weekly-tracker-container" style="display: none;">
              <h3>Suas Interações na Semana</h3>
              <div class="week-days" id="global-week-days-indicators">
@@ -194,7 +205,6 @@
                  <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
              </div>
         </section>
-        <!-- **************************************************** -->
 
          <!-- Seção Leituras Atrasadas -->
          <section id="overdue-readings" style="display: none;">
@@ -234,19 +244,30 @@
                 </div>
             </div>
 
-            <!-- Quadro Semanal REMOVIDO daqui -->
-
             <!-- Leitura do Dia (Agora com data) -->
             <div id="daily-reading" class="daily-reading-display">Carregando leitura...</div>
 
             <!-- Ações do Plano -->
             <div class="plan-actions">
                 <button id="mark-as-read" class="button-primary">Marcar como Lido</button>
+                <button id="annotate-reading-button" class="button-secondary" style="display: none;">Anotar Leitura</button>
                 <button id="recalculate-plan" class="button-secondary">Recalcular Plano</button>
                 <button id="show-stats-button" class="button-secondary">Ver Estatísticas</button>
                 <button id="show-history-button" class="button-secondary">Ver Histórico</button>
                 <button id="delete-current-plan-button" class="button-danger">Deletar Plano Atual</button>
             </div>
+
+            <!-- Container para Anotações Anteriores -->
+            <div id="previous-annotations-container" style="display: none; margin-top: 20px;">
+                <h4>Suas Anotações Anteriores</h4>
+                <div id="previous-annotations-loading" class="loading-indicator" style="display: none;">Buscando anotações...</div>
+                <div id="previous-annotations-error" class="error-message" style="display: none;"></div>
+                <div id="previous-annotations-list">
+                    <!-- Anotações serão inseridas aqui pelo JS -->
+                    <p>Nenhuma anotação encontrada ou links não configurados.</p>
+                </div>
+            </div>
+
         </section>
 
         <!-- ------------- Modais ------------- -->
