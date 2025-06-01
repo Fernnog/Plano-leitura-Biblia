@@ -1,5 +1,3 @@
-// --- START OF FILE script.js ---
-
 // Import Firebase modular SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
@@ -9,13 +7,13 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, collec
 
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI",
-  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com",
-  projectId: "plano-leitura-biblia-8f763",
-  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app",
-  messagingSenderId: "4101180633",
-  appId: "1:4101180633:web:32d7846cf9a031962342c8",
-  measurementId: "G-KT5PPGF7W1"
+  apiKey: "AIzaSyCv1G4CoK4EwZ6iMZ2CLCUdSg4YLFTuVKI", // Replace with your actual API key
+  authDomain: "plano-leitura-biblia-8f763.firebaseapp.com", // Replace with your actual authDomain
+  projectId: "plano-leitura-biblia-8f763", // Replace with your actual projectId
+  storageBucket: "plano-leitura-biblia-8f763.firebasestorage.app", // Replace with your actual storageBucket
+  messagingSenderId: "4101180633", // Replace with your actual messagingSenderId
+  appId: "1:4101180633:web:32d7846cf9a031962342c8", // Replace with your actual appId
+  measurementId: "G-KT5PPGF7W1" // Replace with your actual measurementId (optional)
 };
 
 
@@ -55,8 +53,7 @@ let userInfo = null;
 let activePlanId = null;
 let currentReadingPlan = null;
 let userPlansList = [];
-// let currentWeeklyInteractions = { weekId: null, interactions: {} }; // Removido ou não mais usado diretamente para UI global
-let userGlobalWeeklyInteractions = { weekId: null, interactions: {} }; // NOVO: Para o tracker global
+let userGlobalWeeklyInteractions = { weekId: null, interactions: {} };
 let userStreakData = { lastInteractionDate: null, current: 0, longest: 0 };
 
 // --- Elementos da UI (Cache) ---
@@ -82,6 +79,8 @@ const managePlansButton = document.getElementById('manage-plans-button');
 const planCreationSection = document.getElementById('plan-creation');
 const planNameInput = document.getElementById('plan-name');
 const googleDriveLinkInput = document.getElementById('google-drive-link');
+const googleFormLinkInput = document.getElementById('google-form-link'); // NOVO
+const googleSheetCsvLinkInput = document.getElementById('google-sheet-csv-link'); // NOVO
 const startBookSelect = document.getElementById("start-book-select");
 const startChapterInput = document.getElementById("start-chapter-input");
 const endBookSelect = document.getElementById("end-book-select");
@@ -121,12 +120,11 @@ const progressBarFill = document.getElementById('progress-bar-fill');
 const progressText = document.getElementById('progress-text');
 const dailyReadingDiv = document.getElementById('daily-reading');
 const markAsReadButton = document.getElementById('mark-as-read');
+const annotateReadingButton = document.getElementById('annotate-reading-button'); // NOVO
 const deleteCurrentPlanButton = document.getElementById('delete-current-plan-button');
 const planLoadingViewDiv = document.getElementById('plan-loading-view');
-// const weeklyTrackerContainer = document.getElementById('weekly-tracker'); // Removido/Comentado
-// const dayIndicatorElements = document.querySelectorAll('.day-indicator'); // Removido/Comentado
-const globalWeeklyTrackerSection = document.getElementById('global-weekly-tracker-section'); // NOVO
-const globalDayIndicatorElements = document.querySelectorAll('#global-weekly-tracker-section .day-indicator'); // NOVO
+const globalWeeklyTrackerSection = document.getElementById('global-weekly-tracker-section');
+const globalDayIndicatorElements = document.querySelectorAll('#global-weekly-tracker-section .day-indicator');
 const recalculatePlanButton = document.getElementById('recalculate-plan');
 const showStatsButton = document.getElementById('show-stats-button');
 const showHistoryButton = document.getElementById('show-history-button');
@@ -156,6 +154,10 @@ const historyListDiv = document.getElementById('history-list');
 const streakCounterSection = document.getElementById('streak-counter-section');
 const currentStreakValue = document.getElementById('current-streak-value');
 const longestStreakValue = document.getElementById('longest-streak-value');
+const previousAnnotationsContainer = document.getElementById('previous-annotations-container'); // NOVO
+const previousAnnotationsLoadingDiv = document.getElementById('previous-annotations-loading'); // NOVO
+const previousAnnotationsErrorDiv = document.getElementById('previous-annotations-error'); // NOVO
+const previousAnnotationsListDiv = document.getElementById('previous-annotations-list'); // NOVO
 
 // --- Funções Auxiliares (Datas, Semana, Geração, Distribuição, Cálculo de Data) ---
 
@@ -387,22 +389,18 @@ function showLoading(indicatorDiv, show = true) { if (indicatorDiv) indicatorDiv
 function showErrorMessage(errorDiv, message) { if (errorDiv) { errorDiv.textContent = message; errorDiv.style.display = message ? 'block' : 'none'; } }
 function toggleForms(showLogin = true) { if (loginForm && signupForm) { loginForm.style.display = showLogin ? 'block' : 'none'; signupForm.style.display = showLogin ? 'none' : 'block'; } showErrorMessage(authErrorDiv, ''); showErrorMessage(signupErrorDiv, ''); }
 
-/** NOVO: Atualiza o marcador semanal GLOBAL com base nas interações da semana atual */
 function updateGlobalWeeklyTrackerUI() {
     if (!globalWeeklyTrackerSection || !globalDayIndicatorElements || globalDayIndicatorElements.length === 0) {
         if(globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
         return;
     }
-
     const currentWeekId = getUTCWeekId();
     const weekStartDate = getUTCWeekStartDate();
     const todayStr = getCurrentUTCDateString();
-
     const isCurrentWeekDataValid = userGlobalWeeklyInteractions &&
                                    userGlobalWeeklyInteractions.weekId === currentWeekId &&
                                    userGlobalWeeklyInteractions.interactions &&
                                    typeof userGlobalWeeklyInteractions.interactions === 'object';
-
     globalDayIndicatorElements.forEach(el => {
         const dayIndex = parseInt(el.dataset.day, 10);
         const dateForThisDay = new Date(weekStartDate);
@@ -410,9 +408,7 @@ function updateGlobalWeeklyTrackerUI() {
         const dateString = dateForThisDay.toISOString().split('T')[0];
         const isPastDay = dateString < todayStr;
         const isMarkedRead = isCurrentWeekDataValid && userGlobalWeeklyInteractions.interactions[dateString];
-
         el.classList.remove('active', 'missed-day', 'inactive-plan-day');
-
         if (isMarkedRead) {
             el.classList.add('active');
         } else if (isPastDay) {
@@ -421,48 +417,6 @@ function updateGlobalWeeklyTrackerUI() {
     });
     globalWeeklyTrackerSection.style.display = currentUser ? 'block' : 'none';
 }
-
-
-/** ANTIGA: Atualiza o marcador semanal com base nas interações da semana atual, periodicidade e dias passados
- *  Esta função pode ser REMOVIDA ou mantida comentada, pois a lógica principal foi movida para updateGlobalWeeklyTrackerUI
-function updateWeeklyTrackerUI() {
-    // if (!weeklyTrackerContainer || !dayIndicatorElements) return;
-    // const currentWeekId = getUTCWeekId();
-    // const weekStartDate = getUTCWeekStartDate();
-    // const todayStr = getCurrentUTCDateString();
-    // let effectiveAllowedDays = [0, 1, 2, 3, 4, 5, 6];
-    // let planIsActive = false;
-    // if (currentReadingPlan && Array.isArray(currentReadingPlan.allowedDays)) {
-    //     planIsActive = true;
-    //     if (currentReadingPlan.allowedDays.length > 0) {
-    //         effectiveAllowedDays = currentReadingPlan.allowedDays;
-    //     }
-    // }
-    // const isCurrentWeekDataValid = currentWeeklyInteractions && // Usava currentWeeklyInteractions (específico do plano)
-    //                                currentWeeklyInteractions.weekId === currentWeekId &&
-    //                                currentWeeklyInteractions.interactions &&
-    //                                Object.keys(currentWeeklyInteractions.interactions).length >= 0;
-    // dayIndicatorElements.forEach(el => {
-    //     const dayIndex = parseInt(el.dataset.day, 10);
-    //     const dateForThisDay = new Date(weekStartDate);
-    //     dateForThisDay.setUTCDate(weekStartDate.getUTCDate() + dayIndex);
-    //     const dateString = dateForThisDay.toISOString().split('T')[0];
-    //     const isPastDay = dateString < todayStr;
-    //     const isAllowedByPlanSettings = planIsActive && effectiveAllowedDays.includes(dayIndex);
-    //     const isMarkedRead = isCurrentWeekDataValid && currentWeeklyInteractions.interactions[dateString];
-    //     const isInactivePlanDay = planIsActive && !effectiveAllowedDays.includes(dayIndex);
-    //     el.classList.remove('active', 'inactive-plan-day', 'missed-day');
-    //     if (isMarkedRead) {
-    //         el.classList.add('active');
-    //     } else if (isInactivePlanDay) {
-    //         el.classList.add('inactive-plan-day');
-    //     } else if (isPastDay && isAllowedByPlanSettings && planIsActive) {
-    //         el.classList.add('missed-day');
-    //     }
-    // });
-    // weeklyTrackerContainer.style.display = planIsActive ? 'block' : 'none';
-}
-*/
 
 function updateUIBasedOnAuthState(user) {
     currentUser = user;
@@ -473,38 +427,36 @@ function updateUIBasedOnAuthState(user) {
         userEmailSpan.style.display = 'inline';
         loadUserDataAndPlans().then(() => {
              updateStreakCounterUI();
-             updateGlobalWeeklyTrackerUI(); // ATUALIZADO
+             updateGlobalWeeklyTrackerUI();
         });
     } else {
         userInfo = null;
         activePlanId = null;
         currentReadingPlan = null;
         userPlansList = [];
-        // currentWeeklyInteractions = { weekId: null, interactions: {} }; // Removido/Não mais usado diretamente
-        userGlobalWeeklyInteractions = { weekId: null, interactions: {} }; // Resetar
+        userGlobalWeeklyInteractions = { weekId: null, interactions: {} };
         userStreakData = { lastInteractionDate: null, current: 0, longest: 0 };
-
         authSection.style.display = 'block';
         planCreationSection.style.display = 'none';
         readingPlanSection.style.display = 'none';
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
         if (streakCounterSection) streakCounterSection.style.display = 'none';
-        if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none'; // Esconder
+        if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
         planSelectorContainer.style.display = 'none';
         logoutButton.style.display = 'none';
         userEmailSpan.style.display = 'none';
         userEmailSpan.textContent = '';
-
         resetFormFields();
-        // updateWeeklyTrackerUI(); // Comentado/Removido - o global é chamado abaixo
-        updateGlobalWeeklyTrackerUI(); // Limpar visualmente
+        updateGlobalWeeklyTrackerUI();
         updateProgressBarUI();
         clearPlanListUI();
         clearHistoryUI();
         clearStatsUI();
         clearOverdueReadingsUI();
         clearUpcomingReadingsUI();
+        clearPreviousAnnotationsUI(); // NOVO
         toggleForms(true);
     }
     showLoading(authLoadingDiv, false);
@@ -513,6 +465,8 @@ function updateUIBasedOnAuthState(user) {
 function resetFormFields() {
     if (planNameInput) planNameInput.value = "";
     if (googleDriveLinkInput) googleDriveLinkInput.value = "";
+    if (googleFormLinkInput) googleFormLinkInput.value = ""; // NOVO
+    if (googleSheetCsvLinkInput) googleSheetCsvLinkInput.value = ""; // NOVO
     if (startBookSelect) startBookSelect.value = "";
     if (startChapterInput) startChapterInput.value = "";
     if (endBookSelect) endBookSelect.value = "";
@@ -646,6 +600,13 @@ function clearOverdueReadingsUI() {
     if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
 }
 
+function clearPreviousAnnotationsUI() { // NOVO
+    if (previousAnnotationsListDiv) previousAnnotationsListDiv.innerHTML = '<p>Nenhuma anotação encontrada ou links não configurados.</p>';
+    if (previousAnnotationsErrorDiv) showErrorMessage(previousAnnotationsErrorDiv, '');
+    if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none';
+}
+
+
 // --- Funções do Firebase ---
 
 async function fetchUserInfo(userId) {
@@ -660,7 +621,7 @@ async function fetchUserInfo(userId) {
                 current: userInfo.currentStreak || 0,
                 longest: userInfo.longestStreak || 0
             };
-            const currentGlobalWeekId = getUTCWeekId(); // ATUALIZADO
+            const currentGlobalWeekId = getUTCWeekId();
             if (userInfo.globalWeeklyInteractions && userInfo.globalWeeklyInteractions.weekId === currentGlobalWeekId) {
                 userGlobalWeeklyInteractions = userInfo.globalWeeklyInteractions;
             } else {
@@ -675,20 +636,20 @@ async function fetchUserInfo(userId) {
                 lastStreakInteractionDate: null,
                 currentStreak: 0,
                 longestStreak: 0,
-                globalWeeklyInteractions: { weekId: getUTCWeekId(), interactions: {} } // ATUALIZADO
+                globalWeeklyInteractions: { weekId: getUTCWeekId(), interactions: {} }
             };
             await setDoc(userDocRef, initialUserInfo);
             userInfo = initialUserInfo;
             activePlanId = null;
             userStreakData = { lastInteractionDate: null, current: 0, longest: 0 };
-            userGlobalWeeklyInteractions = initialUserInfo.globalWeeklyInteractions; // ATUALIZADO
+            userGlobalWeeklyInteractions = initialUserInfo.globalWeeklyInteractions;
             return userInfo;
         }
     } catch (error) {
         console.error("Error fetching/creating user info:", error);
         showErrorMessage(authErrorDiv, `Erro ao carregar dados do usuário: ${error.message}`);
         userStreakData = { lastInteractionDate: null, current: 0, longest: 0 };
-        userGlobalWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} }; // ATUALIZADO
+        userGlobalWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} };
         return null;
     }
 }
@@ -708,14 +669,13 @@ async function fetchUserPlansList(userId) {
     }
 }
 
-async function loadActivePlanData(userId, planId) { // Lógica de currentWeeklyInteractions removida daqui
+async function loadActivePlanData(userId, planId) {
     if (!userId || !planId) {
         currentReadingPlan = null;
-        // currentWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} }; // Removido
         readingPlanSection.style.display = 'none';
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
         if(progressBarContainer) progressBarContainer.style.display = 'none';
         planCreationSection.style.display = userPlansList.length === 0 ? 'block' : 'none';
-        // updateWeeklyTrackerUI(); // Removido - o global é chamado em loadUserDataAndPlans
         updateProgressBarUI();
         showLoading(planLoadingViewDiv, false);
         return;
@@ -724,14 +684,22 @@ async function loadActivePlanData(userId, planId) { // Lógica de currentWeeklyI
     showErrorMessage(planViewErrorDiv, '');
     planCreationSection.style.display = 'none';
     readingPlanSection.style.display = 'none';
+    if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
+
     const planDocRef = doc(db, 'users', userId, 'plans', planId);
     try {
         const docSnap = await getDoc(planDocRef);
-        // const currentWeekId = getUTCWeekId(); // Não mais necessário aqui para weeklyInteractions do plano
         if (docSnap.exists()) {
             const data = docSnap.data();
-            const mandatoryFieldsValid = data && typeof data.plan === 'object' && !Array.isArray(data.plan) && data.plan !== null && typeof data.currentDay === 'number' && Array.isArray(data.chaptersList) && typeof data.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.startDate) && typeof data.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.endDate) && Array.isArray(data.allowedDays);
-            const recalcFieldsValid = (!data.recalculationBaseDay || typeof data.recalculationBaseDay === 'number') && (!data.recalculationBaseDate || (typeof data.recalculationBaseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.recalculationBaseDate)));
+            // Basic validation for core plan structure
+            const mandatoryFieldsValid = data && typeof data.plan === 'object' && !Array.isArray(data.plan) && data.plan !== null &&
+                                       typeof data.currentDay === 'number' && Array.isArray(data.chaptersList) &&
+                                       typeof data.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.startDate) &&
+                                       typeof data.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.endDate) &&
+                                       Array.isArray(data.allowedDays);
+            const recalcFieldsValid = (!data.recalculationBaseDay || typeof data.recalculationBaseDay === 'number') &&
+                                      (!data.recalculationBaseDate || (typeof data.recalculationBaseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.recalculationBaseDate)));
+
             if (!mandatoryFieldsValid || !recalcFieldsValid) {
                 console.error("Invalid plan data format loaded:", data);
                 currentReadingPlan = null; activePlanId = null;
@@ -739,28 +707,20 @@ async function loadActivePlanData(userId, planId) { // Lógica de currentWeeklyI
                 throw new Error("Formato de dados do plano ativo é inválido. Plano desativado.");
             }
             currentReadingPlan = { id: planId, ...data };
-            // Lógica de currentWeeklyInteractions (específico do plano) removida daqui
-            // if (data.weeklyInteractions && data.weeklyInteractions.weekId === currentWeekId) {
-            //     currentWeeklyInteractions = data.weeklyInteractions;
-            // } else {
-            //     currentWeeklyInteractions = { weekId: currentWeekId, interactions: {} };
-            // }
-            loadDailyReadingUI();
-            // updateWeeklyTrackerUI(); // Removido
+            loadDailyReadingUI(); // This will handle showing annotation button and fetching notes
             updateProgressBarUI();
             readingPlanSection.style.display = 'block';
             planCreationSection.style.display = 'none';
         } else {
             console.warn("Active plan document (", planId, ") not found in Firestore.");
             currentReadingPlan = null;
-            // currentWeeklyInteractions = { weekId: currentWeekId, interactions: {} }; // Removido
             if(userInfo && userInfo.activePlanId === planId) {
                 await updateDoc(doc(db, 'users', userId), { activePlanId: null });
                 activePlanId = null;
             }
             readingPlanSection.style.display = 'none';
+            if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
             planCreationSection.style.display = userPlansList.length === 0 ? 'block' : 'none';
-            // updateWeeklyTrackerUI(); // Removido
             updateProgressBarUI();
             populatePlanSelector();
         }
@@ -768,10 +728,9 @@ async function loadActivePlanData(userId, planId) { // Lógica de currentWeeklyI
         console.error("Error loading active plan data:", error);
         showErrorMessage(planViewErrorDiv, `Erro ao carregar plano ativo: ${error.message}`);
         currentReadingPlan = null;
-        // currentWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} }; // Removido
         readingPlanSection.style.display = 'none';
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
         planCreationSection.style.display = userPlansList.length === 0 ? 'block' : 'none';
-        // updateWeeklyTrackerUI(); // Removido
         updateProgressBarUI();
     } finally {
         showLoading(planLoadingViewDiv, false);
@@ -787,15 +746,15 @@ async function loadUserDataAndPlans() {
     if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
     if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
     if (streakCounterSection) streakCounterSection.style.display = 'none';
-    if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none'; // Esconder inicialmente
+    if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
+    if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
     showErrorMessage(planViewErrorDiv, '');
     try {
         await fetchUserInfo(userId);
         await fetchUserPlansList(userId);
         populatePlanSelector();
-        await loadActivePlanData(userId, activePlanId);
+        await loadActivePlanData(userId, activePlanId); // loadDailyReadingUI is called inside this
         await displayScheduledReadings();
-        // updateGlobalWeeklyTrackerUI() é chamado em updateUIBasedOnAuthState após esta função
     } catch (error) {
         console.error("Error during initial data load sequence:", error);
         readingPlanSection.style.display = 'none';
@@ -804,6 +763,7 @@ async function loadUserDataAndPlans() {
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
         if (streakCounterSection) streakCounterSection.style.display = 'none';
         if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
     } finally {
         showLoading(planLoadingViewDiv, false);
     }
@@ -819,7 +779,7 @@ async function setActivePlan(planId) {
         activePlanId = planId;
         if (userInfo) userInfo.activePlanId = planId;
         if (planSelect) planSelect.value = planId;
-        await loadActivePlanData(userId, planId);
+        await loadActivePlanData(userId, planId); // loadDailyReadingUI is called inside this
         await displayScheduledReadings();
         if (managePlansModal.style.display === 'flex') { populateManagePlansModal(); }
     } catch (error) {
@@ -846,6 +806,7 @@ async function saveNewPlanToFirestore(userId, planData) {
         if (typeof planData.currentDay !== 'number' || planData.currentDay < 1) throw new Error("Dia inicial do plano inválido.");
         if (!Array.isArray(planData.chaptersList)) throw new Error("Lista de capítulos inválida.");
         if (typeof planData.totalChapters !== 'number') throw new Error("Total de capítulos inválido.");
+        // googleFormLink and googleSheetCsvLink are already part of planData from createReadingPlan
         const currentWeekId = getUTCWeekId();
         const dataToSave = { ...planData, weeklyInteractions: { weekId: currentWeekId, interactions: {} }, createdAt: serverTimestamp(), recalculationBaseDay: null, recalculationBaseDate: null };
         const newPlanDocRef = await addDoc(plansCollectionRef, dataToSave);
@@ -879,7 +840,7 @@ async function updateProgressInFirestore(userId, planId, newDay, updatedWeeklyIn
         }
         await updateDoc(planDocRef, dataToUpdate);
         currentReadingPlan.currentDay = newDay;
-        currentReadingPlan.weeklyInteractions = updatedWeeklyInteractionsForPlan; // Atualiza o do plano também
+        currentReadingPlan.weeklyInteractions = updatedWeeklyInteractionsForPlan;
         if (logEntry && logEntry.date && Array.isArray(logEntry.chapters)) {
             if (!currentReadingPlan.readLog) currentReadingPlan.readLog = {};
             currentReadingPlan.readLog[logEntry.date] = logEntry.chapters;
@@ -903,6 +864,7 @@ async function saveRecalculatedPlanToFirestore(userId, planId, updatedPlanData) 
         if(typeof updatedPlanData.currentDay !== 'number') throw new Error("Dia atual ausente ou inválido no plano recalculado.");
         if(typeof updatedPlanData.recalculationBaseDay !== 'number') throw new Error("Dia base do recálculo inválido.");
         if(typeof updatedPlanData.recalculationBaseDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(updatedPlanData.recalculationBaseDate)) throw new Error("Data base do recálculo inválida.");
+        // googleFormLink and googleSheetCsvLink should be part of updatedPlanData if they existed on original
         await setDoc(planDocRef, updatedPlanData);
         currentReadingPlan = { id: planId, ...updatedPlanData };
         const index = userPlansList.findIndex(p => p.id === planId);
@@ -927,12 +889,11 @@ async function deletePlanFromFirestore(userId, planIdToDelete) {
         userPlansList = userPlansList.filter(p => p.id !== planIdToDelete);
         if (activePlanId === planIdToDelete) {
             activePlanId = null; currentReadingPlan = null;
-            // currentWeeklyInteractions = { weekId: getUTCWeekId(), interactions: {} }; // Removido
             const nextActivePlanId = userPlansList.length > 0 ? userPlansList[0].id : null;
             await updateDoc(userDocRef, { activePlanId: nextActivePlanId });
             activePlanId = nextActivePlanId;
             populatePlanSelector();
-            await loadActivePlanData(userId, activePlanId);
+            await loadActivePlanData(userId, activePlanId); // loadDailyReadingUI is called inside this
             await displayScheduledReadings();
         } else {
             populatePlanSelector();
@@ -986,7 +947,8 @@ function showPlanCreationSection() {
     if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
     if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
     if (streakCounterSection) streakCounterSection.style.display = 'none';
-    if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none'; // Esconder tracker global
+    if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
+    if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
     planCreationSection.style.display = 'block';
     if (cancelCreationButton) { cancelCreationButton.style.display = userPlansList.length > 0 ? 'inline-block' : 'none'; }
     window.scrollTo(0, 0);
@@ -998,13 +960,20 @@ function cancelPlanCreation() {
     if (currentReadingPlan && activePlanId) {
         readingPlanSection.style.display = 'block';
         if (streakCounterSection) streakCounterSection.style.display = 'flex';
-        if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block'; // Mostrar tracker global
+        if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block';
         if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p') ? 'block' : 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p') ? 'block' : 'none';
+        // Previous annotations visibility will be handled by loadDailyReadingUI if plan is active
+        if (currentReadingPlan.googleSheetCsvLink && previousAnnotationsContainer) {
+             fetchAndDisplayPreviousAnnotations(); // Re-fetch if returning to an active plan with CSV
+        } else if (previousAnnotationsContainer) {
+            previousAnnotationsContainer.style.display = 'none';
+        }
     } else {
         console.log("Cancel creation: No active plan to return to.");
         if (currentUser && streakCounterSection) streakCounterSection.style.display = 'flex';
-        if (currentUser && globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block'; // Mostrar tracker global
+        if (currentUser && globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block';
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none'; // NOVO
         displayScheduledReadings();
     }
 }
@@ -1016,11 +985,23 @@ async function createReadingPlan() {
     showErrorMessage(periodicityWarningDiv, '');
     const planName = planNameInput.value.trim();
     const googleDriveLink = googleDriveLinkInput.value.trim();
+    const googleFormLnk = googleFormLinkInput.value.trim(); // NOVO
+    const googleSheetCsvLnk = googleSheetCsvLinkInput.value.trim(); // NOVO
+
     if (!planName) { showErrorMessage(planErrorDiv, "Por favor, dê um nome ao seu plano."); planNameInput.focus(); return; }
     if (googleDriveLink && !(googleDriveLink.startsWith('http://') || googleDriveLink.startsWith('https://'))) {
         showErrorMessage(planErrorDiv, "O link do Google Drive parece inválido. Use o endereço completo (http:// ou https://).");
         googleDriveLinkInput.focus(); return;
     }
+    if (googleFormLnk && !(googleFormLnk.startsWith('http://') || googleFormLnk.startsWith('https://'))) { // NOVO
+        showErrorMessage(planErrorDiv, "O link do Google Form parece inválido. Use o endereço completo.");
+        googleFormLinkInput.focus(); return;
+    }
+    if (googleSheetCsvLnk && !(googleSheetCsvLnk.startsWith('http://') || googleSheetCsvLnk.startsWith('https://'))) { // NOVO
+        showErrorMessage(planErrorDiv, "O link CSV da Planilha Google parece inválido. Use o endereço completo.");
+        googleSheetCsvLinkInput.focus(); return;
+    }
+
     const allowedDaysOfWeek = Array.from(periodicityCheckboxes).filter(cb => cb.checked).map(cb => parseInt(cb.value, 10));
     const validAllowedDaysForCalculation = allowedDaysOfWeek.length > 0 ? allowedDaysOfWeek : [0, 1, 2, 3, 4, 5, 6];
     let chaptersToRead = [];
@@ -1106,7 +1087,7 @@ async function createReadingPlan() {
         if (totalReadingDays === 0 && chaptersToRead.length > 0 && allowedDaysOfWeek.length > 0) {
             showErrorMessage(periodicityWarningDiv, "Aviso: Com os dias selecionados, não há dias de leitura no período definido. O plano foi criado, mas pode não ter uma data final válida ou pode terminar imediatamente. Verifique as datas/duração ou dias da semana.");
         }
-        const newPlanData = { name: planName, plan: planMap, currentDay: 1, totalChapters: chaptersToRead.length, chaptersList: chaptersToRead, allowedDays: allowedDaysOfWeek, startDate: startDateStr, endDate: endDateStr, readLog: {}, googleDriveLink: googleDriveLink || null, recalculationBaseDay: null, recalculationBaseDate: null };
+        const newPlanData = { name: planName, plan: planMap, currentDay: 1, totalChapters: chaptersToRead.length, chaptersList: chaptersToRead, allowedDays: allowedDaysOfWeek, startDate: startDateStr, endDate: endDateStr, readLog: {}, googleDriveLink: googleDriveLink || null, googleFormLink: googleFormLnk || null, googleSheetCsvLink: googleSheetCsvLnk || null, recalculationBaseDay: null, recalculationBaseDate: null }; // NOVO: Adicionado googleFormLink, googleSheetCsvLink
         const newPlanId = await saveNewPlanToFirestore(userId, newPlanData);
         if (newPlanId) { alert(`Plano "${planName}" criado com sucesso! Iniciando em ${formatUTCDateStringToBrasilian(startDateStr)} e terminando em ${formatUTCDateStringToBrasilian(endDateStr)}.`); }
     } catch (error) {
@@ -1116,18 +1097,27 @@ async function createReadingPlan() {
 }
 
 function loadDailyReadingUI() {
-    if (!dailyReadingDiv || !markAsReadButton || !recalculatePlanButton || !deleteCurrentPlanButton || !readingPlanTitle || !activePlanDriveLink || !readingPlanSection || !planCreationSection) {
-        console.warn("Elementos da UI do plano ou de criação não encontrados em loadDailyReadingUI.");
+    if (!dailyReadingDiv || !markAsReadButton || !annotateReadingButton || !recalculatePlanButton || !deleteCurrentPlanButton || !readingPlanTitle || !activePlanDriveLink || !readingPlanSection || !planCreationSection || !previousAnnotationsContainer) {
+        console.warn("Elementos da UI do plano, criação ou anotações não encontrados em loadDailyReadingUI.");
         if(readingPlanSection) readingPlanSection.style.display = 'none';
         if(planCreationSection) planCreationSection.style.display = 'none';
         if(progressBarContainer) progressBarContainer.style.display = 'none';
+        if(previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none';
         return;
     }
     updateProgressBarUI();
+    clearPreviousAnnotationsUI(); // Limpa antes de carregar novo plano
+
     if (!currentReadingPlan || !activePlanId) {
         dailyReadingDiv.innerHTML = "<p>Nenhum plano ativo selecionado.</p>";
-        markAsReadButton.style.display = 'none'; recalculatePlanButton.style.display = 'none'; deleteCurrentPlanButton.style.display = 'none'; showStatsButton.style.display = 'none'; showHistoryButton.style.display = 'none';
+        markAsReadButton.style.display = 'none';
+        annotateReadingButton.style.display = 'none'; // NOVO
+        recalculatePlanButton.style.display = 'none';
+        deleteCurrentPlanButton.style.display = 'none';
+        showStatsButton.style.display = 'none';
+        showHistoryButton.style.display = 'none';
         readingPlanSection.style.display = 'none';
+        previousAnnotationsContainer.style.display = 'none'; // NOVO
         if(readingPlanTitle) readingPlanTitle.textContent = "Nenhum Plano Ativo";
         if(activePlanDriveLink) activePlanDriveLink.style.display = 'none';
         if(progressBarContainer) progressBarContainer.style.display = 'none';
@@ -1137,9 +1127,10 @@ function loadDailyReadingUI() {
     }
     readingPlanSection.style.display = 'block';
     planCreationSection.style.display = 'none';
-    const { plan, currentDay, name, startDate, endDate, allowedDays, googleDriveLink } = currentReadingPlan;
+    const { plan, currentDay, name, startDate, endDate, allowedDays, googleDriveLink, googleFormLink, googleSheetCsvLink } = currentReadingPlan; // NOVO: googleFormLink, googleSheetCsvLink
     const totalReadingDaysInPlan = Object.keys(plan || {}).length;
     const isCompleted = currentDay > totalReadingDaysInPlan;
+
     if (readingPlanTitle) { readingPlanTitle.textContent = name ? `${name}` : "Plano de Leitura Ativo"; }
     if (activePlanDriveLink) {
         if (googleDriveLink) {
@@ -1147,11 +1138,21 @@ function loadDailyReadingUI() {
             activePlanDriveLink.setAttribute('title', `Abrir link do Drive para: ${name || 'este plano'}`);
         } else { activePlanDriveLink.style.display = 'none'; }
     }
-    markAsReadButton.style.display = 'inline-block'; recalculatePlanButton.style.display = 'inline-block'; deleteCurrentPlanButton.style.display = 'inline-block'; showStatsButton.style.display = 'inline-block'; showHistoryButton.style.display = 'inline-block';
-    markAsReadButton.disabled = isCompleted; recalculatePlanButton.disabled = isCompleted;
+    markAsReadButton.style.display = 'inline-block';
+    annotateReadingButton.style.display = googleFormLink ? 'inline-block' : 'none'; // NOVO
+    recalculatePlanButton.style.display = 'inline-block';
+    deleteCurrentPlanButton.style.display = 'inline-block';
+    showStatsButton.style.display = 'inline-block';
+    showHistoryButton.style.display = 'inline-block';
+    markAsReadButton.disabled = isCompleted;
+    annotateReadingButton.disabled = isCompleted || !googleFormLink; // NOVO
+    recalculatePlanButton.disabled = isCompleted;
+
     if (isCompleted) {
         dailyReadingDiv.innerHTML = `<p style="font-weight: bold; color: var(--success-color);">Parabéns!</p><p>Plano "${name || ''}" concluído!</p><small>(${formatUTCDateStringToBrasilian(startDate)} - ${formatUTCDateStringToBrasilian(endDate)})</small>`;
-        markAsReadButton.style.display = 'none'; recalculatePlanButton.style.display = 'none';
+        markAsReadButton.style.display = 'none';
+        annotateReadingButton.style.display = 'none'; // NOVO
+        recalculatePlanButton.style.display = 'none';
     } else if (currentDay > 0 && currentDay <= totalReadingDaysInPlan && allowedDays) {
         const currentDayStr = currentDay.toString();
         const readingChapters = plan[currentDayStr] || [];
@@ -1162,10 +1163,23 @@ function loadDailyReadingUI() {
     } else {
         dailyReadingDiv.innerHTML = "<p>Erro: Dia inválido ou dados do plano incompletos para exibir leitura.</p>";
         console.error("Erro ao exibir leitura diária:", currentReadingPlan);
-        markAsReadButton.style.display = 'none'; recalculatePlanButton.style.display = 'none'; showStatsButton.style.display = 'none'; showHistoryButton.style.display = 'none';
+        markAsReadButton.style.display = 'none';
+        annotateReadingButton.style.display = 'none'; // NOVO
+        recalculatePlanButton.style.display = 'none';
+        showStatsButton.style.display = 'none';
+        showHistoryButton.style.display = 'none';
         if(activePlanDriveLink) activePlanDriveLink.style.display = 'none';
     }
+
+    // Lógica para buscar e exibir anotações anteriores
+    if (googleSheetCsvLink && previousAnnotationsContainer) {
+        previousAnnotationsContainer.style.display = 'block';
+        fetchAndDisplayPreviousAnnotations();
+    } else if (previousAnnotationsContainer) {
+        previousAnnotationsContainer.style.display = 'none';
+    }
 }
+
 
 async function markAsRead() {
     if (!currentReadingPlan || !currentUser || !activePlanId || markAsReadButton.disabled) return;
@@ -1178,7 +1192,7 @@ async function markAsRead() {
         const currentDayStr = currentDay.toString();
         const chaptersJustRead = plan[currentDayStr] || [];
         const actualDateMarkedStr = getCurrentUTCDateString();
-        const currentWeekId = getUTCWeekId(); // Usado para weeklyInteractions do plano E global
+        const currentWeekId = getUTCWeekId();
         const nextReadingDayNumber = currentDay + 1;
         let updatedStreakData = { ...userStreakData };
         let firestoreStreakUpdate = {};
@@ -1193,12 +1207,10 @@ async function markAsRead() {
                 updatedStreakData.longest = Math.max(updatedStreakData.longest, updatedStreakData.current);
                 updatedStreakData.lastInteractionDate = actualDateMarkedStr;
                 firestoreStreakUpdate = { lastStreakInteractionDate: updatedStreakData.lastInteractionDate, currentStreak: updatedStreakData.current, longestStreak: updatedStreakData.longest };
-                console.log("Streak Updated:", updatedStreakData);
             }
-        } else { console.log("Streak: Already marked today."); updatedStreakData = null; }
+        } else { updatedStreakData = null; }
 
-        // ATUALIZAÇÃO GLOBAL WEEKLY INTERACTIONS
-        const currentGlobalWeekId = getUTCWeekId(); // Reafirma, mas já definido acima
+        const currentGlobalWeekId = getUTCWeekId();
         let updatedGlobalWeeklyData = JSON.parse(JSON.stringify(userGlobalWeeklyInteractions || { weekId: null, interactions: {} }));
         if (updatedGlobalWeeklyData.weekId !== currentGlobalWeekId) {
             updatedGlobalWeeklyData = { weekId: currentGlobalWeekId, interactions: {} };
@@ -1206,7 +1218,6 @@ async function markAsRead() {
         if (!updatedGlobalWeeklyData.interactions) updatedGlobalWeeklyData.interactions = {};
         updatedGlobalWeeklyData.interactions[actualDateMarkedStr] = true;
 
-        // Atualiza weeklyInteractions do PLANO (mantido para dados do plano)
         let updatedWeeklyDataForPlan = JSON.parse(JSON.stringify(currentReadingPlan.weeklyInteractions || { weekId: null, interactions: {} }));
         if (updatedWeeklyDataForPlan.weekId !== currentWeekId) {
             updatedWeeklyDataForPlan = { weekId: currentWeekId, interactions: {} };
@@ -1219,23 +1230,21 @@ async function markAsRead() {
         try {
             const planUpdateSuccess = await updateProgressInFirestore(userId, activePlanId, nextReadingDayNumber, updatedWeeklyDataForPlan, logEntry);
             if (planUpdateSuccess) {
-                const userUpdates = {}; // Objeto para acumular atualizações no doc do usuário
+                const userUpdates = {};
                 if (firestoreStreakUpdate && Object.keys(firestoreStreakUpdate).length > 0) {
                     Object.assign(userUpdates, firestoreStreakUpdate);
                 }
-                userUpdates.globalWeeklyInteractions = updatedGlobalWeeklyData; // Adiciona global ao batch
-                if (Object.keys(userUpdates).length > 0) { // Salva se houver algo para salvar
+                userUpdates.globalWeeklyInteractions = updatedGlobalWeeklyData;
+                if (Object.keys(userUpdates).length > 0) {
                     await updateDoc(userDocRef, userUpdates);
                     if (firestoreStreakUpdate && Object.keys(firestoreStreakUpdate).length > 0) {
                         userStreakData = { ...updatedStreakData };
                     }
                     userGlobalWeeklyInteractions = updatedGlobalWeeklyData;
-                    console.log("Global weekly interactions and/or streak data saved to Firestore.");
                 }
                 updateStreakCounterUI();
-                updateGlobalWeeklyTrackerUI(); // ATUALIZADO para o tracker global
+                updateGlobalWeeklyTrackerUI();
                 loadDailyReadingUI();
-                // updateWeeklyTrackerUI(); // Removido/Comentado - tracker antigo
                 await displayScheduledReadings();
                 if (nextReadingDayNumber > totalReadingDaysInPlan) {
                      setTimeout(() => alert(`Você concluiu o plano "${currentReadingPlan.name || ''}"! Parabéns!`), 100);
@@ -1289,7 +1298,7 @@ async function handleRecalculate() {
     const recalcOption = recalcOptionRadio ? recalcOptionRadio.value : null;
     if (!recalcOption) { showErrorMessage(recalculateErrorDiv, "Selecione uma opção de recálculo."); return; }
     showLoading(recalculateLoadingDiv, true); showErrorMessage(recalculateErrorDiv, ''); confirmRecalculateButton.disabled = true;
-    const { chaptersList, currentDay, plan: originalPlanMap, startDate: originalStartDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink, endDate: currentEndDate } = JSON.parse(JSON.stringify(currentReadingPlan));
+    const { chaptersList, currentDay, plan: originalPlanMap, startDate: originalStartDate, allowedDays, name, readLog, weeklyInteractions, createdAt, googleDriveLink, googleFormLink, googleSheetCsvLink, endDate: currentEndDate } = JSON.parse(JSON.stringify(currentReadingPlan)); // NOVO: googleFormLink, googleSheetCsvLink
     const validAllowedDays = (Array.isArray(allowedDays) && allowedDays.length > 0) ? allowedDays : [0, 1, 2, 3, 4, 5, 6];
     try {
         let chaptersDesignatedBeforeCurrent = 0;
@@ -1338,7 +1347,6 @@ async function handleRecalculate() {
         const scheduledDateForCurrentDayStr = getEffectiveDateForDay(currentReadingPlan, currentDay);
         let recalcEffectiveStartDate = todayStr;
         if (scheduledDateForCurrentDayStr && scheduledDateForCurrentDayStr > todayStr) { recalcEffectiveStartDate = scheduledDateForCurrentDayStr; }
-        console.log(`Recálculo usará como data base para o dia ${currentDay} (recalcEffectiveStartDate): ${recalcEffectiveStartDate}`);
         const updatedFullPlanMap = {};
         for (let dayKey in originalPlanMap) {
             const dayNum = parseInt(dayKey, 10); if (dayNum < currentDay) { updatedFullPlanMap[dayKey] = originalPlanMap[dayKey]; }
@@ -1349,13 +1357,12 @@ async function handleRecalculate() {
         });
         const newEndDateStr = calculateDateForDay(recalcEffectiveStartDate, newTotalReadingDaysForRemainder, allowedDays);
         if (!newEndDateStr) throw new Error(`Falha ao calcular a nova data final após recálculo, partindo de ${recalcEffectiveStartDate} por ${newTotalReadingDaysForRemainder} dias de leitura.`);
-        const updatedPlanData = { name: name, chaptersList: chaptersList, totalChapters: chaptersList.length, allowedDays: allowedDays, readLog: readLog || {}, weeklyInteractions: weeklyInteractions || { weekId: getUTCWeekId(), interactions: {} }, createdAt: createdAt || serverTimestamp(), googleDriveLink: googleDriveLink || null, startDate: originalStartDate, plan: updatedFullPlanMap, currentDay: currentDay, endDate: newEndDateStr, recalculationBaseDay: currentDay, recalculationBaseDate: recalcEffectiveStartDate };
+        const updatedPlanData = { name: name, chaptersList: chaptersList, totalChapters: chaptersList.length, allowedDays: allowedDays, readLog: readLog || {}, weeklyInteractions: weeklyInteractions || { weekId: getUTCWeekId(), interactions: {} }, createdAt: createdAt || serverTimestamp(), googleDriveLink: googleDriveLink || null, googleFormLink: googleFormLink || null, googleSheetCsvLink: googleSheetCsvLink || null, startDate: originalStartDate, plan: updatedFullPlanMap, currentDay: currentDay, endDate: newEndDateStr, recalculationBaseDay: currentDay, recalculationBaseDate: recalcEffectiveStartDate }; // NOVO: googleFormLink, googleSheetCsvLink
         const success = await saveRecalculatedPlanToFirestore(userId, activePlanId, updatedPlanData);
         if (success) {
             alert("Seu plano foi recalculado com sucesso! O cronograma restante foi ajustado.");
             closeModal('recalculate-modal'); loadDailyReadingUI(); updateProgressBarUI();
-            // updateWeeklyTrackerUI(); // Removido/Comentado
-            updateGlobalWeeklyTrackerUI(); // ATUALIZADO para o tracker global
+            updateGlobalWeeklyTrackerUI();
             await displayScheduledReadings(); populatePlanSelector();
         }
     } catch (error) {
@@ -1505,14 +1512,203 @@ function updateStreakCounterUI() {
     } else { streakCounterSection.style.display = 'none'; }
 }
 
+// --- NOVO: Funções de Anotações ---
+function handleAnnotateReading() {
+    if (!currentReadingPlan || !currentReadingPlan.googleFormLink) {
+        alert("Link do Google Form não configurado para este plano.");
+        return;
+    }
+
+    let formUrl = currentReadingPlan.googleFormLink;
+
+    // Basic Pre-fill (User needs to ensure their form has these exact field names for auto-fill to work via URL parameters)
+    // This is a very basic example. For robust pre-filling, users would need to map their form's entry IDs.
+    // Example URL: https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform?usp=pp_url&entry.12345=VALUE
+    // For now, we'll just open the base URL.
+    // TODO: Consider adding a section in plan management to configure entry IDs for pre-filling.
+
+    /*
+    // Example of how pre-filling could work if entry IDs were known/configured
+    const today = getCurrentUTCDateString();
+    const readingChapters = currentReadingPlan.plan[currentReadingPlan.currentDay.toString()]?.join(', ') || "";
+
+    // Assuming the user has named their form fields "Data", "Leitura", "IDPlano"
+    // and you have a way to get their corresponding entry.XXXXX IDs.
+    // For example:
+    // const dateEntryId = currentReadingPlan.formDateEntryId; // User would configure this
+    // const readingEntryId = currentReadingPlan.formReadingEntryId;
+    // const planIdEntryId = currentReadingPlan.formPlanIdEntryId;
+
+    // if (dateEntryId) formUrl += `&entry.${dateEntryId}=${encodeURIComponent(today)}`;
+    // if (readingEntryId && readingChapters) formUrl += `&entry.${readingEntryId}=${encodeURIComponent(readingChapters)}`;
+    // if (planIdEntryId) formUrl += `&entry.${planIdEntryId}=${encodeURIComponent(currentReadingPlan.id)}`;
+    */
+
+    window.open(formUrl, '_blank');
+}
+
+// Simple CSV parser (can be improved for robustness, e.g., handling commas within quoted fields)
+function parseCSV(csvText) {
+    if (!csvText || typeof csvText !== 'string') return [];
+    const lines = csvText.trim().split(/\r\n|\n/); // Handles both LF and CRLF line endings
+    if (lines.length < 2) return []; // Need headers and at least one data line
+
+    // Basic split for headers, assuming no commas in header names themselves
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const data = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue; // Skip empty lines
+
+        const entry = {};
+        // This regex attempts to handle simple CSV cases, including quoted fields with commas.
+        // It's not fully RFC 4180 compliant but works for many common cases.
+        const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+
+        if (values.length === headers.length) {
+            headers.forEach((header, index) => {
+                let value = values[index] ? values[index].trim() : '';
+                // Remove surrounding quotes if present
+                if (value.startsWith('"') && value.endsWith('"')) {
+                    value = value.substring(1, value.length - 1).replace(/""/g, '"'); // Handle escaped quotes
+                }
+                entry[header] = value;
+            });
+            data.push(entry);
+        } else {
+             console.warn(`Skipping CSV line ${i+1}: Mismatch in number of columns. Expected ${headers.length}, got ${values.length}. Line: "${lines[i]}"`);
+        }
+    }
+    return data;
+}
+
+
+async function fetchAndDisplayPreviousAnnotations() {
+    if (!currentReadingPlan || !currentReadingPlan.googleSheetCsvLink || !previousAnnotationsContainer || !previousAnnotationsListDiv || !previousAnnotationsLoadingDiv || !previousAnnotationsErrorDiv) {
+        if (previousAnnotationsContainer) previousAnnotationsContainer.style.display = 'none';
+        return;
+    }
+
+    showLoading(previousAnnotationsLoadingDiv, true);
+    showErrorMessage(previousAnnotationsErrorDiv, '');
+    previousAnnotationsListDiv.innerHTML = '<p>Buscando anotações...</p>';
+    previousAnnotationsContainer.style.display = 'block';
+
+    try {
+        const response = await fetch(currentReadingPlan.googleSheetCsvLink, { cache: "no-store" }); // Disable cache to get fresh data
+        if (!response.ok) {
+            throw new Error(`Falha ao buscar CSV: ${response.status} ${response.statusText}`);
+        }
+        const csvText = await response.text();
+        const annotations = parseCSV(csvText);
+
+        if (annotations.length === 0) {
+            previousAnnotationsListDiv.innerHTML = '<p>Nenhuma anotação encontrada na planilha ou formato CSV inválido.</p>';
+            return;
+        }
+
+        // --- Filtering Logic ---
+        // Attempt to find these common column names, case-insensitive. User should aim to use these.
+        const planIdHeader = Object.keys(annotations[0]).find(h => h.toLowerCase().replace(/\s+/g, '') === 'iddoplano') ||
+                             Object.keys(annotations[0]).find(h => h.toLowerCase().replace(/\s+/g, '') === 'planid');
+        const readingHeader = Object.keys(annotations[0]).find(h => h.toLowerCase().replace(/\s+/g, '') === 'leituradodia') ||
+                              Object.keys(annotations[0]).find(h => h.toLowerCase().replace(/\s+/g, '') === 'leitura');
+        const notesHeader = Object.keys(annotations[0]).find(h => h.toLowerCase().includes('anota')) || // "Anotações", "Minhas Anotações"
+                            Object.keys(annotations[0]).find(h => h.toLowerCase().includes('observa')); // "Observações"
+        const timestampHeader = Object.keys(annotations[0]).find(h => h.toLowerCase().includes('timestamp')) || // Google Forms default
+                                Object.keys(annotations[0]).find(h => h.toLowerCase().includes('data')); // "Data", "Data da Anotação"
+
+
+        if (!notesHeader) {
+            previousAnnotationsListDiv.innerHTML = '<p>Coluna de anotações não encontrada no CSV. Verifique os cabeçalhos da sua planilha (ex: "Minhas Anotações").</p>';
+            return;
+        }
+
+        let filteredAnnotations = annotations;
+
+        // 1. Filter by Plan ID if column exists and plan ID is available
+        if (planIdHeader && currentReadingPlan.id) {
+            filteredAnnotations = filteredAnnotations.filter(ann => ann[planIdHeader] && ann[planIdHeader].trim() === currentReadingPlan.id);
+        }
+
+        // 2. Further refine or sort. For now, let's display all for the plan, sorted by timestamp/date.
+        // If you want to filter by current day's reading, it's more complex due to string matching.
+        // const currentReadingChaptersStr = currentReadingPlan.plan[currentReadingPlan.currentDay.toString()]?.join(', ').toLowerCase() || "";
+        // if (readingHeader && currentReadingChaptersStr) {
+        // filteredAnnotations = filteredAnnotations.filter(ann => ann[readingHeader] && ann[readingHeader].toLowerCase().includes(currentReadingChaptersStr) );
+        // }
+
+
+        if (timestampHeader) {
+            filteredAnnotations.sort((a, b) => {
+                // Attempt to parse dates for robust sorting, fallback to string sort
+                const dateA = new Date(a[timestampHeader]);
+                const dateB = new Date(b[timestampHeader]);
+                if (!isNaN(dateA) && !isNaN(dateB)) return dateB - dateA; // Descending by date
+                return (b[timestampHeader] || "").localeCompare(a[timestampHeader] || ""); // Fallback string sort
+            });
+        }
+
+        if (filteredAnnotations.length === 0) {
+            previousAnnotationsListDiv.innerHTML = `<p>Nenhuma anotação encontrada para o plano "${currentReadingPlan.name}" (ou o ID do Plano não corresponde nas anotações).</p>`;
+            return;
+        }
+
+        previousAnnotationsListDiv.innerHTML = ''; // Clear loading/default message
+        const displayLimit = 5; // Show last N annotations
+        filteredAnnotations.slice(0, displayLimit).forEach(ann => {
+            const itemDiv = document.createElement('div');
+            itemDiv.classList.add('annotation-item');
+
+            let dateText = "Data não informada";
+            if (timestampHeader && ann[timestampHeader]) {
+                // Try to format Google Form's timestamp (e.g., "10/07/2024 15:30:00") or a simple date
+                try {
+                    const d = new Date(ann[timestampHeader].replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3')); // Try to make it MM/DD/YYYY for Date constructor
+                    if (!isNaN(d)) {
+                         dateText = d.toLocaleDateString('pt-BR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        dateText = ann[timestampHeader]; // Show as is if not parsable well
+                    }
+                } catch (e) { dateText = ann[timestampHeader]; }
+            }
+
+            const annotationContent = ann[notesHeader] || "Conteúdo da anotação não encontrado.";
+            // Simple link detection (makes http/https links clickable)
+            const linkedAnnotationContent = annotationContent.replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+
+
+            itemDiv.innerHTML = `
+                <span class="annotation-date">${dateText}</span>
+                ${readingHeader && ann[readingHeader] ? `<span class="annotation-reading" style="font-size:0.8em; color: var(--text-color-muted); display:block; margin-bottom:3px;">Referente a: ${ann[readingHeader]}</span>` : ''}
+                <div class="annotation-text">${linkedAnnotationContent}</div>
+            `;
+            previousAnnotationsListDiv.appendChild(itemDiv);
+        });
+
+    } catch (error) {
+        console.error("Erro ao buscar ou processar anotações CSV:", error);
+        showErrorMessage(previousAnnotationsErrorDiv, `Erro ao carregar anotações: ${error.message}`);
+        previousAnnotationsListDiv.innerHTML = '<p>Falha ao carregar anotações.</p>';
+    } finally {
+        showLoading(previousAnnotationsLoadingDiv, false);
+    }
+}
+
+
 // --- Inicialização e Event Listeners ---
 document.addEventListener("DOMContentLoaded", () => {
     if (!loginButton || !createPlanButton || !markAsReadButton || !recalculateModal || !managePlansModal ||
         !statsModal || !historyModal || !planSelect || !periodicityCheckboxes ||
         !overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv ||
-        !googleDriveLinkInput || !readingPlanTitle || !activePlanDriveLink ||
+        !googleDriveLinkInput || !googleFormLinkInput || !googleSheetCsvLinkInput || // NOVO
+        !readingPlanTitle || !activePlanDriveLink || !annotateReadingButton || // NOVO
+        !previousAnnotationsContainer || !previousAnnotationsListDiv || !previousAnnotationsLoadingDiv || !previousAnnotationsErrorDiv || // NOVO
         !streakCounterSection || !currentStreakValue || !longestStreakValue ||
-        !globalWeeklyTrackerSection || !globalDayIndicatorElements // ADICIONADO
+        !globalWeeklyTrackerSection || !globalDayIndicatorElements
        ) {
         console.error("Erro crítico: Elementos essenciais da UI não encontrados.");
         document.body.innerHTML = '<p style="color: red; text-align: center; padding: 50px;">Erro ao carregar a página. Elementos faltando.</p>';
@@ -1550,6 +1746,7 @@ document.addEventListener("DOMContentLoaded", () => {
     durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
     if (chaptersInput) chaptersInput.addEventListener('input', updateBookSuggestions);
      markAsReadButton.addEventListener('click', markAsRead);
+     annotateReadingButton.addEventListener('click', handleAnnotateReading); // NOVO
      deleteCurrentPlanButton.addEventListener('click', () => { if(activePlanId && currentReadingPlan) { handleDeleteSpecificPlan(activePlanId); } else { alert("Nenhum plano ativo para deletar."); } });
      recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
      showStatsButton.addEventListener('click', () => { calculateAndShowStats(); openModal('stats-modal'); });
@@ -1573,5 +1770,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     console.log("Event listeners attached and application initialized.");
 });
-
-// --- END OF FILE script.js ---
