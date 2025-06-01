@@ -1,5 +1,3 @@
-/* --- START OF FILE styles.css --- */
-
 :root {
     /* --- Paleta de Cores e Variáveis --- */
     --gradient-start: #FF8C00; /* Laranja Vibrante */
@@ -244,9 +242,8 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
 .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary-action), var(--gradient-mid)); transition: width 0.5s ease-out; border-radius: inherit; /* Garante cantos arredondados */ }
 
 /* --- Quadro Semanal (Estilos Genéricos que serão aplicados ao Global Tracker) --- */
-/* O container principal para o tracker semanal global */
 #global-weekly-tracker-section {
-    background-color: var(--background-light); /* Ou var(--background-card) se preferir branco */
+    background-color: var(--background-light);
     padding: 20px 15px;
     border-radius: var(--base-border-radius);
     margin-bottom: 25px;
@@ -261,8 +258,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     font-size: 1.2em;
     font-weight: 700;
 }
-/* Estilos para os dias da semana (mantidos, pois a estrutura é a mesma) */
-.weekly-tracker-container .week-days { /* Usando a classe genérica, ou pode ser #global-weekly-tracker-section .week-days */
+.weekly-tracker-container .week-days {
     display: flex;
     justify-content: space-around;
     align-items: center;
@@ -275,7 +271,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     flex-direction: column;
     align-items: center;
     cursor: default;
-    flex-basis: calc(100% / 7 - 10px); /* Espaçamento entre dias */
+    flex-basis: calc(100% / 7 - 10px);
     min-width: 38px;
 }
 .weekly-tracker-container .day-label {
@@ -289,7 +285,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background-color: var(--marker-inactive-color); /* Padrão para dias não marcados/futuros */
+    background-color: var(--marker-inactive-color);
     border: 2px solid var(--marker-inactive-border);
     display: flex;
     justify-content: center;
@@ -297,10 +293,10 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     color: var(--text-color-light);
     font-weight: bold;
     transition: var(--transition-base);
-    position: relative; /* Needed for pseudo-element */
+    position: relative;
 }
-.weekly-tracker-container .day-marker::after { /* Shared properties for symbols */
-    content: ''; /* Default empty */
+.weekly-tracker-container .day-marker::after {
+    content: '';
     position: absolute;
     top: 50%;
     left: 50%;
@@ -309,8 +305,6 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     font-weight: bold;
     line-height: 1;
 }
-
-/* Estilo para Dia Lido (Ativo) - Aplicável ao tracker global */
 .weekly-tracker-container .day-indicator.active .day-marker {
     background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
     border-color: transparent;
@@ -323,33 +317,22 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     color: var(--text-color-light);
     text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
 }
-
-/* Estilo para Dia PERDIDO - Aplicável ao tracker global */
 .weekly-tracker-container .day-indicator.missed-day .day-marker {
     background-color: var(--marker-missed-bg);
     border-color: var(--marker-missed-border);
     box-shadow: 0 0 8px var(--marker-missed-shadow);
     transform: scale(1.05);
     opacity: 1;
-    /* cursor: help; /* Pode remover se não houver tooltip específico */
 }
 .weekly-tracker-container .day-indicator.missed-day .day-marker::after {
     content: '✕';
     color: var(--marker-missed-text);
     text-shadow: none;
 }
-.weekly-tracker-container .day-indicator.missed-day .day-label { /* Label do dia perdido pode ser estilizado se desejar */
+.weekly-tracker-container .day-indicator.missed-day .day-label {
     color: var(--marker-missed-text);
     opacity: 1;
 }
-
-/* OBS: As regras para .inactive-plan-day e as regras de sobreposição complexas
-   que envolviam .inactive-plan-day podem ser removidas ou significativamente simplificadas
-   já que o tracker global não terá "dias inativos pelo plano".
-   A prioridade será simplesmente: Lido (active) > Perdido (missed-day) > Padrão.
-   O CSS atual já lida com isso se as classes .inactive-plan-day forem removidas das combinações.
-*/
-
 
 /* --- Leitura Diária e Ações --- */
 .daily-reading-display {
@@ -494,6 +477,59 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
 .streak-info strong { font-weight: 700; font-size: 1.1em; }
 .streak-info .longest { font-size: 0.85em; opacity: 0.9; }
 
+/* --- NOVO: Estilos para Anotações Anteriores --- */
+#previous-annotations-container {
+    background-color: rgba(var(--primary-action-rgb), 0.03);
+    border: 1px solid var(--border-color);
+    padding: 15px 20px;
+    border-radius: var(--base-border-radius);
+    margin-top: 25px; /* Espaçamento */
+    box-shadow: var(--box-shadow-sm);
+}
+#previous-annotations-container h4 {
+    margin-top: 0;
+    color: var(--primary-action);
+    font-size: 1.2em; /* Aumentado ligeiramente */
+    font-weight: 600;
+    margin-bottom: 15px; /* Mais espaço abaixo do título */
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+#previous-annotations-list {
+    max-height: 300px; /* Limita altura e permite scroll */
+    overflow-y: auto;
+    padding-right: 5px; /* Espaço para a barra de rolagem */
+}
+.annotation-item {
+    padding: 10px 5px; /* Mais padding interno */
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 0.95em; /* Levemente maior */
+    margin-bottom: 8px; /* Espaço entre itens */
+}
+.annotation-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+.annotation-item .annotation-date {
+    font-weight: bold;
+    color: var(--text-color-muted);
+    display: block;
+    font-size: 0.85em;
+    margin-bottom: 5px; /* Mais espaço */
+}
+.annotation-item .annotation-text {
+    color: var(--text-color-dark);
+    line-height: 1.55; /* Melhor legibilidade */
+    white-space: pre-wrap; /* Preserva quebras de linha e espaços das anotações */
+    word-break: break-word;
+}
+#previous-annotations-list p { /* Estilo para mensagem de "Nenhuma anotação" */
+    font-style: italic;
+    color: var(--text-color-muted);
+    text-align: center;
+    padding: 10px 0;
+}
+
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; } section { padding: 20px; }
@@ -513,9 +549,10 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
         padding: 3px;
         border-radius: 5px;
      }
-     /* Ajustes para o tracker semanal em telas menores */
      .weekly-tracker-container .day-marker { width: 30px; height: 30px; }
      .weekly-tracker-container .day-marker::after { font-size: 16px; }
+     #previous-annotations-container h4 { font-size: 1.1em; }
+     .annotation-item { font-size: 0.9em; }
 }
 
 @media (max-width: 600px) {
@@ -540,8 +577,7 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     #periodicity-options .checkbox-group { justify-content: space-around; gap: 8px; }
     #periodicity-options .checkbox-group label { font-size: 0.85em; padding: 4px 6px; }
 
-    /* Ajustes para o tracker semanal em telas ainda menores */
-    #global-weekly-tracker-section { padding: 15px 10px; } /* Ajusta padding do container global */
+    #global-weekly-tracker-section { padding: 15px 10px; }
     .weekly-tracker-container .week-days { gap: 5px; }
     .weekly-tracker-container .day-indicator { min-width: 32px; flex-basis: calc(100% / 7 - 6px); }
     .weekly-tracker-container .day-label { font-size: 0.7em; }
@@ -563,6 +599,7 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     .streak-icon { font-size: 2.2em; margin-bottom: 5px; }
     .streak-info p { font-size: 0.95em; }
     .streak-info .longest { font-size: 0.8em; }
+    #previous-annotations-container h4 { font-size: 1.05em; }
+    .annotation-item { font-size: 0.85em; }
+    #previous-annotations-list { max-height: 250px; }
 }
-
-/* --- END OF FILE styles.css --- */
