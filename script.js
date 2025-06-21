@@ -740,6 +740,7 @@ async function loadUserDataAndPlans() {
         await fetchUserPlansList(userId);
         populatePlanSelector();
         await loadActivePlanData(userId, activePlanId);
+        console.log("[DEBUG] loadUserDataAndPlans: Chamando displayScheduledReadings após carregamento inicial.");
         await displayScheduledReadings();
     } catch (error) {
         console.error("Error during initial data load sequence:", error);
@@ -765,6 +766,7 @@ async function setActivePlan(planId) {
         if (userInfo) userInfo.activePlanId = planId;
         if (planSelect) planSelect.value = planId;
         await loadActivePlanData(userId, planId);
+        console.log("[DEBUG] setActivePlan: Chamando displayScheduledReadings após trocar de plano.");
         await displayScheduledReadings();
         if (managePlansModal.style.display === 'flex') { populateManagePlansModal(); }
     } catch (error) {
@@ -803,7 +805,7 @@ async function saveNewPlanToFirestore(userId, planData) {
 
         const newPlanDocRef = await addDoc(plansCollectionRef, dataToSave);
         userPlansList.unshift({ id: newPlanDocRef.id, ...dataToSave });
-        await setActivePlan(newPlanDocRef.id);
+        await setActivePlan(newPlanDocRef.id); // setActivePlan já chama displayScheduledReadings
         return newPlanDocRef.id;
     } catch (error) {
         console.error("Error saving new plan to Firestore:", error);
@@ -898,6 +900,7 @@ async function updateChapterStatusAndUserInteractions(userId, planId, chapterNam
 
 // MODIFICADO: Esta função agora lida com o avanço do dia (currentDay)
 async function advanceToNextDayAndUpdateLog(userId, planId, newDay, chaptersReadForLog) {
+    console.log("[DEBUG] advanceToNextDayAndUpdateLog: Iniciando. Novo dia:", newDay, "Capítulos para log:", chaptersReadForLog);
     if (!userId || !planId || !currentReadingPlan) {
         console.error("Erro ao avançar dia: Usuário/Plano não carregado.");
         showErrorMessage(planViewErrorDiv, "Erro crítico ao salvar progresso. Recarregue.");
@@ -907,6 +910,7 @@ async function advanceToNextDayAndUpdateLog(userId, planId, newDay, chaptersRead
     try {
         const actualDateMarkedStr = getCurrentUTCDateString();
         const logEntry = { date: actualDateMarkedStr, chapters: chaptersReadForLog };
+        console.log("[DEBUG] advanceToNextDayAndUpdateLog: Log Entry:", logEntry);
 
         // Atualiza weeklyInteractions do PLANO (mantido para dados do plano, se necessário)
         const currentWeekId = getUTCWeekId();
@@ -916,6 +920,7 @@ async function advanceToNextDayAndUpdateLog(userId, planId, newDay, chaptersRead
         }
         if (!updatedWeeklyDataForPlan.interactions) updatedWeeklyDataForPlan.interactions = {};
         updatedWeeklyDataForPlan.interactions[actualDateMarkedStr] = true;
+        console.log("[DEBUG] advanceToNextDayAndUpdateLog: WeeklyInteractions do Plano atualizadas:", updatedWeeklyDataForPlan);
 
 
         const dataToUpdate = {
@@ -926,8 +931,10 @@ async function advanceToNextDayAndUpdateLog(userId, planId, newDay, chaptersRead
         if (logEntry.date && Array.isArray(logEntry.chapters)) {
             dataToUpdate[`readLog.${logEntry.date}`] = logEntry.chapters;
         }
+        console.log("[DEBUG] advanceToNextDayAndUpdateLog: Dados para update no Firestore:", dataToUpdate);
 
         await updateDoc(planDocRef, dataToUpdate);
+        console.log("[DEBUG] advanceToNextDayAndUpdateLog: Update no Firestore concluído.");
 
         // Atualiza localmente
         currentReadingPlan.currentDay = newDay;
@@ -937,6 +944,7 @@ async function advanceToNextDayAndUpdateLog(userId, planId, newDay, chaptersRead
             if (!currentReadingPlan.readLog) currentReadingPlan.readLog = {};
             currentReadingPlan.readLog[logEntry.date] = logEntry.chapters;
         }
+        console.log("[DEBUG] advanceToNextDayAndUpdateLog: Estado local do currentReadingPlan atualizado:", currentReadingPlan);
         return true;
     } catch (error) {
         console.error("Error advancing day and updating log:", error);
@@ -992,11 +1000,14 @@ async function deletePlanFromFirestore(userId, planIdToDelete) {
             await updateDoc(userDocRef, { activePlanId: nextActivePlanId });
             activePlanId = nextActivePlanId;
             populatePlanSelector();
-            await loadActivePlanData(userId, activePlanId);
-            await displayScheduledReadings();
+            await loadActivePlanData(userId, activePlanId); // loadActivePlanData não chama displayScheduledReadings
+            console.log("[DEBUG] deletePlanFromFirestore (active deleted): Chamando displayScheduledReadings.");
+            await displayScheduledReadings(); 
         } else {
             populatePlanSelector();
             if (managePlansModal.style.display === 'flex') { populateManagePlansModal(); }
+            // Se um plano não ativo for excluído, também pode afetar as listas
+            console.log("[DEBUG] deletePlanFromFirestore (inactive deleted): Chamando displayScheduledReadings.");
             await displayScheduledReadings();
         }
         return true;
@@ -1059,14 +1070,16 @@ function cancelPlanCreation() {
         readingPlanSection.style.display = 'block';
         if (streakCounterSection) streakCounterSection.style.display = 'flex';
         if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block';
-        if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p') ? 'block' : 'none';
-        if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p') ? 'block' : 'none';
+        // A exibição de overdue/upcoming é tratada por displayScheduledReadings
     } else {
         console.log("Cancel creation: No active plan to return to.");
         if (currentUser && streakCounterSection) streakCounterSection.style.display = 'flex';
         if (currentUser && globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block';
-        displayScheduledReadings();
     }
+    // Sempre chamar displayScheduledReadings ao cancelar, para garantir que estejam atualizados
+    // mesmo se não havia plano ativo ou se o usuário estiver apenas na tela de criação de planos.
+    console.log("[DEBUG] cancelPlanCreation: Chamando displayScheduledReadings.");
+    displayScheduledReadings();
 }
 
 async function createReadingPlan() {
@@ -1326,40 +1339,59 @@ async function handleChapterToggle(chapterName, isRead) {
 
 // NOVO: Lida com o clique no botão "Concluir Leituras do Dia e Avançar"
 async function handleCompleteDay() {
-    if (!currentReadingPlan || !currentUser || !activePlanId || completeDayButton.disabled) return;
+    console.log("[DEBUG] handleCompleteDay: Botão 'Concluir Dia' clicado.");
+    if (!currentReadingPlan || !currentUser || !activePlanId || completeDayButton.disabled) {
+        console.warn("[DEBUG] handleCompleteDay: Abortado - condições não atendidas.", { currentReadingPlan, currentUser, activePlanId, disabled: completeDayButton.disabled });
+        return;
+    }
     const userId = currentUser.uid;
     const { plan, currentDay } = currentReadingPlan;
     const totalReadingDaysInPlan = Object.keys(plan || {}).length;
+
+    console.log("[DEBUG] handleCompleteDay: Plano atual (ID:", activePlanId, ", Dia:", currentDay, " de ", totalReadingDaysInPlan, ")");
 
     if (currentDay > 0 && currentDay <= totalReadingDaysInPlan) {
         const chaptersJustReadBlock = plan[currentDay.toString()] || []; // Bloco completo para o log
         const nextReadingDayNumber = currentDay + 1;
 
+        console.log("[DEBUG] handleCompleteDay: Capítulos lidos neste dia:", chaptersJustReadBlock, "Próximo dia do plano:", nextReadingDayNumber);
+
         completeDayButton.disabled = true; // Desabilita durante o processo
 
         try {
+            console.log("[DEBUG] handleCompleteDay: Chamando advanceToNextDayAndUpdateLog...");
             const advanceSuccess = await advanceToNextDayAndUpdateLog(userId, activePlanId, nextReadingDayNumber, chaptersJustReadBlock);
+            console.log("[DEBUG] handleCompleteDay: Resultado de advanceToNextDayAndUpdateLog:", advanceSuccess);
+
             if (advanceSuccess) {
+                console.log("[DEBUG] handleCompleteDay: Sucesso ao avançar dia. Atualizando UI...");
                 loadDailyReadingUI(); // Recarrega para o novo dia
                 updateProgressBarUI();
+                
+                console.log("%c[DEBUG] handleCompleteDay: CHAMANDO displayScheduledReadings AGORA!", "color: blue; font-weight: bold;");
                 await displayScheduledReadings(); // Atualiza seções de atrasadas/próximas
+                console.log("%c[DEBUG] handleCompleteDay: displayScheduledReadings CONCLUÍDO.", "color: blue; font-weight: bold;");
+
 
                 if (nextReadingDayNumber > totalReadingDaysInPlan) {
+                    console.log("[DEBUG] handleCompleteDay: Plano concluído!");
                     setTimeout(() => alert(`Você concluiu o plano "${currentReadingPlan.name || ''}"! Parabéns!`), 100);
                 }
             } else {
+                console.warn("[DEBUG] handleCompleteDay: Falha ao avançar para o próximo dia (advanceSuccess foi false).");
                 showErrorMessage(planViewErrorDiv, "Falha ao avançar para o próximo dia. Tente novamente.");
                 completeDayButton.disabled = false; // Reabilita se falhar
             }
         } catch (error) {
-            console.error("Error during handleCompleteDay Firestore updates:", error);
+            console.error("[DEBUG] handleCompleteDay: Erro durante as atualizações do Firestore:", error);
             showErrorMessage(planViewErrorDiv, `Erro ao avançar dia: ${error.message}`);
             completeDayButton.disabled = false; // Reabilita em caso de erro
         }
     } else {
-        console.warn("Tentativa de concluir dia quando plano já concluído ou inválido.", currentReadingPlan);
+        console.warn("[DEBUG] handleCompleteDay: Tentativa de concluir dia quando plano já concluído ou inválido.", currentReadingPlan);
         completeDayButton.disabled = true;
     }
+    console.log("[DEBUG] handleCompleteDay: Função concluída.");
 }
 
 
@@ -1481,6 +1513,7 @@ async function handleRecalculate() {
             alert("Seu plano foi recalculado com sucesso! O cronograma restante foi ajustado.");
             closeModal('recalculate-modal'); loadDailyReadingUI(); updateProgressBarUI();
             updateGlobalWeeklyTrackerUI();
+            console.log("[DEBUG] handleRecalculate: Chamando displayScheduledReadings após recálculo.");
             await displayScheduledReadings(); populatePlanSelector();
         }
     } catch (error) {
@@ -1543,8 +1576,9 @@ async function calculateAndShowStats() {
 
 // --- Função para Leituras Atrasadas e Próximas ---
 async function displayScheduledReadings(upcomingCount = 3) {
+    console.log("%c[DEBUG] displayScheduledReadings: Iniciando.", "color: green; font-weight: bold;");
     if (!overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv || !currentUser) {
-        console.warn("Elementos UI para 'Overdue/Upcoming Readings' ou usuário não disponíveis.");
+        console.warn("[DEBUG] displayScheduledReadings: Elementos UI ou usuário não disponíveis. Abortando.");
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
         return;
@@ -1554,68 +1588,114 @@ async function displayScheduledReadings(upcomingCount = 3) {
     overdueReadingsListDiv.innerHTML = ''; upcomingReadingsListDiv.innerHTML = '';
     showErrorMessage(planViewErrorDiv, '');
     const overdueList = []; const upcomingList = []; const todayStr = getCurrentUTCDateString();
+    
+    console.log("[DEBUG] displayScheduledReadings: Data de hoje (UTC):", todayStr);
+    console.log("[DEBUG] displayScheduledReadings: userPlansList.length:", userPlansList.length, "Conteúdo de userPlansList:", JSON.parse(JSON.stringify(userPlansList)));
+
+
     if (userPlansList.length === 0) {
+        console.log("[DEBUG] displayScheduledReadings: Nenhum plano para verificar.");
         overdueReadingsListDiv.innerHTML = '<p>Nenhum plano para verificar.</p>';
         upcomingReadingsListDiv.innerHTML = '<p>Você ainda não tem planos de leitura.</p>';
-        showLoading(overdueReadingsLoadingDiv, false); showLoading(upcomingReadingsLoadingDiv, false); return;
+        showLoading(overdueReadingsLoadingDiv, false); showLoading(upcomingReadingsLoadingDiv, false); 
+        console.log("%c[DEBUG] displayScheduledReadings: Concluído (nenhum plano).", "color: green; font-weight: bold;");
+        return;
     }
     try {
         for (const plan of userPlansList) {
+            console.log(`[DEBUG] displayScheduledReadings: Processando plano ID: ${plan.id}, Nome: ${plan.name || 'Sem nome'}`);
             if (!plan.id || !plan.plan || typeof plan.currentDay !== 'number' || !plan.startDate || !plan.allowedDays || typeof plan.plan !== 'object' || Object.keys(plan.plan).length === 0) {
-                console.warn(`Plano ${plan.id || 'desconhecido'} (${plan.name || 'sem nome'}) pulado por falta de dados ou plano vazio.`); continue;
+                console.warn(`[DEBUG] displayScheduledReadings: Plano ${plan.id || 'desconhecido'} (${plan.name || 'sem nome'}) pulado por falta de dados ou plano vazio.`); continue;
             }
             const totalReadingDays = Object.keys(plan.plan).length;
-            if (plan.currentDay > totalReadingDays) continue;
+            console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - currentDay: ${plan.currentDay}, totalReadingDays: ${totalReadingDays}`);
+            if (plan.currentDay > totalReadingDays) {
+                console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} já concluído (currentDay > totalReadingDays). Pulando.`);
+                continue;
+            }
+
             const currentScheduledDateStr = getEffectiveDateForDay(plan, plan.currentDay);
+            console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - Data agendada para currentDay (${plan.currentDay}): ${currentScheduledDateStr}`);
+            
             if (currentScheduledDateStr && currentScheduledDateStr < todayStr) {
                  const chaptersForDay = plan.plan[plan.currentDay.toString()] || [];
-                 if (chaptersForDay.length > 0) { overdueList.push({ date: currentScheduledDateStr, planId: plan.id, planName: plan.name || `Plano ${plan.id.substring(0,5)}...`, chapters: chaptersForDay.join(', '), isOverdue: true }); }
+                 if (chaptersForDay.length > 0) { 
+                     console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - Adicionando à lista de atrasadas:`, { date: currentScheduledDateStr, chapters: chaptersForDay.join(', ') });
+                     overdueList.push({ date: currentScheduledDateStr, planId: plan.id, planName: plan.name || `Plano ${plan.id.substring(0,5)}...`, chapters: chaptersForDay.join(', '), isOverdue: true }); 
+                }
             }
+
             let upcomingFoundForThisPlan = 0;
             for (let dayOffset = 0; upcomingFoundForThisPlan < upcomingCount; dayOffset++) {
                 const targetDayNumber = plan.currentDay + dayOffset;
-                if (targetDayNumber > totalReadingDays) break;
+                if (targetDayNumber > totalReadingDays) {
+                    console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - targetDayNumber (${targetDayNumber}) excedeu totalReadingDays. Parando busca de próximas.`);
+                    break;
+                }
                 const dateStr = getEffectiveDateForDay(plan, targetDayNumber);
+                console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - Buscando próximas - dayOffset: ${dayOffset}, targetDayNumber: ${targetDayNumber}, dateStr: ${dateStr}`);
                 if (dateStr) {
                     if (dateStr >= todayStr) {
                          const chaptersForDay = plan.plan[targetDayNumber.toString()] || [];
                          if (chaptersForDay.length > 0) {
+                             console.log(`[DEBUG] displayScheduledReadings: Plano ${plan.id} - Adicionando à lista de próximas:`, { date: dateStr, chapters: chaptersForDay.join(', ') });
                              upcomingList.push({ date: dateStr, planId: plan.id, planName: plan.name || `Plano ${plan.id.substring(0,5)}...`, chapters: chaptersForDay.join(', '), isOverdue: false });
                              upcomingFoundForThisPlan++;
                          }
                     }
-                } else { console.warn(`Não foi possível calcular data efetiva para dia ${targetDayNumber} do plano ${plan.id}. Parando busca de próximas para este plano.`); break; }
-                 if (dayOffset > totalReadingDays + upcomingCount + 7) { console.warn(`Safety break atingido ao buscar próximas leituras para plano ${plan.id}`); break; }
+                } else { 
+                    console.warn(`[DEBUG] displayScheduledReadings: Não foi possível calcular data efetiva para dia ${targetDayNumber} do plano ${plan.id}. Parando busca de próximas para este plano.`); 
+                    break; 
+                }
+                 if (dayOffset > totalReadingDays + upcomingCount + 7) { 
+                    console.warn(`[DEBUG] displayScheduledReadings: Safety break atingido ao buscar próximas leituras para plano ${plan.id}`); 
+                    break; 
+                }
             }
         }
+
+        console.log("[DEBUG] displayScheduledReadings: Lista de Atrasadas Final:", overdueList);
+        console.log("[DEBUG] displayScheduledReadings: Lista de Próximas Final:", upcomingList);
+
         if (overdueList.length > 0) {
             overdueList.sort((a, b) => a.date.localeCompare(b.date));
+            console.log("[DEBUG] displayScheduledReadings: Populando UI com Leituras Atrasadas.");
             overdueList.forEach(item => {
                 const itemDiv = document.createElement('div'); itemDiv.classList.add('overdue-reading-item');
                 itemDiv.innerHTML = `<div class="overdue-date">${formatUTCDateStringToBrasilian(item.date)} (Atrasada!)</div><div class="overdue-plan-name">${item.planName}</div><div class="overdue-chapters">${item.chapters}</div>`;
                 itemDiv.addEventListener('click', () => { if (item.planId !== activePlanId) { setActivePlan(item.planId); } else { readingPlanSection.scrollIntoView({ behavior: 'smooth' }); } });
                 itemDiv.style.cursor = 'pointer'; overdueReadingsListDiv.appendChild(itemDiv);
             });
-        } else { overdueReadingsListDiv.innerHTML = '<p>Nenhuma leitura atrasada encontrada.</p>'; }
+        } else { 
+            console.log("[DEBUG] displayScheduledReadings: Nenhuma leitura atrasada para exibir.");
+            overdueReadingsListDiv.innerHTML = '<p>Nenhuma leitura atrasada encontrada.</p>'; 
+        }
+
         if (upcomingList.length > 0) {
             upcomingList.sort((a, b) => a.date.localeCompare(b.date));
             const itemsToShow = upcomingList.slice(0, upcomingCount);
+            console.log("[DEBUG] displayScheduledReadings: Populando UI com Próximas Leituras (até", upcomingCount, "itens):", itemsToShow);
             itemsToShow.forEach(item => {
                 const itemDiv = document.createElement('div'); itemDiv.classList.add('upcoming-reading-item');
                 itemDiv.innerHTML = `<div class="upcoming-date">${formatUTCDateStringToBrasilian(item.date)}</div><div class="upcoming-plan-name">${item.planName}</div><div class="upcoming-chapters">${item.chapters}</div>`;
                 itemDiv.addEventListener('click', () => { if (item.planId !== activePlanId) { setActivePlan(item.planId); } else { readingPlanSection.scrollIntoView({ behavior: 'smooth' }); } });
                 itemDiv.style.cursor = 'pointer'; upcomingReadingsListDiv.appendChild(itemDiv);
             });
-        } else { upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima encontrada.</p>'; }
+        } else { 
+            console.log("[DEBUG] displayScheduledReadings: Nenhuma próxima leitura para exibir.");
+            upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura próxima encontrada.</p>'; 
+        }
     } catch (error) {
-        console.error("Erro ao buscar leituras agendadas:", error);
+        console.error("[DEBUG] displayScheduledReadings: Erro ao buscar leituras agendadas:", error);
         if (overdueReadingsListDiv) overdueReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao verificar atrasos.</p>';
         if (upcomingReadingsListDiv) upcomingReadingsListDiv.innerHTML = '<p style="color: red;">Erro ao carregar próximas leituras.</p>';
         showErrorMessage(planViewErrorDiv, `Erro nas leituras agendadas: ${error.message}`);
     } finally {
+        console.log("[DEBUG] displayScheduledReadings: Bloco finally - Escondendo loadings.");
         showLoading(overdueReadingsLoadingDiv, false); showLoading(upcomingReadingsLoadingDiv, false);
-        overdueReadingsSection.style.display = (overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p')) || userPlansList.length === 0 ? 'block' : 'none';
-        upcomingReadingsSection.style.display = (upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p')) || userPlansList.length === 0 ? 'block' : 'none';
+        overdueReadingsSection.style.display = (overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p')) || (userPlansList.length === 0 && currentUser) ? 'block' : 'none';
+        upcomingReadingsSection.style.display = (upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p')) || (userPlansList.length === 0 && currentUser) ? 'block' : 'none';
+        console.log(`%c[DEBUG] displayScheduledReadings: Concluído. Visibilidade Overdue: ${overdueReadingsSection.style.display}, Upcoming: ${upcomingReadingsSection.style.display}`, "color: green; font-weight: bold;");
     }
 }
 
