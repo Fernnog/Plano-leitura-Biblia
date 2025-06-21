@@ -1,3 +1,5 @@
+--- START OF FILE styles.css ---
+
 /* --- START OF FILE styles.css --- */
 
 :root {
@@ -343,30 +345,67 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     opacity: 1;
 }
 
-/* OBS: As regras para .inactive-plan-day e as regras de sobreposição complexas
-   que envolviam .inactive-plan-day podem ser removidas ou significativamente simplificadas
-   já que o tracker global não terá "dias inativos pelo plano".
-   A prioridade será simplesmente: Lido (active) > Perdido (missed-day) > Padrão.
-   O CSS atual já lida com isso se as classes .inactive-plan-day forem removidas das combinações.
-*/
-
-
 /* --- Leitura Diária e Ações --- */
-.daily-reading-display {
+.daily-reading-header-display { /* NOVO: Para a data e info do dia */
     font-size: 1.1em;
-    padding: 20px 25px;
-    margin: 25px 0;
+    padding: 15px 20px;
+    margin: 20px 0 0 0;
     background-color: var(--background-card);
     border-left: 6px solid;
     border-image: linear-gradient(to bottom, var(--primary-action), var(--gradient-mid)) 1;
     color: var(--text-color-dark);
-    border-radius: 0 var(--base-border-radius) var(--base-border-radius) 0;
+    border-radius: var(--base-border-radius) var(--base-border-radius) 0 0; /* Cantos superiores arredondados */
     box-shadow: var(--box-shadow-sm);
     line-height: 1.7;
 }
-.daily-reading-display p { margin-top: 0; }
+.daily-reading-header-display p { margin: 0; }
+
+.daily-reading-chapters-list-display { /* NOVO: Container para a lista de capítulos */
+    padding: 10px 20px 20px 20px;
+    margin: 0 0 25px 0;
+    background-color: var(--background-card);
+    border-left: 6px solid var(--border-color); /* Borda sutil para continuar o visual */
+    border-right: 1px solid var(--border-color); /* Borda sutil */
+    border-bottom: 1px solid var(--border-color); /* Borda sutil */
+    color: var(--text-color-dark);
+    border-radius: 0 0 var(--base-border-radius) var(--base-border-radius); /* Cantos inferiores arredondados */
+    box-shadow: var(--box-shadow-sm);
+}
+
+.daily-chapter-item { /* NOVO: Estilo para cada item de capítulo */
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border-color);
+    font-size: 1.05em;
+}
+.daily-chapter-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.daily-chapter-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 15px;
+    accent-color: var(--primary-action);
+    cursor: pointer;
+    flex-shrink: 0; /* Não encolhe */
+}
+.daily-chapter-item label { /* O label será o texto do capítulo */
+    margin-bottom: 0;
+    font-weight: normal;
+    color: var(--text-color-dark);
+    flex-grow: 1; /* Ocupa espaço disponível */
+    cursor: pointer;
+}
+.daily-chapter-item input[type="checkbox"]:checked + label {
+    text-decoration: line-through;
+    color: var(--text-color-muted);
+}
+
 .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .plan-actions button { flex-grow: 1; min-width: 150px; }
+
 
 /* --- Estilos Periodicidade na Criação --- */
 #periodicity-options .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 15px; margin-top: 10px; justify-content: flex-start; }
@@ -516,6 +555,11 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
      /* Ajustes para o tracker semanal em telas menores */
      .weekly-tracker-container .day-marker { width: 30px; height: 30px; }
      .weekly-tracker-container .day-marker::after { font-size: 16px; }
+
+     .daily-reading-header-display { padding: 12px 15px; }
+     .daily-reading-chapters-list-display { padding: 8px 15px 15px 15px; }
+     .daily-chapter-item { padding: 8px 0; font-size: 1em; }
+     .daily-chapter-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 12px; }
 }
 
 @media (max-width: 600px) {
@@ -548,7 +592,11 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     .weekly-tracker-container .day-marker { width: 28px; height: 28px; }
     .weekly-tracker-container .day-marker::after { font-size: 14px; }
 
-    .daily-reading-display { padding: 15px 20px; }
+    .daily-reading-header-display { padding: 10px 15px; font-size: 1em; }
+    .daily-reading-chapters-list-display { padding: 5px 15px 15px 15px; }
+    .daily-chapter-item { padding: 6px 0; font-size: 0.95em; }
+    .daily-chapter-item input[type="checkbox"] { width: 16px; height: 16px; margin-right: 10px; }
+
     .plan-list-item { flex-direction: column; align-items: flex-start; gap: 5px;} .plan-list-item .actions { margin-top: 5px; align-self: flex-end; }
     .plan-list-item .actions .manage-drive-link { order: -1; margin-right: auto; margin-left: 0; font-size: 1.4em; }
     .drive-link-icon {
