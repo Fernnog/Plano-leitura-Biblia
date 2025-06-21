@@ -118,10 +118,9 @@ const planViewErrorDiv = document.getElementById('plan-view-error');
 const progressBarContainer = document.querySelector('.progress-container');
 const progressBarFill = document.getElementById('progress-bar-fill');
 const progressText = document.getElementById('progress-text');
-const dailyReadingHeaderDiv = document.getElementById('daily-reading-header'); // NOVO
-const dailyReadingChaptersListDiv = document.getElementById('daily-reading-chapters-list'); // NOVO
-const completeDayButton = document.getElementById('complete-day-button'); // NOVO (substitui markAsReadButton para esta finalidade)
-// const markAsReadButton = document.getElementById('mark-as-read'); // COMENTADO/REMOVIDO
+const dailyReadingHeaderDiv = document.getElementById('daily-reading-header');
+const dailyReadingChaptersListDiv = document.getElementById('daily-reading-chapters-list');
+const completeDayButton = document.getElementById('complete-day-button');
 const deleteCurrentPlanButton = document.getElementById('delete-current-plan-button');
 const planLoadingViewDiv = document.getElementById('plan-loading-view');
 const globalWeeklyTrackerSection = document.getElementById('global-weekly-tracker-section');
@@ -172,7 +171,7 @@ function getUTCWeekId(date = new Date()) {
 }
 
 function getUTCWeekStartDate(date = new Date()) {
-    const currentDayOfWeek = date.getUTCDay();
+    const currentDayOfWeek = date.getUTCDay(); // 0 = Domingo, 1 = Segunda, ...
     const diff = date.getUTCDate() - currentDayOfWeek;
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
 }
@@ -386,7 +385,7 @@ function showLoading(indicatorDiv, show = true) { if (indicatorDiv) indicatorDiv
 function showErrorMessage(errorDiv, message) { if (errorDiv) { errorDiv.textContent = message; errorDiv.style.display = message ? 'block' : 'none'; } }
 function toggleForms(showLogin = true) { if (loginForm && signupForm) { loginForm.style.display = showLogin ? 'block' : 'none'; signupForm.style.display = showLogin ? 'none' : 'block'; } showErrorMessage(authErrorDiv, ''); showErrorMessage(signupErrorDiv, ''); }
 
-/** NOVO: Atualiza o marcador semanal GLOBAL com base nas interações da semana atual */
+/** MODIFICADO: Atualiza o marcador semanal GLOBAL com base nas interações da semana atual e destaca o dia atual */
 function updateGlobalWeeklyTrackerUI() {
     if (!globalWeeklyTrackerSection || !globalDayIndicatorElements || globalDayIndicatorElements.length === 0) {
         if(globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
@@ -394,8 +393,9 @@ function updateGlobalWeeklyTrackerUI() {
     }
 
     const currentWeekId = getUTCWeekId();
-    const weekStartDate = getUTCWeekStartDate();
+    const weekStartDate = getUTCWeekStartDate(); // Data UTC do domingo da semana atual
     const todayStr = getCurrentUTCDateString();
+    const currentUTCDayOfWeek = new Date().getUTCDay(); // 0 para Domingo, 1 para Segunda, ...
 
     const isCurrentWeekDataValid = userGlobalWeeklyInteractions &&
                                    userGlobalWeeklyInteractions.weekId === currentWeekId &&
@@ -407,15 +407,23 @@ function updateGlobalWeeklyTrackerUI() {
         const dateForThisDay = new Date(weekStartDate);
         dateForThisDay.setUTCDate(weekStartDate.getUTCDate() + dayIndex);
         const dateString = dateForThisDay.toISOString().split('T')[0];
+
         const isPastDay = dateString < todayStr;
         const isMarkedRead = isCurrentWeekDataValid && userGlobalWeeklyInteractions.interactions[dateString];
 
-        el.classList.remove('active', 'missed-day', 'inactive-plan-day');
+        // Limpa classes de estado e a classe do dia atual
+        el.classList.remove('active', 'missed-day', 'inactive-plan-day', 'current-day');
 
         if (isMarkedRead) {
             el.classList.add('active');
         } else if (isPastDay) {
             el.classList.add('missed-day');
+        }
+        // else: dia futuro ou dia atual não marcado, fica com estilo padrão do marcador (cinza)
+
+        // Adiciona a classe current-day se for o dia atual da semana (comparando UTC days)
+        if (dayIndex === currentUTCDayOfWeek) {
+            el.classList.add('current-day');
         }
     });
     globalWeeklyTrackerSection.style.display = currentUser ? 'block' : 'none';
@@ -430,7 +438,7 @@ function updateUIBasedOnAuthState(user) {
         userEmailSpan.style.display = 'inline';
         loadUserDataAndPlans().then(() => {
              updateStreakCounterUI();
-             updateGlobalWeeklyTrackerUI();
+             updateGlobalWeeklyTrackerUI(); // Já está aqui, chamará a versão modificada
         });
     } else {
         userInfo = null;
@@ -453,7 +461,7 @@ function updateUIBasedOnAuthState(user) {
         userEmailSpan.textContent = '';
 
         resetFormFields();
-        updateGlobalWeeklyTrackerUI();
+        updateGlobalWeeklyTrackerUI(); // Chamará para limpar/ocultar
         updateProgressBarUI();
         clearPlanListUI();
         clearHistoryUI();
@@ -1368,25 +1376,16 @@ async function handleCompleteDay() {
                 loadDailyReadingUI(); // Recarrega para o novo dia
                 updateProgressBarUI();
                 
-                // >>> INÍCIO DA MODIFICAÇÃO SOLICITADA <<<
-                // Garantir que userPlansList reflita as atualizações de currentReadingPlan
-                // antes de chamar displayScheduledReadings.
                 const planIndex = userPlansList.findIndex(p => p.id === activePlanId);
                 if (planIndex > -1) {
-                    // Atualiza os campos relevantes em userPlansList que foram modificados em currentReadingPlan
-                    // por advanceToNextDayAndUpdateLog e que são usados por displayScheduledReadings ou suas sub-rotinas.
-                    // Primariamente, currentDay é crucial aqui.
                     userPlansList[planIndex].currentDay = currentReadingPlan.currentDay;
                     userPlansList[planIndex].weeklyInteractions = currentReadingPlan.weeklyInteractions; 
                     userPlansList[planIndex].dailyChapterReadStatus = currentReadingPlan.dailyChapterReadStatus; 
                     userPlansList[planIndex].readLog = currentReadingPlan.readLog; 
-                    
-                    // Adicionar log para verificar a atualização
                     console.log(`[DEBUG] handleCompleteDay: userPlansList[${planIndex}] (ID: ${activePlanId}) atualizado. Novo currentDay: ${userPlansList[planIndex].currentDay}`);
                 } else {
                     console.warn(`[DEBUG] handleCompleteDay: Plano ativo (ID: ${activePlanId}) não encontrado em userPlansList para sincronização.`);
                 }
-                // >>> FIM DA MODIFICAÇÃO SOLICITADA <<<
                 
                 console.log("%c[DEBUG] handleCompleteDay: CHAMANDO displayScheduledReadings AGORA!", "color: blue; font-weight: bold;");
                 await displayScheduledReadings(); // Atualiza seções de atrasadas/próximas
@@ -1732,13 +1731,13 @@ function updateStreakCounterUI() {
 
 // --- Inicialização e Event Listeners ---
 document.addEventListener("DOMContentLoaded", () => {
-    if (!loginButton || !createPlanButton || /*!markAsReadButton ||*/ !completeDayButton || !recalculateModal || !managePlansModal ||
+    if (!loginButton || !createPlanButton || !completeDayButton || !recalculateModal || !managePlansModal ||
         !statsModal || !historyModal || !planSelect || !periodicityCheckboxes ||
         !overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv ||
         !googleDriveLinkInput || !readingPlanTitle || !activePlanDriveLink ||
         !streakCounterSection || !currentStreakValue || !longestStreakValue ||
         !globalWeeklyTrackerSection || !globalDayIndicatorElements ||
-        !dailyReadingHeaderDiv || !dailyReadingChaptersListDiv // NOVO
+        !dailyReadingHeaderDiv || !dailyReadingChaptersListDiv 
        ) {
         console.error("Erro crítico: Elementos essenciais da UI não encontrados.");
         document.body.innerHTML = '<p style="color: red; text-align: center; padding: 50px;">Erro ao carregar a página. Elementos faltando.</p>';
@@ -1776,8 +1775,7 @@ document.addEventListener("DOMContentLoaded", () => {
     durationMethodRadios.forEach(radio => radio.addEventListener('change', togglePlanCreationOptions));
     if (chaptersInput) chaptersInput.addEventListener('input', updateBookSuggestions);
     
-    // markAsReadButton.addEventListener('click', markAsRead); // ANTIGO, agora é handleCompleteDay
-    completeDayButton.addEventListener('click', handleCompleteDay); // NOVO
+    completeDayButton.addEventListener('click', handleCompleteDay);
 
      deleteCurrentPlanButton.addEventListener('click', () => { if(activePlanId && currentReadingPlan) { handleDeleteSpecificPlan(activePlanId); } else { alert("Nenhum plano ativo para deletar."); } });
      recalculatePlanButton.addEventListener('click', () => openModal('recalculate-modal'));
