@@ -1,3 +1,5 @@
+--- START OF FILE styles.css ---
+
 :root {
     /* --- Paleta de Cores e Variáveis --- */
     --gradient-start: #FF8C00; /* Laranja Vibrante */
@@ -244,12 +246,14 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
 /* --- Quadro Semanal (Estilos Genéricos que serão aplicados ao Global Tracker) --- */
 /* O container principal para o tracker semanal global */
 #global-weekly-tracker-section {
-    background-color: var(--background-light); /* Ou var(--background-card) se preferir branco */
+    /* MODIFICADO: Fundo de card e sombra padrão para maior destaque */
+    background-color: var(--background-card);
     padding: 20px 15px;
     border-radius: var(--base-border-radius);
     margin-bottom: 25px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow-sm);
+    /* MODIFICADO: Sombra padrão das seções para consistência e destaque */
+    box-shadow: var(--box-shadow);
+    border: 1px solid var(--border-color); /* Mantém uma borda sutil */
 }
 #global-weekly-tracker-section h3 {
     margin-top: 0;
@@ -259,11 +263,11 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     font-size: 1.2em;
     font-weight: 700;
 }
-/* Estilos para os dias da semana (mantidos, pois a estrutura é a mesma) */
-.weekly-tracker-container .week-days { /* Usando a classe genérica, ou pode ser #global-weekly-tracker-section .week-days */
+/* Estilos para os dias da semana */
+.weekly-tracker-container .week-days {
     display: flex;
     justify-content: space-around;
-    align-items: center;
+    align-items: center; /* Alinha verticalmente os day-indicators */
     text-align: center;
     flex-wrap: wrap;
     gap: 8px;
@@ -275,6 +279,9 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     cursor: default;
     flex-basis: calc(100% / 7 - 10px); /* Espaçamento entre dias */
     min-width: 38px;
+    padding: 5px; /* MODIFICADO: Padding base para todos os dias */
+    border-radius: var(--base-border-radius); /* Raio base para transição suave */
+    transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-base), box-shadow var(--transition-base); /* Adicionado transform e box-shadow para suavizar */
 }
 .weekly-tracker-container .day-label {
     font-size: 0.75em;
@@ -282,6 +289,7 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     color: var(--text-color-muted);
     margin-bottom: 6px;
     text-transform: uppercase;
+    transition: color var(--transition-fast);
 }
 .weekly-tracker-container .day-marker {
     width: 32px;
@@ -308,6 +316,22 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     line-height: 1;
 }
 
+/* NOVO: Estilo para o Dia ATUAL no Tracker Semanal Global */
+.weekly-tracker-container .day-indicator.current-day {
+    background-color: var(--primary-action); /* Lilás */
+    padding: 8px 5px; /* Sobrescreve e aumenta o padding para o retângulo */
+    border-radius: var(--base-border-radius);
+    transform: scale(1.03); /* Leve aumento para destaque */
+    box-shadow: 0 3px 7px rgba(var(--primary-action-rgb), 0.2); /* Sombra sutil para o retângulo */
+}
+.weekly-tracker-container .day-indicator.current-day .day-label {
+    color: var(--text-color-light); /* Texto branco para contraste */
+    font-weight: 700; /* Mais destaque */
+}
+/* O .day-marker dentro de .current-day manterá seu estilo original (active, missed, inactive)
+   pois seus fundos e cores de símbolo já contrastam bem com o .day-indicator lilás. */
+
+
 /* Estilo para Dia Lido (Ativo) - Aplicável ao tracker global */
 .weekly-tracker-container .day-indicator.active .day-marker {
     background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid));
@@ -329,17 +353,21 @@ small { display: block; font-size: 0.85em; color: var(--text-color-muted); margi
     box-shadow: 0 0 8px var(--marker-missed-shadow);
     transform: scale(1.05);
     opacity: 1;
-    /* cursor: help; /* Pode remover se não houver tooltip específico */
 }
 .weekly-tracker-container .day-indicator.missed-day .day-marker::after {
     content: '✕';
     color: var(--marker-missed-text);
     text-shadow: none;
 }
-.weekly-tracker-container .day-indicator.missed-day .day-label { /* Label do dia perdido pode ser estilizado se desejar */
+.weekly-tracker-container .day-indicator.missed-day .day-label {
     color: var(--marker-missed-text);
     opacity: 1;
 }
+/* Se o dia perdido for também o dia atual, a label deve ser branca devido ao .current-day */
+.weekly-tracker-container .day-indicator.current-day.missed-day .day-label {
+    color: var(--text-color-light); /* Garante que a label seja branca, mesmo se for .missed-day */
+}
+
 
 /* --- Leitura Diária e Ações --- */
 .daily-reading-header-display { /* NOVO: Para a data e info do dia */
@@ -549,6 +577,12 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
         border-radius: 5px;
      }
      /* Ajustes para o tracker semanal em telas menores */
+     .weekly-tracker-container .day-indicator {
+        padding: 4px; /* MODIFICADO: Reduz padding base */
+     }
+     .weekly-tracker-container .day-indicator.current-day {
+        padding: 6px 4px; /* MODIFICADO: Ajuste sutil para telas menores */
+     }
      .weekly-tracker-container .day-marker { width: 30px; height: 30px; }
      .weekly-tracker-container .day-marker::after { font-size: 16px; }
 
@@ -583,7 +617,14 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     /* Ajustes para o tracker semanal em telas ainda menores */
     #global-weekly-tracker-section { padding: 15px 10px; } /* Ajusta padding do container global */
     .weekly-tracker-container .week-days { gap: 5px; }
-    .weekly-tracker-container .day-indicator { min-width: 32px; flex-basis: calc(100% / 7 - 6px); }
+    .weekly-tracker-container .day-indicator {
+        min-width: 32px;
+        flex-basis: calc(100% / 7 - 6px);
+        padding: 3px; /* MODIFICADO: Reduz mais o padding base */
+    }
+    .weekly-tracker-container .day-indicator.current-day {
+        padding: 5px 3px; /* MODIFICADO: Ajuste para retângulo em telas muito pequenas */
+    }
     .weekly-tracker-container .day-label { font-size: 0.7em; }
     .weekly-tracker-container .day-marker { width: 28px; height: 28px; }
     .weekly-tracker-container .day-marker::after { font-size: 14px; }
@@ -608,3 +649,4 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     .streak-info p { font-size: 0.95em; }
     .streak-info .longest { font-size: 0.8em; }
 }
+--- END OF FILE styles.css ---
