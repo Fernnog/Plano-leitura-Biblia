@@ -234,14 +234,16 @@
                 </div>
             </div>
 
-            <!-- Quadro Semanal REMOVIDO daqui -->
+            <!-- Leitura do Dia (Agora com data e capítulos individuais) -->
+            <div id="daily-reading-header" class="daily-reading-header-display">Carregando data...</div>
+            <div id="daily-reading-chapters-list" class="daily-reading-chapters-list-display">
+                <!-- Capítulos individuais serão listados aqui pelo script.js -->
+            </div>
 
-            <!-- Leitura do Dia (Agora com data) -->
-            <div id="daily-reading" class="daily-reading-display">Carregando leitura...</div>
 
             <!-- Ações do Plano -->
             <div class="plan-actions">
-                <button id="mark-as-read" class="button-primary">Marcar como Lido</button>
+                <button id="complete-day-button" class="button-primary" style="display: none;">Concluir Leituras do Dia e Avançar</button>
                 <button id="recalculate-plan" class="button-secondary">Recalcular Plano</button>
                 <button id="show-stats-button" class="button-secondary">Ver Estatísticas</button>
                 <button id="show-history-button" class="button-secondary">Ver Histórico</button>
