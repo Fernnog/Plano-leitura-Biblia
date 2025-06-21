@@ -1456,10 +1456,22 @@ async function handleCompleteDay() {
         try {
             const advanceSuccess = await advanceToNextDayAndUpdateLog(userId, activePlanId, nextReadingDayNumber, chaptersJustReadBlock);
             if (advanceSuccess) {
+                // --- INÍCIO DA CORREÇÃO ---
+                // Sincroniza o objeto do plano ativo em userPlansList com os dados atualizados de currentReadingPlan
+                // Isso é crucial para que displayScheduledReadings use os dados mais recentes.
+                const activePlanInList = userPlansList.find(p => p.id === activePlanId);
+                if (activePlanInList) {
+                    activePlanInList.currentDay = currentReadingPlan.currentDay;
+                    // Também sincroniza outros campos que são atualizados em currentReadingPlan por advanceToNextDayAndUpdateLog
+                    activePlanInList.readLog = currentReadingPlan.readLog;
+                    activePlanInList.weeklyInteractions = currentReadingPlan.weeklyInteractions;
+                    activePlanInList.dailyChapterReadStatus = currentReadingPlan.dailyChapterReadStatus;
+                }
+                // --- FIM DA CORREÇÃO ---
+
                 loadDailyReadingUI(); // Recarrega para o novo dia
                 updateProgressBarUI();
                 await displayScheduledReadings(); // Atualiza seções de atrasadas/próximas
-
 
                 if (nextReadingDayNumber > totalReadingDaysInPlan) {
                     setTimeout(() => alert(`Você concluiu o plano "${currentReadingPlan.name || ''}"! Parabéns!`), 100);
