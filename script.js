@@ -1364,9 +1364,29 @@ async function handleCompleteDay() {
             console.log("[DEBUG] handleCompleteDay: Resultado de advanceToNextDayAndUpdateLog:", advanceSuccess);
 
             if (advanceSuccess) {
-                console.log("[DEBUG] handleCompleteDay: Sucesso ao avançar dia. Atualizando UI...");
+                // currentReadingPlan JÁ FOI ATUALIZADO DENTRO de advanceToNextDayAndUpdateLog
                 loadDailyReadingUI(); // Recarrega para o novo dia
                 updateProgressBarUI();
+                
+                // >>> INÍCIO DA MODIFICAÇÃO SOLICITADA <<<
+                // Garantir que userPlansList reflita as atualizações de currentReadingPlan
+                // antes de chamar displayScheduledReadings.
+                const planIndex = userPlansList.findIndex(p => p.id === activePlanId);
+                if (planIndex > -1) {
+                    // Atualiza os campos relevantes em userPlansList que foram modificados em currentReadingPlan
+                    // por advanceToNextDayAndUpdateLog e que são usados por displayScheduledReadings ou suas sub-rotinas.
+                    // Primariamente, currentDay é crucial aqui.
+                    userPlansList[planIndex].currentDay = currentReadingPlan.currentDay;
+                    userPlansList[planIndex].weeklyInteractions = currentReadingPlan.weeklyInteractions; 
+                    userPlansList[planIndex].dailyChapterReadStatus = currentReadingPlan.dailyChapterReadStatus; 
+                    userPlansList[planIndex].readLog = currentReadingPlan.readLog; 
+                    
+                    // Adicionar log para verificar a atualização
+                    console.log(`[DEBUG] handleCompleteDay: userPlansList[${planIndex}] (ID: ${activePlanId}) atualizado. Novo currentDay: ${userPlansList[planIndex].currentDay}`);
+                } else {
+                    console.warn(`[DEBUG] handleCompleteDay: Plano ativo (ID: ${activePlanId}) não encontrado em userPlansList para sincronização.`);
+                }
+                // >>> FIM DA MODIFICAÇÃO SOLICITADA <<<
                 
                 console.log("%c[DEBUG] handleCompleteDay: CHAMANDO displayScheduledReadings AGORA!", "color: blue; font-weight: bold;");
                 await displayScheduledReadings(); // Atualiza seções de atrasadas/próximas
