@@ -587,23 +587,26 @@ function updateGlobalWeeklyTrackerUI() {
         return;
     }
 
+    const currentWeekId = getUTCWeekId(); // Já usa UTC
+    const weekStartDate = getUTCWeekStartDate(); // Já usa UTC para início da semana
+    const todayStr = getCurrentUTCDateString(); // Já usa UTC para a data de hoje
 
-    const currentWeekId = getUTCWeekId(); // Mantém UTC para consistência de ID da semana
-    const weekStartDate = getUTCWeekStartDate(); // Data de início da semana em UTC
-    const todayStr = getCurrentUTCDateString(); // Hoje em UTC
-    const localCurrentDayOfWeek = getDayOfWeek(); // Dia da semana LOCAL (0=Dom, ..., 6=Sáb) para o highlight
+    // const localCurrentDayOfWeek = getDayOfWeek(); // Linha ANTIGA que usa o dia local
 
+    // --- NOVA LINHA ---
+    // Obter o dia da semana ATUAL com base no UTC
+    const nowUTC = new Date(); // Pega a data/hora atual local
+    const currentUTCDayOfWeek = nowUTC.getUTCDay(); // Pega o dia da semana EM UTC (0=Dom, ..., 6=Sáb)
+    // ------------------
 
     const isCurrentWeekDataValid = userGlobalWeeklyInteractions &&
                                    userGlobalWeeklyInteractions.weekId === currentWeekId &&
                                    userGlobalWeeklyInteractions.interactions &&
                                    typeof userGlobalWeeklyInteractions.interactions === 'object';
 
-
     globalDayIndicatorElements.forEach(el => {
-        const dayIndex = parseInt(el.dataset.day, 10); // 0 para Dom, 1 para Seg, etc. (como definido no HTML)
-        
-        // Data correspondente a este indicador na semana atual (em UTC)
+        const dayIndex = parseInt(el.dataset.day, 10); // 0 para Dom, 1 para Seg, etc.
+
         const dateForThisDayIndicator = new Date(weekStartDate);
         dateForThisDayIndicator.setUTCDate(weekStartDate.getUTCDate() + dayIndex);
         const dateStringForIndicator = dateForThisDayIndicator.toISOString().split('T')[0];
@@ -611,27 +614,22 @@ function updateGlobalWeeklyTrackerUI() {
         const isPastDay = dateStringForIndicator < todayStr;
         const isMarkedRead = isCurrentWeekDataValid && userGlobalWeeklyInteractions.interactions[dateStringForIndicator];
 
-
-        // Limpa classes antes de aplicar novas
         el.classList.remove('active', 'missed-day', 'inactive-plan-day', 'current-day-highlight');
-
 
         if (isMarkedRead) {
             el.classList.add('active');
         } else if (isPastDay) {
             el.classList.add('missed-day');
         }
-        // else: dia futuro ou dia atual não marcado, fica com o estilo padrão do .day-marker
 
-
-        // Aplica o destaque para o dia atual (comparando o dayIndex do HTML com o dia da semana LOCAL)
-        if (dayIndex === localCurrentDayOfWeek) {
+        // Aplica o destaque para o dia atual (comparando o dayIndex do HTML com o dia da semana UTC)
+        // if (dayIndex === localCurrentDayOfWeek) { // Linha ANTIGA
+        if (dayIndex === currentUTCDayOfWeek) { // --- NOVA LINHA ---
             el.classList.add('current-day-highlight');
         }
     });
     globalWeeklyTrackerSection.style.display = currentUser ? 'block' : 'none';
 }
-
 
 function updateUIBasedOnAuthState(user) {
     currentUser = user;
