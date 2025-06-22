@@ -1316,7 +1316,7 @@ async function createReadingPlan() {
     }
 }
 
-// NOVO: Função para criar o conjunto de planos favoritos anuais
+// NOVO: Função para criar o conjunto de planos favoritos anuais (COMPLETA E ATUALIZADA)
 async function createFavoriteAnnualPlanSet() {
     if (!currentUser) {
         alert("Você precisa estar logado para criar planos.");
@@ -1324,88 +1324,148 @@ async function createFavoriteAnnualPlanSet() {
     }
     const userId = currentUser.uid;
 
+    // Desabilitar botões no modal de gerenciamento
     if (createFavoritePlanButton) createFavoritePlanButton.disabled = true;
     if (createNewPlanButton) createNewPlanButton.disabled = true;
-    showLoading(managePlansLoadingDiv, true);
-    showErrorMessage(managePlansErrorDiv, '');
+    showLoading(managePlansLoadingDiv, true); // Mostrar loading no modal
+    showErrorMessage(managePlansErrorDiv, ''); // Limpar erros anteriores no modal
 
     let allPlansCreatedSuccessfully = true;
-    const createdPlanIds = [];
+    const createdPlanNames = []; // Para a mensagem de sucesso
 
     try {
         for (const planConfig of FAVORITE_ANNUAL_PLAN_CONFIG) {
-            const planName = planConfig.name; // Usa o nome direto da configuração
-            const chaptersToRead = generateChaptersForBookList(planConfig.books);
+            let chaptersToRead = [];
+            const planName = planConfig.name;
 
-            if (chaptersToRead.length === 0) {
-                throw new Error(`Nenhum capítulo encontrado para o plano "${planName}". Verifique a configuração dos livros.`);
+            console.log(`Processando configuração para o plano: ${planName}`);
+
+            // Gerar a lista de capítulos
+            if (planConfig.intercalate && planConfig.bookBlocks) {
+                console.log(`Gerando lista intercalada para o plano: ${planName}`);
+                chaptersToRead = generateIntercalatedChaptersForPlanC(planConfig.bookBlocks); // Usar a função de intercalação
+                if (chaptersToRead.length === 0) {
+                    throw new Error(`Falha ao gerar lista de capítulos intercalada para "${planName}".`);
+                }
+                console.log(`Lista intercalada para "${planName}" gerada com ${chaptersToRead.length} capítulos.`);
+            } else if (planConfig.books && Array.isArray(planConfig.books)) {
+                console.log(`Gerando lista padrão de capítulos para: ${planName}`);
+                chaptersToRead = generateChaptersForBookList(planConfig.books);
+                if (chaptersToRead.length === 0) {
+                     throw new Error(`Nenhum capítulo encontrado para o plano "${planName}" a partir da lista de livros.`);
+                }
+                console.log(`Lista padrão para "${planName}" gerada com ${chaptersToRead.length} capítulos.`);
+            } else {
+                throw new Error(`Configuração de livros (books ou bookBlocks) ausente ou inválida para o plano "${planName}".`);
             }
 
-            const totalReadingDays = Math.ceil(chaptersToRead.length / planConfig.chaptersPerReadingDay);
-            const effectiveTotalReadingDays = Math.max(1, totalReadingDays);
+            const totalChaptersInPlan = chaptersToRead.length;
+            if (totalChaptersInPlan === 0) { // Dupla checagem, mas importante
+                 throw new Error(`A lista de capítulos para "${planName}" está vazia após a geração.`);
+            }
+
+            // Calcular total de dias de leitura e mapa do plano
+            const totalReadingDays = Math.ceil(totalChaptersInPlan / planConfig.chaptersPerReadingDay);
+            const effectiveTotalReadingDays = Math.max(1, totalReadingDays); // Garante pelo menos 1 dia
+            console.log(`Plano "${planName}": ${totalChaptersInPlan} caps, ${planConfig.chaptersPerReadingDay} caps/dia de leitura => ${effectiveTotalReadingDays} dias de leitura.`);
 
             const planMap = distributeChaptersOverReadingDays(chaptersToRead, effectiveTotalReadingDays);
-            const startDateStr = getCurrentUTCDateString();
-            const allowedDaysOfWeek = planConfig.allowedDays;
-
-            const endDateStr = calculateDateForDay(startDateStr, effectiveTotalReadingDays, allowedDaysOfWeek);
-            if (!endDateStr) {
-                throw new Error(`Não foi possível calcular a data final para o plano "${planName}". Verifique os dias da semana e a duração.`);
+            if (Object.keys(planMap).length === 0 && effectiveTotalReadingDays > 0) {
+                console.warn(`O planMap para "${planName}" está vazio, mas effectiveTotalReadingDays é ${effectiveTotalReadingDays}. Capítulos: ${chaptersToRead.length}`);
+                // Se chaptersToRead não estiver vazio, distributeChapters deveria retornar algo.
+                // Isso pode indicar um problema em distributeChaptersOverReadingDays se totalReadingDays for 0 ou negativo.
+                // A checagem de effectiveTotalReadingDays >= 1 deve prevenir isso.
             }
 
+
+            // Calcular datas de início e fim
+            const startDateStr = getCurrentUTCDateString();
+            const allowedDaysOfWeek = planConfig.allowedDays;
+            const endDateStr = calculateDateForDay(startDateStr, effectiveTotalReadingDays, allowedDaysOfWeek);
+
+            if (!endDateStr) {
+                throw new Error(`Não foi possível calcular a data final para o plano "${planName}". Verifique os dias da semana (${allowedDaysOfWeek.join(',')}), a duração (${effectiveTotalReadingDays} dias) e a data de início (${startDateStr}).`);
+            }
+            console.log(`Plano "${planName}" - Início: ${startDateStr}, Fim: ${endDateStr}`);
+
+            // Preparar dados para salvar no Firestore
             const newPlanData = {
                 name: planName,
                 plan: planMap,
                 currentDay: 1,
-                totalChapters: chaptersToRead.length,
+                totalChapters: totalChaptersInPlan,
                 chaptersList: chaptersToRead,
                 allowedDays: allowedDaysOfWeek,
                 startDate: startDateStr,
                 endDate: endDateStr,
                 readLog: {},
-                googleDriveLink: null,
+                googleDriveLink: null, // Plano favorito não tem link do Drive por padrão
                 recalculationBaseDay: null,
                 recalculationBaseDate: null,
-                dailyChapterReadStatus: {}
+                dailyChapterReadStatus: {} // Inicializa vazio
             };
 
+            // Salvar o plano individual
+            // A função saveNewPlanToFirestore internamente lida com o loading do createPlanButton, etc.
+            // e também define o plano salvo como ativo. O último plano do loop será o ativo final.
             const newPlanId = await saveNewPlanToFirestore(userId, newPlanData);
             if (!newPlanId) {
                 allPlansCreatedSuccessfully = false;
-                // Não precisa lançar erro aqui, saveNewPlanToFirestore já mostra o erro se for o caso.
-                // Apenas marcamos que a criação de todos não foi bem sucedida.
-                showErrorMessage(managePlansErrorDiv, `Falha ao salvar o plano "${planName}". Verifique os erros anteriores se houver.`);
+                // O erro específico já deve ter sido mostrado por saveNewPlanToFirestore no planErrorDiv
+                // se a criação genérica estivesse visível, ou será capturado no catch geral.
+                // Aqui, podemos adicionar uma mensagem específica para o modal de gerenciamento.
+                showErrorMessage(managePlansErrorDiv, `Falha ao salvar o plano "${planName}" no Firestore. Verifique o console para mais detalhes.`);
+                console.error(`Falha ao salvar o plano "${planName}" no Firestore.`);
                 break; // Interrompe a criação dos planos subsequentes se um falhar
             }
-            createdPlanIds.push(newPlanId);
-            console.log(`Plano "${planName}" (ID: ${newPlanId}) criado com sucesso.`);
-        }
+            createdPlanNames.push(planName); // Adiciona o nome do plano criado com sucesso
+            console.log(`Plano "${planName}" (ID: ${newPlanId}) criado e salvo com sucesso.`);
+        } // Fim do loop for...of
 
-        if (allPlansCreatedSuccessfully && createdPlanIds.length === FAVORITE_ANNUAL_PLAN_CONFIG.length) {
-            alert("Seu conjunto de Planos Favoritos Anuais foi criado com sucesso!");
+        // Feedback final para o usuário
+        if (allPlansCreatedSuccessfully && createdPlanNames.length === FAVORITE_ANNUAL_PLAN_CONFIG.length) {
+            alert(`Conjunto de Planos Favoritos Anuais (${createdPlanNames.join(', ')}) criado com sucesso!`);
             closeModal('manage-plans-modal');
-        } else if (createdPlanIds.length > 0 && !allPlansCreatedSuccessfully) {
-             alert("Alguns planos do conjunto favorito foram criados, mas ocorreram erros. Verifique a lista de planos.");
-        } else if (!allPlansCreatedSuccessfully) {
-            // Nenhum plano foi criado, o erro já deve ter sido mostrado pelo saveNewPlanToFirestore ou pelo loop.
+        } else if (createdPlanNames.length > 0 && !allPlansCreatedSuccessfully) {
+            alert(`Alguns planos do conjunto favorito (${createdPlanNames.join(', ')}) foram criados, mas ocorreram erros com os demais. Verifique a lista de planos e o console.`);
+        } else if (!allPlansCreatedSuccessfully && createdPlanNames.length === 0) {
+            // Se nenhum plano foi criado e houve falha, a mensagem de erro já deve ter sido mostrada.
+            // Não precisa de alert adicional aqui, apenas garantir que o erro foi exibido.
+            if (!managePlansErrorDiv.textContent) { // Se nenhuma mensagem de erro específica foi definida
+                 showErrorMessage(managePlansErrorDiv, "Ocorreu um erro geral ao tentar criar o conjunto de planos favoritos. Verifique o console.");
+            }
         }
-        // A UI (active plan, plan list) será atualizada por setActivePlan chamado dentro de saveNewPlanToFirestore
+        // A UI (plano ativo, lista de planos no seletor) é atualizada por setActivePlan,
+        // que é chamado dentro de saveNewPlanToFirestore.
 
-    } catch (error) { // Erros que não são do saveNewPlanToFirestore, ex: cálculo de datas.
-        console.error("Erro ao criar o conjunto de planos favoritos:", error);
+    } catch (error) { // Captura erros do loop ou da lógica de preparação antes de salvar
+        console.error("Erro crítico ao criar o conjunto de planos favoritos:", error);
         showErrorMessage(managePlansErrorDiv, `Erro: ${error.message}`);
-        allPlansCreatedSuccessfully = false;
+        allPlansCreatedSuccessfully = false; // Garante que sabemos que algo deu errado
     } finally {
-        showLoading(managePlansLoadingDiv, false);
+        showLoading(managePlansLoadingDiv, false); // Esconder loading do modal
+        // Reabilitar botões no modal de gerenciamento
         if (createFavoritePlanButton) createFavoritePlanButton.disabled = false;
         if (createNewPlanButton) createNewPlanButton.disabled = false;
 
+        // Se o modal ainda estiver aberto (por exemplo, se houve um erro e não foi fechado),
+        // repopular a lista de planos para refletir quaisquer planos que possam ter sido criados.
         if (document.getElementById('manage-plans-modal').style.display === 'flex') {
-            populateManagePlansModal();
+            await fetchUserPlansList(userId); // Recarregar a lista de planos do usuário
+            populateManagePlansModal();     // Atualizar o conteúdo do modal
+            populatePlanSelector();         // Atualizar o seletor principal de planos
+        } else if (allPlansCreatedSuccessfully && createdPlanNames.length === FAVORITE_ANNUAL_PLAN_CONFIG.length) {
+            // Se o modal foi fechado devido ao sucesso, ainda precisamos garantir que o seletor principal e outras partes da UI sejam atualizadas.
+            // setActivePlan (chamado por saveNewPlanToFirestore) já deve ter lidado com loadActivePlanData e displayScheduledReadings.
+            // Apenas uma atualização explícita do seletor e da lista (se necessário para outros contextos) pode ser útil.
+            await fetchUserPlansList(userId);
+            populatePlanSelector();
+            await displayScheduledReadings(); // Recarregar leituras agendadas
         }
+        // Se houve erro e o modal não está aberto, o usuário verá o erro no local apropriado (se houver)
+        // ou precisará verificar o console.
     }
 }
-
 
 function loadDailyReadingUI() {
     if (!dailyReadingHeaderDiv || !dailyReadingChaptersListDiv || !completeDayButton || !recalculatePlanButton || !deleteCurrentPlanButton || !readingPlanTitle || !activePlanDriveLink || !readingPlanSection || !planCreationSection) {
