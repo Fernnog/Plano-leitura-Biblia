@@ -15,6 +15,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
     *   Associe um link opcional do Google Drive (Documento/Pasta) a cada plano para acesso rápido a notas ou materiais relacionados (ícone do Drive visível no modal de gerenciamento).
     *   Alterne facilmente entre os planos ativos usando um seletor no cabeçalho.
     *   Gerencie seus planos (ativar, excluir, acessar link do Drive) através de um modal dedicado.
+    *   **Criação Rápida de Planos Favoritos:** Opção no modal de gerenciamento para criar um conjunto predefinido de três planos anuais ("A Jornada dos Patriarcas", "A Sinfonia Celestial" e "A Promessa Revelada") com um único clique, distribuindo os livros bíblicos e periodicidades específicas para cobrir diferentes seções da Bíblia ao longo de aproximadamente um ano cada.
 *   **Criação de Planos Personalizados:**
     *   **Seleção de Conteúdo:**
         *   Definição por intervalo contínuo de livros/capítulos.
@@ -27,24 +28,18 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
         *   Escolha os dias específicos da semana (Dom a Sáb) em que deseja realizar a leitura.
         *   O plano distribuirá os capítulos apenas nos dias selecionados, pulando os demais.
 *   **Acompanhamento de Progresso Detalhado:**
-    *   Visualização da leitura designada para o dia atual do plano ativo, incluindo a data agendada (considerando recálculos).
-    *   **Ícone do Google Drive:** Acesso rápido ao link do Drive associado ao plano ativo, posicionado ao lado do título do plano para melhor visibilidade em todas as telas.
-    *   **Barra de Progresso Visual:** Acompanhe o avanço geral no plano ativo com uma barra gráfica.
-    *   Botão "Marcar como Lido" para avançar no plano (pula automaticamente dias sem leitura configurados na periodicidade e atualiza a sequência).
-    *   Exibição do progresso (Dia X de Y - considerando dias de calendário e datas de início/fim).
-    *   <!-- MODIFICADO -->
-        **Tracker Semanal Global:** Um painel único, posicionado logo abaixo do painel de sequência de leitura, exibe o progresso de interações do usuário ao longo da semana corrente (Domingo a Sábado). Este tracker indica:
-        *   Dias em que o usuário marcou *qualquer* leitura como concluída (`✓`).
-        *   Dias passados na semana corrente em que *nenhuma* leitura foi marcada como concluída (`✕` vermelho).
-        Este tracker global não bloqueia dias; ele reflete a atividade geral de leitura do usuário na semana.
-        <!-- /MODIFICADO -->
-    *   **Leituras Atrasadas e Próximas:** Seções dedicadas que mostram automaticamente as leituras agendadas que passaram da data e as próximas leituras programadas em todos os planos.
+    *   **Leitura Diária Detalhada:** Exibição clara dos capítulos designados para o dia atual do plano ativo, incluindo a data agendada (baseada em UTC e considerando recálculos). Checkboxes permitem marcar cada capítulo individualmente como lido.
+    *   **Ícone do Google Drive:** Acesso rápido ao link do Drive associado ao plano ativo, posicionado ao lado do título do plano.
+    *   **Barra de Progresso Visual:** Acompanhe o avanço geral no plano ativo.
+    *   Botão "Concluir Leituras do Dia e Avançar" (habilitado após todos os capítulos do dia serem marcados) para avançar no plano (pula automaticamente dias sem leitura configurados e atualiza a sequência).
+    *   **Tracker Semanal Global:** Um painel visual, posicionado logo abaixo do painel de sequência de leitura, exibe as interações do usuário ao longo da semana corrente (Domingo a Sábado, baseado em UTC). Este tracker indica dias em que o usuário marcou leituras como concluídas (`✓`) e dias passados na semana em que nenhuma leitura foi concluída (`✕`). O dia atual (UTC) é destacado para fácil referência. Este tracker reflete a atividade geral de leitura do usuário na semana.
+    *   **Leituras Atrasadas e Próximas:** Seções dedicadas que exibem automaticamente leituras agendadas que passaram da data (considerando a data UTC atual) e as próximas leituras programadas em todos os planos do usuário, permitindo navegação rápida para o plano correspondente.
 *   **Painel de Sequência de Leitura:**
-    *   Motiva a consistência exibindo um painel visual com a sequência atual de dias *consecutivos* em que o usuário interagiu com a leitura (usando "Marcar como Lido" em qualquer plano).
+    *   Motiva a consistência exibindo um painel visual com a sequência atual de dias *UTC consecutivos* em que o usuário interagiu com a leitura (usando "Concluir Leituras do Dia" ou marcando capítulos individuais em qualquer plano).
     *   Registra e mostra também a *maior sequência* de dias consecutivos já alcançada pelo usuário.
-    *   A sequência atual é zerada automaticamente se um dia de interação for pulado.
+    *   A sequência atual é zerada automaticamente se um dia UTC de interação for pulado.
 *   **Histórico de Leitura:**
-    *   Acesse um histórico detalhado (dentro de um modal) mostrando quais capítulos foram marcados como lidos em cada data específica para o plano ativo.
+    *   Acesse um histórico detalhado (dentro de um modal) mostrando quais capítulos foram marcados como lidos em cada data específica (UTC) para o plano ativo.
 *   **Estatísticas (Básicas):**
     *   Visualize estatísticas (em um modal) sobre o plano ativo e algumas métricas gerais (ex: progresso do plano ativo, total de capítulos lidos registrados no histórico do plano ativo, ritmo médio). *Nota: Estatísticas agregadas entre múltiplos planos podem ser simplificadas na implementação atual.*
 *   **Recálculo de Plano:**
@@ -53,7 +48,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
         *   Manter o ritmo diário original (nos dias de leitura) e estender a data final.
         *   Manter a data final original e aumentar o ritmo diário (nos dias de leitura).
         *   Definir um novo ritmo de capítulos por *dia de leitura*.
-    *   O recálculo preserva o histórico de leitura e ajusta as datas futuras a partir do dia atual.
+    *   O recálculo preserva o histórico de leitura e ajusta as datas futuras (baseado em UTC) a partir do dia atual (UTC).
 *   **Interface Responsiva:** Design moderno e otimizado para dispositivos móveis (Mobile-First), com atenção à visibilidade de elementos importantes como o link do Drive.
 
 ## Tech Stack
@@ -78,7 +73,6 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
     *   **Firestore Database:** Crie um banco de dados Firestore (comece no modo de teste, mas **configure regras de segurança para produção!**).
 
 6.  **Regras de Segurança do Firestore (Essencial!):** Com a estrutura de múltiplos planos (`users/{userId}/plans/{planId}`) e dados do usuário (`users/{userId}`), use regras como estas para proteger os dados:
-    <!-- MODIFICADO: Adicionada permissão para globalWeeklyInteractions -->
     ```firestore-rules
     rules_version = '2';
     service cloud.firestore {
@@ -98,7 +92,6 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
       }
     }
     ```
-    <!-- /MODIFICADO -->
     *Publique essas regras na aba "Regras" do seu Firestore.*
 
 ## Como Executar Localmente
@@ -114,17 +107,15 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
 2.  **Gerenciar/Criar Planos:**
     *   Se for o primeiro acesso, você será direcionado para criar um plano.
     *   Use o botão de engrenagem (⚙️) no cabeçalho para abrir o modal "Meus Planos".
-    *   Nesse modal, você pode ativar um plano existente, excluir planos, acessar links do Drive ou clicar em "Criar Novo Plano".
-    *   Ao criar, preencha o nome, link opcional do Drive, selecione o conteúdo, defina a duração e escolha os dias da semana para leitura.
+    *   Nesse modal, você pode ativar um plano existente, excluir planos, acessar links do Drive, clicar em "Criar Novo Plano (Genérico)" ou clicar em "Criar Plano Favorito Anual" para gerar automaticamente um conjunto de três planos de leitura estruturados.
+    *   Ao criar um plano genérico, preencha o nome, link opcional do Drive, selecione o conteúdo, defina a duração e escolha os dias da semana para leitura.
 3.  **Acompanhamento (Plano Ativo):**
     *   O plano selecionado como ativo será exibido, juntamente com o *painel de sequência de leitura*.
-    *   <!-- MODIFICADO -->
-        **Abaixo do painel de sequência**, você verá o *tracker semanal global*, que mostra os dias da semana em que você interagiu com *qualquer* leitura.
-        <!-- /MODIFICADO -->
+    *   Abaixo do painel de sequência, você verá o *tracker semanal global*, que mostra os dias da semana (UTC) em que você interagiu com *qualquer* leitura.
     *   Use o seletor no cabeçalho para trocar rapidamente entre seus planos.
-    *   Veja a leitura do dia do plano ativo, o link do Drive (se houver) ao lado do título, e a barra de progresso geral daquele plano.
+    *   Veja a leitura do dia do plano ativo (capítulos individuais com checkboxes), o link do Drive (se houver) ao lado do título, e a barra de progresso geral daquele plano.
     *   Verifique as seções de *Leituras Atrasadas* e *Próximas Leituras*.
-    *   Clique em "Marcar como Lido" para avançar no plano ativo, atualizar sua sequência de leitura e marcar o dia no tracker semanal global.
+    *   Marque os capítulos individuais do dia como lidos e, em seguida, clique em "Concluir Leituras do Dia e Avançar" para registrar o progresso, atualizar sua sequência de leitura e marcar o dia no tracker semanal global (ambos baseados em datas UTC).
 4.  **Recalcular/Histórico/Stats:** Use os botões correspondentes na seção do plano ativo para ajustar o ritmo, ver o histórico de leitura daquele plano ou visualizar estatísticas.
 
 ## Estrutura de Arquivos Principais
