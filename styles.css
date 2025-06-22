@@ -16,6 +16,7 @@
     --text-color-muted: #6c757d; /* Cinza para textos secundários */
     --border-color: #e8eaf6; /* Cor de borda suave */
     --success-color: #28a745; /* Verde sucesso */
+    --success-color-dark: #1e7e34; /* Verde sucesso mais escuro para hover */
     --success-color-rgb: 40, 167, 69;
     --danger-color: #dc3545; /* Vermelho perigo */
     --danger-color-dark: #bb2d3b;
@@ -201,6 +202,14 @@ button:focus-visible { /* Estilo de foco acessível */ outline: none; box-shadow
 .button-secondary:hover:not(:disabled) { background-color: var(--accent-color-dark); }
 .button-danger { background-color: var(--danger-color); color: var(--text-color-light); }
 .button-danger:hover:not(:disabled) { background-color: var(--danger-color-dark); }
+/* NOVO: Estilo para o botão especial "Plano Favorito" */
+.button-special {
+    background-color: var(--success-color);
+    color: var(--text-color-light);
+}
+.button-special:hover:not(:disabled) {
+    background-color: var(--success-color-dark);
+}
 
 /* --- Formulários --- */
 label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-color-muted); font-size: 0.9em; }
@@ -544,6 +553,21 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
 .streak-info strong { font-weight: 700; font-size: 1.1em; }
 .streak-info .longest { font-size: 0.85em; opacity: 0.9; }
 
+/* --- NOVO: Estilos para Botões de Criação de Plano no Modal --- */
+.modal-plan-creation-buttons {
+    display: flex;
+    gap: 10px; /* Espaçamento entre os botões */
+    justify-content: center; /* Centraliza os botões se houver espaço */
+    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+    margin-top: 15px; /* Espaçamento acima dos botões */
+}
+
+.modal-plan-creation-buttons button {
+    flex-grow: 1; /* Permite que os botões cresçam para preencher o espaço */
+    min-width: 200px; /* Largura mínima para cada botão */
+}
+
+
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; } section { padding: 20px; }
@@ -637,4 +661,10 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     .streak-icon { font-size: 2.2em; margin-bottom: 5px; }
     .streak-info p { font-size: 0.95em; }
     .streak-info .longest { font-size: 0.8em; }
+
+    /* NOVO: Ajuste para o botão "Criar Novo Plano (Genérico)" em telas pequenas */
+    .modal-plan-creation-buttons button {
+        min-width: 100%; /* Botões ocupam largura total em telas muito pequenas */
+    }
+    /* Isso pode ser redundante com o já existente em @media (max-width: 480px) se você o adicionou, mas garante a aplicação */
 }
