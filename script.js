@@ -55,28 +55,49 @@ canonicalBookOrder.forEach(book => {
     if (lower !== lowerNoSpace) bookNameMap.set(lowerNoSpace, book);
 });
 
-// NOVO: Configuração do Plano Favorito Anual
+// ATUALIZADO: Configuração do Plano Favorito Anual com Remanejamento e Nova Periodicidade
 const FAVORITE_ANNUAL_PLAN_CONFIG = [
     {
         name: "A Jornada dos Patriarcas",
         books: ["Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", "Esdras", "Neemias", "Ester"],
-        allowedDays: [1, 4, 6], // Seg, Qui, Sáb (0=Dom, 1=Seg, ...)
+        allowedDays: [1, 4, 6], // Seg, Qui, Sáb
         chaptersPerReadingDay: 3
     },
     {
-        name: "A Sinfonia Celestial",
-        books: ["Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares"],
+        name: "A Sinfonia Celestial", // Agora inclui Profetas Menores
+        books: [
+            // Livros originais da Sinfonia Celestial
+            "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares",
+            // Profetas Menores adicionados
+            "Oséias", "Joel", "Amós", "Obadias", "Jonas", "Miquéias",
+            "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias"
+        ],
         allowedDays: [3, 0], // Qua, Dom
         chaptersPerReadingDay: 3
     },
     {
-        name: "A Promessa Revelada",
-        books: ["Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel", "Oséias", "Joel", "Amós", "Obadias", "Jonas", "Miquéias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"],
+        name: "A Promessa Revelada", // Agora SEM Profetas Menores, mas com NT e Profetas Maiores
+        // A lista de 'books' aqui será usada para gerar a lista intercalada depois.
+        // Podemos listar os "blocos" que o compõem para clareza,
+        // mas a função de geração de capítulos precisará tratá-los.
+        bookBlocks: { // Usaremos uma estrutura 'bookBlocks' para facilitar a intercalação
+            profetasMaiores: ["Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel"],
+            novoTestamento: [
+                "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos",
+                "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses",
+                "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses",
+                "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago",
+                "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+            ]
+        },
+        // 'books' não será usado diretamente para este plano na config,
+        // pois a chaptersList será gerada de forma customizada.
+        // Mas podemos calcular o total de capítulos para referência, se necessário.
         allowedDays: [2, 5, 0], // Ter, Sex, Dom
-        chaptersPerReadingDay: 3
+        chaptersPerReadingDay: 3,
+        intercalate: true // Um novo sinalizador para a lógica de criação
     }
 ];
-
 
 // --- Estado da Aplicação ---
 let currentUser = null;
