@@ -479,6 +479,94 @@ function generateChaptersForBookList(bookList) {
     return chapters;
 }
 
+// Coloque esta função perto de generateChaptersForBookList
+
+function generateIntercalatedChaptersForPlanC(bookBlocks, chaptersPerBlockAT = 15) {
+    console.log("Iniciando geração intercalada para Plano C:", bookBlocks);
+    const chaptersList = [];
+    const ntBooks = [...bookBlocks.novoTestamento]; // Copia para poder usar shift()
+    const atProfetasMaioresBooks = [...bookBlocks.profetasMaiores]; // Copia
+
+    let todosCapitulosNT = [];
+    ntBooks.forEach(bookName => {
+        if (bibleBooksChapters.hasOwnProperty(bookName)) {
+            for (let i = 1; i <= bibleBooksChapters[bookName]; i++) {
+                todosCapitulosNT.push(`${bookName} ${i}`);
+            }
+        }
+    });
+
+    let todosCapitulosAT = [];
+    atProfetasMaioresBooks.forEach(bookName => {
+        if (bibleBooksChapters.hasOwnProperty(bookName)) {
+            for (let i = 1; i <= bibleBooksChapters[bookName]; i++) {
+                todosCapitulosAT.push(`${bookName} ${i}`);
+            }
+        }
+    });
+
+    // Garantir que Mateus venha primeiro, se ele estiver na lista do NT
+    // A lista ntBooks já está na ordem canônica, então Mateus é o primeiro.
+    // Vamos processar o Novo Testamento livro a livro.
+    // E o Antigo Testamento em blocos.
+
+    let ntChapterIndex = 0;
+    let atChapterIndex = 0;
+    let currentNTBookIndex = 0;
+
+    // Começa com o primeiro livro do NT (Mateus) completo
+    if (ntBooks.length > 0) {
+        const primeiroLivroNT = ntBooks[currentNTBookIndex];
+        console.log("Adicionando primeiro livro do NT:", primeiroLivroNT);
+        if (bibleBooksChapters.hasOwnProperty(primeiroLivroNT)) {
+            for (let i = 1; i <= bibleBooksChapters[primeiroLivroNT]; i++) {
+                chaptersList.push(`${primeiroLivroNT} ${i}`);
+                ntChapterIndex++;
+            }
+        }
+        currentNTBookIndex++; // Avança para o próximo livro do NT
+    }
+
+
+    while (currentNTBookIndex < ntBooks.length || atChapterIndex < todosCapitulosAT.length) {
+        let adicionouAlgoNestaRodada = false;
+
+        // Adiciona um bloco de capítulos do AT (Profetas Maiores)
+        if (atChapterIndex < todosCapitulosAT.length) {
+            const fimBlocoAT = Math.min(atChapterIndex + chaptersPerBlockAT, todosCapitulosAT.length);
+            console.log(`Adicionando bloco AT: de ${atChapterIndex} até ${fimBlocoAT-1}`);
+            for (let i = atChapterIndex; i < fimBlocoAT; i++) {
+                chaptersList.push(todosCapitulosAT[i]);
+            }
+            atChapterIndex = fimBlocoAT;
+            adicionouAlgoNestaRodada = true;
+        }
+
+        // Adiciona o PRÓXIMO livro completo do NT
+        if (currentNTBookIndex < ntBooks.length) {
+            const proximoLivroNT = ntBooks[currentNTBookIndex];
+            console.log("Adicionando próximo livro do NT:", proximoLivroNT);
+            if (bibleBooksChapters.hasOwnProperty(proximoLivroNT)) {
+                for (let i = 1; i <= bibleBooksChapters[proximoLivroNT]; i++) {
+                    chaptersList.push(`${proximoLivroNT} ${i}`);
+                    // ntChapterIndex não é mais usado para controlar o loop principal aqui,
+                    // mas podemos atualizá-lo se quisermos saber o total de caps NT adicionados.
+                }
+            }
+            currentNTBookIndex++;
+            adicionouAlgoNestaRodada = true;
+        }
+        
+        // Se em uma rodada completa nada foi adicionado, significa que ambos terminaram.
+        if (!adicionouAlgoNestaRodada) {
+            break;
+        }
+    }
+    console.log("Lista intercalada final gerada. Total de capítulos:", chaptersList.length);
+    // console.log(chaptersList.slice(0, 50)); // Para depuração
+    // console.log(chaptersList.slice(-50)); // Para depuração
+    return chaptersList;
+}
 
 // --- Funções de UI e Estado ---
 function showLoading(indicatorDiv, show = true) { if (indicatorDiv) indicatorDiv.style.display = show ? 'block' : 'none'; }
