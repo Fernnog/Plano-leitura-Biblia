@@ -760,19 +760,56 @@ function populatePlanSelector() {
 function populateManagePlansModal() {
     if (!planListDiv) return;
     showLoading(managePlansLoadingDiv, false);
-    planListDiv.innerHTML = '';
+    planListDiv.innerHTML = ''; // Limpa a lista existente
+
     if (userPlansList.length === 0) {
         planListDiv.innerHTML = '<p>Você ainda não criou nenhum plano de leitura.</p>';
         return;
     }
+
     userPlansList.forEach(plan => {
         const item = document.createElement('div');
         item.classList.add('plan-list-item');
-        const dateInfo = (plan.startDate && plan.endDate) ? `<small style="display: block; color: var(--text-color-muted); font-size: 0.8em;">${formatUTCDateStringToBrasilian(plan.startDate)} - ${formatUTCDateStringToBrasilian(plan.endDate)}</small>` : '<small style="display: block; color: red; font-size: 0.8em;">Datas não definidas</small>';
-        const driveLinkHTML = plan.googleDriveLink ? `<a href="${plan.googleDriveLink}" target="_blank" class="manage-drive-link" title="Abrir link do Google Drive associado" onclick="event.stopPropagation();"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 24 24" width="20px" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M7.71 5.41L5.77 7.35C4.09 9.03 3 11.36 3 13.95c0 3.31 2.69 6 6 6h1.05c.39 0 .76-.23.92-.59l2.12-4.72c.19-.43.02-.93-.4-1.16L8.8 11.5c-.57-.31-1.3-.17-1.7.4L5.82 14H6c-1.1 0-2-.9-2-2 0-1.84.8-3.5 2.1-4.59zM18 9h-1.05c-.39 0-.76.23-.92.59l-2.12 4.72c-.19.43-.02-.93.4 1.16l3.89 1.98c.57.31 1.3.17 1.7-.4l1.28-2.05H18c1.1 0 2 .9 2 2 0 1.84-.8 3.5-2.1 4.59L18.29 18.59l1.94 1.94C21.91 18.97 23 16.64 23 14.05c0-3.31-2.69-6-6-6zM12 11c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill-rule="evenodd"/></svg></a>` : '';
-        item.innerHTML = `<div><span>${plan.name || `Plano ${plan.id.substring(0,5)}...`}</span>${dateInfo}</div><div class="actions">${driveLinkHTML}<button class="button-primary activate-plan-btn" data-plan-id="${plan.id}" ${plan.id === activePlanId ? 'disabled' : ''}>${plan.id === activePlanId ? 'Ativo' : 'Ativar'}</button><button class="button-danger delete-plan-btn" data-plan-id="${plan.id}">Excluir</button></div>`;
+
+        const dateInfo = (plan.startDate && plan.endDate)
+            ? `<small style="display: block; color: var(--text-color-muted); font-size: 0.8em;">${formatUTCDateStringToBrasilian(plan.startDate)} - ${formatUTCDateStringToBrasilian(plan.endDate)}</small>`
+            : '<small style="display: block; color: red; font-size: 0.8em;">Datas não definidas</small>';
+
+        // --- INÍCIO DA MODIFICAÇÃO PARA O ÍCONE DO DRIVE ---
+        let driveIconHTML = '';
+        if (plan.googleDriveLink) {
+            // Reutiliza a mesma estrutura do ícone do plano ativo
+            driveIconHTML = `
+                <a href="${plan.googleDriveLink}" 
+                   target="_blank" 
+                   class="drive-link-icon" 
+                   title="Abrir link do Google Drive para: ${plan.name || 'este plano'}" 
+                   onclick="event.stopPropagation();"> 
+                    <img src="drive_icon.png" alt="Ícone Google Drive" class="drive-png-icon">
+                </a>`;
+        }
+        // --- FIM DA MODIFICAÇÃO PARA O ÍCONE DO DRIVE ---
+
+        // A classe 'actions' já existe e parece ser um bom lugar
+        item.innerHTML = `
+            <div>
+                <span>${plan.name || `Plano ${plan.id.substring(0, 5)}...`}</span>
+                ${dateInfo}
+            </div>
+            <div class="actions">
+                ${driveIconHTML} {/* O ícone virá aqui, antes dos botões */}
+                <button class="button-primary activate-plan-btn" data-plan-id="${plan.id}" ${plan.id === activePlanId ? 'disabled' : ''}>
+                    ${plan.id === activePlanId ? 'Ativo' : 'Ativar'}
+                </button>
+                <button class="button-danger delete-plan-btn" data-plan-id="${plan.id}">
+                    Excluir
+                </button>
+            </div>`;
+
         planListDiv.appendChild(item);
     });
+
+    // Adiciona os event listeners para os botões (código existente)
     planListDiv.querySelectorAll('.activate-plan-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const planIdToActivate = e.target.dataset.planId;
@@ -782,14 +819,14 @@ function populateManagePlansModal() {
             }
         });
     });
+
     planListDiv.querySelectorAll('.delete-plan-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const planIdToDelete = e.target.dataset.planId;
-            handleDeleteSpecificPlan(planIdToDelete);
+            handleDeleteSpecificPlan(planIdToDelete); // Supondo que esta função já existe
         });
     });
 }
-
 
 function clearPlanListUI() {
     if(planListDiv) planListDiv.innerHTML = '<p>Nenhum plano encontrado.</p>';
