@@ -2021,14 +2021,100 @@ async function displayScheduledReadings(upcomingCount = 3) {
 
 
 function updateStreakCounterUI() {
-    if (!streakCounterSection || !currentStreakValue || !longestStreakValue) return;
-    if (currentUser && userInfo) {
-        const current = Number.isFinite(userStreakData?.current) ? userStreakData.current : 0;
-        const longest = Number.isFinite(userStreakData?.longest) ? userStreakData.longest : 0;
-        currentStreakValue.textContent = current; longestStreakValue.textContent = longest;
-        if (planCreationSection.style.display !== 'block') { streakCounterSection.style.display = 'flex'; }
-        else { streakCounterSection.style.display = 'none'; }
-    } else { streakCounterSection.style.display = 'none'; }
+    // --- INÍCIO DO CÓDIGO DO PAINEL DE PERSEVERANÇA APRIMORADO ---
+
+    // Cache dos elementos do novo painel
+    const perseveranceSection = document.getElementById('perseverance-section');
+    const currentDaysText = perseveranceSection.querySelector('.current-days-text');
+    const recordDaysText = perseveranceSection.querySelector('.record-days-text');
+    const progressFill = document.getElementById('perseverance-progress-fill');
+    
+    // Ícones
+    const crownIcon = perseveranceSection.querySelector('.record-crown');
+    const sunIcon = perseveranceSection.querySelector('[data-milestone="sun"]');
+    const diamondIcon = perseveranceSection.querySelector('[data-milestone="diamond"]');
+    const treeIcon = perseveranceSection.querySelector('[data-milestone="tree"]');
+    const flameIcon = perseveranceSection.querySelector('[data-milestone="flame"]');
+    const seedIcon = perseveranceSection.querySelector('[data-milestone="seed"]');
+    const starContainer = document.getElementById('starContainer');
+
+    if (!perseveranceSection || !currentUser || !userInfo) {
+        if(perseveranceSection) perseveranceSection.style.display = 'none';
+        // Esconde o painel antigo também, caso ainda exista na estrutura por algum motivo
+        const oldStreakCounter = document.getElementById('streak-counter-section');
+        if(oldStreakCounter) oldStreakCounter.style.display = 'none';
+        return;
+    }
+    
+    // Mostra o painel se o usuário estiver logado e não estiver na tela de criação de plano
+    perseveranceSection.style.display = (planCreationSection.style.display !== 'block') ? 'block' : 'none';
+
+    // Pega os dados de perseverança do estado da aplicação
+    const consecutiveDays = userStreakData.current || 0;
+    const recordDays = userStreakData.longest || 0;
+
+    // 1. Lógica da Barra de Progresso
+    let percentage = recordDays > 0 ? (consecutiveDays / recordDays) * 100 : 0;
+    percentage = Math.min(100, Math.max(0, percentage)); // Garante que a % esteja entre 0 e 100
+    
+    if (progressFill) progressFill.style.width = percentage + '%';
+    if (currentDaysText) currentDaysText.textContent = consecutiveDays;
+    if (recordDaysText) recordDaysText.textContent = recordDays;
+
+    // 2. Lógica dos Ícones de Marcos
+    
+    // Helper para resetar os ícones
+    const allIcons = [crownIcon, sunIcon, diamondIcon, treeIcon, flameIcon, seedIcon];
+    allIcons.forEach(icon => icon.classList.remove('achieved'));
+    starContainer.innerHTML = ''; // Limpa as estrelas
+
+    // Coroa do Recorde
+    if (recordDays > 0 && consecutiveDays >= recordDays) {
+        crownIcon.classList.add('achieved');
+    }
+
+    // Marcos Principais (lógica hierárquica e exclusiva)
+    if (consecutiveDays >= 1000) {
+        sunIcon.classList.add('achieved');
+    } else if (consecutiveDays >= 365) {
+        diamondIcon.classList.add('achieved');
+        const stars = Math.floor((consecutiveDays - 365) / 30);
+        for (let i = 0; i < stars; i++) {
+            const star = document.createElement('span');
+            star.className = 'star-icon achieved';
+            star.textContent = '⭐';
+            starContainer.appendChild(star);
+        }
+    } else if (consecutiveDays >= 100) {
+        treeIcon.classList.add('achieved');
+        const stars = Math.floor((consecutiveDays - 100) / 30);
+        for (let i = 0; i < stars; i++) {
+            const star = document.createElement('span');
+            star.className = 'star-icon achieved';
+            star.textContent = '⭐';
+            starContainer.appendChild(star);
+        }
+    } else {
+        const stars = Math.floor(consecutiveDays / 30);
+        for (let i = 0; i < stars; i++) {
+            const star = document.createElement('span');
+            star.className = 'star-icon achieved';
+            star.textContent = '⭐';
+            starContainer.appendChild(star);
+        }
+    }
+
+    // Marcos de Ciclo (baseado no resto da divisão por 30)
+    const daysInCurrentCycle = consecutiveDays % 30;
+    if (consecutiveDays > 0 && consecutiveDays < 100) { // Só mostra semente/chama antes do marco de 100 dias
+        if (daysInCurrentCycle >= 15) {
+            flameIcon.classList.add('achieved');
+        } else if (daysInCurrentCycle >= 7) {
+            seedIcon.classList.add('achieved');
+        }
+    }
+    
+    // --- FIM DO CÓDIGO DO PAINEL DE PERSEVERANÇA APRIMORADO ---
 }
 
 
