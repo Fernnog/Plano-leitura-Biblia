@@ -203,6 +203,7 @@ const historyModal = document.getElementById('history-modal');
 const historyLoadingDiv = document.getElementById('history-loading');
 const historyErrorDiv = document.getElementById('history-error');
 const historyListDiv = document.getElementById('history-list');
+const perseveranceSection = document.getElementById('perseverance-section');
 
 // --- Funções Auxiliares (Datas, Semana, Geração, Distribuição, Cálculo de Data) ---
 
@@ -650,7 +651,7 @@ function updateUIBasedOnAuthState(user) {
         readingPlanSection.style.display = 'none';
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
-        if (streakCounterSection) streakCounterSection.style.display = 'none';
+       if (perseveranceSection) perseveranceSection.style.display = 'none';
         if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
         planSelectorContainer.style.display = 'none';
         logoutButton.style.display = 'none';
@@ -950,7 +951,7 @@ async function loadUserDataAndPlans() {
     planCreationSection.style.display = 'none';
     if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
     if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
-    if (streakCounterSection) streakCounterSection.style.display = 'none';
+    if (perseveranceSection) perseveranceSection.style.display = 'none';
     if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
     showErrorMessage(planViewErrorDiv, '');
     try {
@@ -965,7 +966,7 @@ async function loadUserDataAndPlans() {
         planCreationSection.style.display = 'block';
         if (overdueReadingsSection) overdueReadingsSection.style.display = 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = 'none';
-        if (streakCounterSection) streakCounterSection.style.display = 'none';
+        if (perseveranceSection) perseveranceSection.style.display = 'none';
         if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'none';
     } finally {
         showLoading(planLoadingViewDiv, false);
@@ -1277,7 +1278,7 @@ function cancelPlanCreation() {
     showErrorMessage(planErrorDiv, '');
     if (currentReadingPlan && activePlanId) {
         readingPlanSection.style.display = 'block';
-        if (streakCounterSection) streakCounterSection.style.display = 'flex';
+        if (perseveranceSection) perseveranceSection.style.display = 'block';
         if (globalWeeklyTrackerSection) globalWeeklyTrackerSection.style.display = 'block';
         if (overdueReadingsSection) overdueReadingsSection.style.display = overdueReadingsListDiv.children.length > 0 && !overdueReadingsListDiv.querySelector('p') ? 'block' : 'none';
         if (upcomingReadingsSection) upcomingReadingsSection.style.display = upcomingReadingsListDiv.children.length > 0 && !upcomingReadingsListDiv.querySelector('p') ? 'block' : 'none';
