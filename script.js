@@ -203,10 +203,6 @@ const historyModal = document.getElementById('history-modal');
 const historyLoadingDiv = document.getElementById('history-loading');
 const historyErrorDiv = document.getElementById('history-error');
 const historyListDiv = document.getElementById('history-list');
-const streakCounterSection = document.getElementById('streak-counter-section');
-const currentStreakValue = document.getElementById('current-streak-value');
-const longestStreakValue = document.getElementById('longest-streak-value');
-
 
 // --- Funções Auxiliares (Datas, Semana, Geração, Distribuição, Cálculo de Data) ---
 
