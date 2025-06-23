@@ -172,14 +172,41 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-        <!-- Painel de Sequência de Leitura -->
-        <section id="streak-counter-section" class="streak-counter" style="display: none;">
-             <div class="streak-icon">🔥</div>
-             <div class="streak-info">
-                 <p>Sequência Atual: <strong id="current-streak-value">0</strong> dias</p>
-                 <p class="longest">Maior Sequência: <strong id="longest-streak-value">0</strong> dias</p>
-             </div>
+        <!-- Painel de Perseverança Aprimorado (Substitui o antigo painel de sequência) -->
+        <section id="perseverance-section" class="perseverance-section" style="display: none;">
+            <div class="perseverance-header">
+                <h2>Sua Perseverança</h2>
+            </div>
+        
+            <!-- 1. Área de Ícones (populada dinamicamente) -->
+            <div class="milestone-icons-area">
+                <span class="milestone-icon record-crown">👑</span>
+                <span class="milestone-icon" data-milestone="sun">☀️</span>
+                <span class="milestone-icon" data-milestone="diamond">💎</span>
+                <span class="milestone-icon" data-milestone="tree">🌳</span>
+                <span id="starContainer" class="milestone-icon-container"></span> <!-- Container para estrelas múltiplas -->
+                <span class="milestone-icon" data-milestone="flame">🔥</span>
+                <span class="milestone-icon" data-milestone="seed">🌱</span>
+            </div>
+        
+            <!-- 2. Barra de Progresso Visual -->
+            <div class="perseverance-bar-container">
+                <div class="progress-bar">
+                    <span class="progress-percentage-left">
+                        <span class="current-days-text">0</span> / <span class="record-days-text">0</span> dias
+                    </span>
+                    <div id="perseverance-progress-fill" class="progress">
+                        <div class="progress-shine-overlay"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 3. Legenda dos Marcos -->
+            <div class="milestone-legend">
+                <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 365d</span> | <span>☀️ 1000d</span>
+            </div>
         </section>
+        <!-- Fim do Painel de Perseverança -->
 
         <!-- ***** NOVO: Painel de Progresso Semanal Global ***** -->
         <section id="global-weekly-tracker-section" class="weekly-tracker-container" style="display: none;">
