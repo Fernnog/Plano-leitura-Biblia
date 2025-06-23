@@ -1,3 +1,36 @@
+ // const localCurrentDayOfWeek = getDayOfWeek(); // Linha ANTIGA que usa o dia local
+    
+    // ...
+    
+        // Aplica o destaque para o dia atual (comparando o dayIndex do HTML com o dia da semana UTC)
+        // if (dayIndex === localCurrentDayOfWeek) { // Linha ANTIGA
+```
+
+**Código Corrigido:**
+```javascript
+    // --- NOVA LINHA ---
+    // Obter o dia da semana ATUAL com base no UTC
+    const nowUTC = new Date(); // Pega a data/hora atual local
+    const currentUTCDayOfWeek = nowUTC.getUTCDay(); // Pega o dia da semana EM UTC (0=Dom, ..., 6=Sáb)
+    // ------------------
+
+    // ...
+
+        // Aplica o destaque para o dia atual (comparando o dayIndex do HTML com o dia da semana UTC)
+        if (dayIndex === currentUTCDayOfWeek) { // --- NOVA LINHA ---
+            el.classList.add('current-day-highlight');
+        }
+```
+
+Conforme solicitado, nenhuma outra parte do código foi alterada. Esta correção alinha o comportamento visual do painel com a lógica de dados subjacente, resolvendo a inconsistência na transição dos dias.
+
+Abaixo está o arquivo `script.js` completo com a correção aplicada. Você pode substituir o seu arquivo por este.
+
+---
+
+### Arquivo Corrigido (`script.js`)
+
+```javascript
 // --- START OF MODIFIED FILE script.js ---
 
 
@@ -591,13 +624,11 @@ function updateGlobalWeeklyTrackerUI() {
     const weekStartDate = getUTCWeekStartDate(); // Já usa UTC para início da semana
     const todayStr = getCurrentUTCDateString(); // Já usa UTC para a data de hoje
 
-    // const localCurrentDayOfWeek = getDayOfWeek(); // Linha ANTIGA que usa o dia local
-
-    // --- NOVA LINHA ---
-    // Obter o dia da semana ATUAL com base no UTC
-    const nowUTC = new Date(); // Pega a data/hora atual local
+    // --- CORREÇÃO INSERIDA AQUI ---
+    // Obter o dia da semana ATUAL com base no UTC, em vez do local.
+    const nowUTC = new Date();
     const currentUTCDayOfWeek = nowUTC.getUTCDay(); // Pega o dia da semana EM UTC (0=Dom, ..., 6=Sáb)
-    // ------------------
+    // -----------------------------
 
     const isCurrentWeekDataValid = userGlobalWeeklyInteractions &&
                                    userGlobalWeeklyInteractions.weekId === currentWeekId &&
@@ -622,9 +653,9 @@ function updateGlobalWeeklyTrackerUI() {
             el.classList.add('missed-day');
         }
 
+        // --- USO DA CORREÇÃO ---
         // Aplica o destaque para o dia atual (comparando o dayIndex do HTML com o dia da semana UTC)
-        // if (dayIndex === localCurrentDayOfWeek) { // Linha ANTIGA
-        if (dayIndex === currentUTCDayOfWeek) { // --- NOVA LINHA ---
+        if (dayIndex === currentUTCDayOfWeek) {
             el.classList.add('current-day-highlight');
         }
     });
