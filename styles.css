@@ -668,3 +668,129 @@ input[type="url"]::placeholder { font-style: italic; font-size: 0.9em; }
     }
     /* Isso pode ser redundante com o já existente em @media (max-width: 480px) se você o adicionou, mas garante a aplicação */
 }
+
+/* --- Painel de Perseverança Aprimorado --- */
+.perseverance-section {
+    background-color: var(--background-card);
+    padding: 20px 25px;
+    border-radius: var(--base-border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 25px;
+    transition: var(--transition-base);
+    display: none; /* Controlado por JS */
+}
+.perseverance-section:hover {
+    box-shadow: var(--box-shadow-lg);
+}
+
+.perseverance-header h2 {
+    text-align: center;
+    color: var(--primary-action);
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4em;
+    font-weight: 700;
+}
+
+.milestone-icons-area {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 20px;
+    min-height: 45px; /* Evita 'pulos' no layout */
+}
+
+.milestone-icon, .star-icon {
+    font-size: 2.2em;
+    display: none; /* Escondido por padrão */
+    transition: transform 0.3s ease-out, text-shadow 0.3s ease-out;
+    cursor: default;
+}
+
+.milestone-icon.achieved, .star-icon.achieved {
+    display: inline-block;
+    transform: scale(1.1);
+    -webkit-animation: icon-pop 0.4s;
+    animation: icon-pop 0.4s;
+    /* Usando a cor de ação primária para a sombra do ícone */
+    text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35);
+}
+
+@keyframes icon-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1.1); }
+}
+
+
+.perseverance-bar-container {
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    position: relative;
+    height: 28px;
+    background-color: var(--marker-inactive-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    overflow: hidden;
+}
+
+.progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0; /* Controlado por JS */
+    border-radius: var(--base-border-radius);
+    /* Usando o gradiente principal da sua aplicação para a barra! */
+    background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end));
+    transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1); /* Transição suave */
+    overflow: hidden;
+}
+
+.progress-shine-overlay {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+    animation: shineEffect 4s infinite linear;
+}
+
+@keyframes shineEffect {
+    from { left: -100%; }
+    to { left: 100%; }
+}
+
+.progress-percentage-left {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-color-light);
+    font-weight: 600;
+    font-size: 0.9em;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    z-index: 2;
+}
+
+.milestone-legend {
+    text-align: center;
+    font-size: 0.85em;
+    color: var(--text-color-muted);
+}
+.milestone-legend span {
+    white-space: nowrap;
+}
+
+/* Responsividade para o novo painel */
+@media (max-width: 600px) {
+    .perseverance-header h2 { font-size: 1.3em; }
+    .milestone-icon, .star-icon { font-size: 1.8em; }
+    .progress-bar { height: 26px; }
+    .progress-percentage-left { font-size: 0.8em; left: 10px; }
+    .milestone-legend { font-size: 0.75em; }
+}
