@@ -2120,7 +2120,6 @@ document.addEventListener("DOMContentLoaded", () => {
         !statsModal || !historyModal || !planSelect || !periodicityCheckboxes ||
         !overdueReadingsSection || !overdueReadingsListDiv || !upcomingReadingsSection || !upcomingReadingsListDiv ||
         !googleDriveLinkInput || !readingPlanTitle || !activePlanDriveLink ||
-        !streakCounterSection || !currentStreakValue || !longestStreakValue ||
         !globalWeeklyTrackerSection || !globalDayIndicatorElements ||
         !dailyReadingHeaderDiv || !dailyReadingChaptersListDiv ||
         !createFavoritePlanButton // Adicionado à verificação
