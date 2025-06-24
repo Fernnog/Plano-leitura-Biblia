@@ -34,10 +34,12 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
     *   Botão "Concluir Leituras do Dia e Avançar" (habilitado após todos os capítulos do dia serem marcados) para avançar no plano (pula automaticamente dias sem leitura configurados e atualiza a sequência).
     *   **Tracker Semanal Global:** Um painel visual, posicionado logo abaixo do painel de sequência de leitura, exibe as interações do usuário ao longo da semana corrente (Domingo a Sábado, baseado em UTC). Este tracker indica dias em que o usuário marcou leituras como concluídas (`✓`) e dias passados na semana em que nenhuma leitura foi concluída (`✕`). O dia atual (UTC) é destacado para fácil referência. Este tracker reflete a atividade geral de leitura do usuário na semana.
     *   **Leituras Atrasadas e Próximas:** Seções dedicadas que exibem automaticamente leituras agendadas que passaram da data (considerando a data UTC atual) e as próximas leituras programadas em todos os planos do usuário, permitindo navegação rápida para o plano correspondente.
-*   **Painel de Sequência de Leitura:**
-    *   Motiva a consistência exibindo um painel visual com a sequência atual de dias *UTC consecutivos* em que o usuário interagiu com a leitura (usando "Concluir Leituras do Dia" ou marcando capítulos individuais em qualquer plano).
-    *   Registra e mostra também a *maior sequência* de dias consecutivos já alcançada pelo usuário.
-    *   A sequência atual é zerada automaticamente se um dia UTC de interação for pulado.
+*   **Painel de Perseverança:**
+    *   Incentiva a regularidade na leitura através de um feedback visual sobre a **sequência atual de dias UTC consecutivos** de interação com a aplicação (marcando capítulos individuais ou concluindo o dia de leitura em qualquer plano).
+    *   Registra e exibe a **maior sequência (recorde)** de dias consecutivos já alcançada pelo usuário, servindo como uma meta pessoal.
+    *   Apresenta uma **barra de progresso dinâmica** que ilustra a progressão da sequência atual em direção ao recorde pessoal.
+    *   Celebra o progresso contínuo com **ícones de marcos de perseverança** (ex: 🌱 Semente, 🔥 Chama, ⭐ Estrela, 🌳 Árvore, 💎 Diamante, ☀️ Sol, e a 👑 Coroa ao igualar ou superar o recorde). Esses ícones são desbloqueados à medida que o usuário atinge diferentes níveis de dias consecutivos de leitura.
+    *   A sequência atual é reiniciada se um dia UTC de interação for omitido, reforçando o valor da consistência diária.
 *   **Histórico de Leitura:**
     *   Acesse um histórico detalhado (dentro de um modal) mostrando quais capítulos foram marcados como lidos em cada data específica (UTC) para o plano ativo.
 *   **Estatísticas (Básicas):**
@@ -110,12 +112,12 @@ Para executar este projeto localmente ou fazer o deploy, você precisará config
     *   Nesse modal, você pode ativar um plano existente, excluir planos, acessar links do Drive, clicar em "Criar Novo Plano (Genérico)" ou clicar em "Criar Plano Favorito Anual" para gerar automaticamente um conjunto de três planos de leitura estruturados.
     *   Ao criar um plano genérico, preencha o nome, link opcional do Drive, selecione o conteúdo, defina a duração e escolha os dias da semana para leitura.
 3.  **Acompanhamento (Plano Ativo):**
-    *   O plano selecionado como ativo será exibido, juntamente com o *painel de sequência de leitura*.
-    *   Abaixo do painel de sequência, você verá o *tracker semanal global*, que mostra os dias da semana (UTC) em que você interagiu com *qualquer* leitura.
+    *   O plano selecionado como ativo será exibido, juntamente com o **Painel de Perseverança**.
+    *   Abaixo do Painel de Perseverança, você verá o *tracker semanal global*, que mostra os dias da semana (UTC) em que você interagiu com *qualquer* leitura.
     *   Use o seletor no cabeçalho para trocar rapidamente entre seus planos.
     *   Veja a leitura do dia do plano ativo (capítulos individuais com checkboxes), o link do Drive (se houver) ao lado do título, e a barra de progresso geral daquele plano.
     *   Verifique as seções de *Leituras Atrasadas* e *Próximas Leituras*.
-    *   Marque os capítulos individuais do dia como lidos e, em seguida, clique em "Concluir Leituras do Dia e Avançar" para registrar o progresso, atualizar sua sequência de leitura e marcar o dia no tracker semanal global (ambos baseados em datas UTC).
+    *   Marque os capítulos individuais do dia como lidos e, em seguida, clique em "Concluir Leituras do Dia e Avançar" para registrar o progresso, atualizar sua sequência no Painel de Perseverança e marcar o dia no tracker semanal global (ambos baseados em datas UTC).
 4.  **Recalcular/Histórico/Stats:** Use os botões correspondentes na seção do plano ativo para ajustar o ritmo, ver o histórico de leitura daquele plano ou visualizar estatísticas.
 
 ## Estrutura de Arquivos Principais
