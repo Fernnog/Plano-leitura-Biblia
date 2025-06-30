@@ -16,23 +16,30 @@ export function getCurrentUTCDateString() {
 /**
  * Calcula o ID da semana UTC para uma determinada data.
  * O ID é no formato "YYYY-WNN" (ex: "2023-W35").
+ * A LÓGICA FOI AJUSTADA PARA CONSIDERAR O DOMINGO COMO O PRIMEIRO DIA DA SEMANA.
  * @param {Date} [date=new Date()] - A data para a qual o ID da semana será calculado.
  * @returns {string} O ID da semana UTC.
  */
 export function getUTCWeekId(date = new Date()) {
-    // Cria uma cópia da data em UTC para não modificar a original
+    // Cria uma cópia da data em UTC para não modificar a original e garantir consistência
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+
+    // 1. Encontra o domingo que inicia a semana desta data.
+    // Esta lógica é idêntica à getUTCWeekStartDate para garantir consistência.
+    const dayOfWeek = d.getUTCDay(); // 0 para Domingo, 1 para Segunda...
+    d.setUTCDate(d.getUTCDate() - dayOfWeek); // Retrocede a data para o domingo.
+
+    const year = d.getUTCFullYear();
+
+    // 2. Calcula o início do ano.
+    const yearStart = new Date(Date.UTC(year, 0, 1));
     
-    // Define para a quinta-feira da semana para garantir a consistência do número da semana ISO 8601
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    // 3. Calcula a diferença em dias entre o domingo da nossa semana e o início do ano.
+    // A soma +1 é para incluir o primeiro dia. O resultado é dividido por 7.
+    // Math.ceil arredonda para cima, nos dando o número da semana (1-indexed).
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     
-    // Calcula o início do ano
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    
-    // Calcula o número da semana
-    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-    
-    return `${d.getUTCFullYear()}-W${weekNo.toString().padStart(2, '0')}`;
+    return `${year}-W${weekNo.toString().padStart(2, '0')}`;
 }
 
 /**
