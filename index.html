@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Leitura da Bíblia (Firebase)</title>
+
+    <!-- ***** Link para o Favicon ***** -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <!-- ****************************** -->
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+
+</head>
+<body>
+    <header>
+        <!-- ***** Imagem do Logo ***** -->
+        <img src="logo.png" alt="Logotipo Plano de Leitura" id="header-logo">
+        <!-- ************************ -->
+
+        <div class="header-content">
+            <h1>Plano de Leitura da Bíblia</h1>
+            <!-- O SELETOR DE PLANOS QUE ESTAVA AQUI FOI REMOVIDO -->
+        </div>
+
+        <!-- Área de Status do Usuário -->
+        <div id="user-status" class="user-status-container">
+            <span id="user-email" style="display: none;"></span>
+            <button id="logout-button" class="button-danger" style="display: none;">Sair</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Seção de Autenticação (Permanece a mesma) -->
+        <section id="auth-section">
+             <h2>Acessar Plano</h2>
+             <div id="auth-error" class="error-message" style="display: none;"></div>
+             <div id="signup-error" class="error-message" style="display: none;"></div>
+             <div id="auth-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+             <form id="login-form">
+                 <label for="login-email">Email:</label>
+                 <input type="email" id="login-email" required>
+                 <label for="login-password">Senha:</label>
+                 <input type="password" id="login-password" required>
+                 <button type="submit" id="login-button" class="button-primary">Entrar</button>
+                 <p>Não tem uma conta? <a href="#" id="show-signup">Cadastre-se</a></p>
+             </form>
+             <form id="signup-form" style="display: none;">
+                 <label for="signup-email">Email:</label>
+                 <input type="email" id="signup-email" required>
+                 <label for="signup-password">Senha:</label>
+                 <input type="password" id="signup-password" required>
+                 <button type="submit" id="signup-button" class="button-primary">Cadastrar</button>
+                 <p>Já tem uma conta? <a href="#" id="show-login">Faça login</a></p>
+             </form>
+        </section>
+        
+        <!-- Seção de Criação de Plano (Permanece a mesma, será chamada a partir dos novos botões) -->
+        <section id="plan-creation" style="display: none;">
+             <h2>Criar Novo Plano</h2>
+             <!-- Todo o conteúdo do formulário de criação de plano permanece aqui... -->
+             <div id="plan-error" class="error-message" style="display: none;"></div>
+             <div id="plan-loading-create" class="loading-indicator" style="display: none;">Salvando plano...</div>
+             <label for="plan-name">Nome do Plano:</label>
+             <input type="text" id="plan-name" placeholder="Ex: Bíblia Completa, Novo Testamento" required>
+             <label for="google-drive-link">Link Google Drive (Documento/Pasta - Opcional):</label>
+             <input type="url" id="google-drive-link" placeholder="https://docs.google.com/document/d/... ou https://drive.google.com/drive/folders/...">
+             <fieldset>
+                 <legend>Método de Seleção de Capítulos</legend>
+                 <label><input type="radio" name="creation-method" value="interval" checked> Intervalo Contínuo</label>
+                 <label><input type="radio" name="creation-method" value="selection"> Seleção Avulsa</label>
+                 <label><input type="radio" name="creation-method" value="chapters-per-day"> Capítulos por Dia de Leitura</label>
+             </fieldset>
+             <div id="interval-options">
+                <fieldset><legend>Opção 1: Definir por Intervalo</legend>
+                    <label for="start-book-select">Livro Inicial:</label>
+                    <select id="start-book-select" required><option value="">-- Selecione --</option></select>
+                    <label for="start-chapter-input">Capítulo Inicial:</label>
+                    <input type="number" id="start-chapter-input" min="1" required>
+                    <label for="end-book-select">Livro Final:</label>
+                    <select id="end-book-select" required><option value="">-- Selecione --</option></select>
+                    <label for="end-chapter-input">Capítulo Final:</label>
+                    <input type="number" id="end-chapter-input" min="1" required>
+                 </fieldset>
+            </div>
+            <div id="selection-options" style="display: none;">
+                <fieldset><legend>Opção 2/3: Selecionar Livros/Capítulos</legend>
+                    <label for="books-select">Selecionar Livros Completos (Opcional):</label>
+                    <select id="books-select" multiple></select>
+                    <small>Use Ctrl/Cmd para selecionar múltiplos livros.</small>
+                    <label for="chapters-input">Digitar Capítulos/Intervalos (Opcional):</label>
+                    <input type="text" id="chapters-input" placeholder="Ex: Gênesis 1-3, Êxodo 5, Salmos 119" list="book-suggestions">
+                    <datalist id="book-suggestions"></datalist>
+                    <small>Separe por vírgula. Use hífen para intervalos. Ex: "Jo 3", "Sl 23, Sl 100-102", "1 Coríntios".</small>
+                 </fieldset>
+             </div>
+             <hr>
+             <fieldset>
+                <legend>Duração do Plano</legend>
+                <small>A data de início será hoje por padrão, a menos que 'Data Final' seja escolhida.</small>
+                <label><input type="radio" name="duration-method" value="days" checked> Duração Total (Dias Calendário)</label>
+                <label><input type="radio" name="duration-method" value="end-date"> Data Final Específica</label>
+                <div id="days-option">
+                    <label for="days-input">Número Total de Dias (Calendário):</label>
+                    <input type="number" id="days-input" min="1" value="30">
+                    <small>O plano distribuirá os capítulos nos dias de leitura *dentro* deste período.</small>
+                </div>
+                <div id="end-date-option" style="display: none;">
+                     <label for="start-date-input">Data de Início (Opcional, padrão é hoje):</label>
+                     <input type="date" id="start-date-input">
+                     <label for="end-date-input">Data Final (Obrigatório nesta opção):</label>
+                     <input type="date" id="end-date-input">
+                     <small>O plano distribuirá os capítulos nos dias de leitura *entre* estas datas (inclusive).</small>
+                </div>
+                 <div id="chapters-per-day-option" style="display: none;">
+                     <label for="chapters-per-day-input">Capítulos por Dia de Leitura (Aprox.):</label>
+                     <input type="number" id="chapters-per-day-input" min="1" value="3">
+                     <small>O plano calculará a duração e a data final com base neste ritmo.</small>
+                 </div>
+             </fieldset>
+            <fieldset id="periodicity-options">
+                <legend>Dias de Leitura na Semana</legend>
+                <small>Selecione os dias em que haverá leitura. Se nenhum for selecionado, a leitura será distribuída em todos os dias.</small>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="reading-day" value="0"> Dom</label>
+                    <label><input type="checkbox" name="reading-day" value="1" checked> Seg</label>
+                    <label><input type="checkbox" name="reading-day" value="2" checked> Ter</label>
+                    <label><input type="checkbox" name="reading-day" value="3" checked> Qua</label>
+                    <label><input type="checkbox" name="reading-day" value="4" checked> Qui</label>
+                    <label><input type="checkbox" name="reading-day" value="5" checked> Sex</label>
+                    <label><input type="checkbox" name="reading-day" value="6"> Sáb</label>
+                </div>
+                 <div id="periodicity-warning" class="error-message" style="display: none; margin-top: 10px;"></div>
+            </fieldset>
+            <button id="create-plan" class="button-primary">Criar Plano</button>
+            <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
+        </section>
+
+        <!-- NOVA SEÇÃO PARA AÇÕES GLOBAIS DE CRIAÇÃO -->
+        <section id="plan-actions-global" class="enhanced-panel" style="display: none;">
+            <h2>Ações Rápidas</h2>
+            <div class="global-actions-container">
+                <button id="create-new-plan-button-global" class="button-primary">Criar Novo Plano (Genérico)</button>
+                <button id="create-favorite-plan-button-global" class="button-special">Criar Plano Favorito Anual</button>
+            </div>
+        </section>
+
+        <!-- PAINÉIS DE DASHBOARD (Perseverança, Semanal, etc.) -->
+        <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
+            <!-- Conteúdo do painel de perseverança... -->
+        </section>
+        <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
+             <!-- Conteúdo do tracker semanal... -->
+        </section>
+        <section id="overdue-readings" class="enhanced-panel" style="display: none;">
+              <!-- Conteúdo de leituras atrasadas... -->
+        </section>
+        <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
+              <!-- Conteúdo de próximas leituras... -->
+        </section>
+
+        <!-- A SEÇÃO ESTÁTICA #reading-plan FOI REMOVIDA DAQUI -->
+        
+        <!-- NOVO CONTÊINER PARA A LISTA DE TODOS OS PLANOS -->
+        <section id="plans-display-section" style="display: none;">
+            <h2 class="plans-display-title">Meus Planos de Leitura</h2>
+            <div id="plans-display-container">
+                <!-- O JavaScript irá popular este contêiner com os cards de cada plano -->
+            </div>
+        </section>
+
+        <!-- ------------- Modais ------------- -->
+        
+        <!-- Modal para Recálculo, Stats e History permanecem os mesmos -->
+        <div id="recalculate-modal" class="modal" style="display: none;">
+            <!-- Conteúdo... -->
+        </div>
+        <div id="stats-modal" class="modal" style="display: none;">
+            <!-- Conteúdo... -->
+        </div>
+        <div id="history-modal" class="modal" style="display: none;">
+            <!-- Conteúdo... -->
+        </div>
+
+        <!-- MODAL DE GERENCIAR PLANOS FOI SIMPLIFICADO -->
+        <div id="manage-plans-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-button">×</span>
+                <h2>Gerenciar Planos</h2>
+                <div id="manage-plans-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+                <div id="manage-plans-error" class="error-message" style="display: none;"></div>
+                <p>O gerenciamento dos planos (ativar, deletar) agora é feito diretamente na tela principal.</p>
+                <!-- Os botões de criação e a lista de planos foram removidos daqui -->
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <!-- Rodapé opcional -->
+    </footer>
+
+    <!-- 
+      MELHORIA ARQUITETURAL: TEMPLATE PARA O CARD DO PLANO 
+      Este bloco é invisível na página, mas serve como um modelo para o JavaScript clonar e criar os cards
+      de forma eficiente, limpa e segura.
+    -->
+    <template id="plan-card-template">
+        <div class="plan-card" data-plan-id=""> <!-- O ID do plano será inserido aqui via JS -->
+            <!-- Cabeçalho do Card (Título e Link do Drive) -->
+            <div class="plan-header-info">
+                <h2 class="plan-title">Nome do Plano</h2>
+                <a href="#" target="_blank" class="drive-link-icon" style="display: none;" title="Abrir link do Google Drive associado">
+                   <img src="drive_icon.png" alt="Ícone Google Drive" class="drive-png-icon">
+                </a>
+            </div>
+            
+            <!-- Barra de Progresso -->
+            <div class="progress-container" style="margin-bottom: 20px;">
+                <span class="progress-text">Carregando progresso...</span>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- Informações da Leitura Diária -->
+            <div class="daily-reading-header-display">Carregando data...</div>
+            <div class="daily-reading-chapters-list-display"></div>
+
+            <!-- Ações Específicas do Card -->
+            <div class="plan-actions">
+                <button class="button-activate button-success" data-action="activate">Ativar Plano</button>
+                <button class="button-secondary" data-action="recalculate">Recalcular</button>
+                <button class="button-secondary" data-action="stats">Estatísticas</button>
+                <button class="button-secondary" data-action="history">Histórico</button>
+                <button class="button-danger" data-action="delete">Deletar Plano</button>
+            </div>
+        </div>
+    </template>
+    
+    <!-- Ponto de entrada para o JavaScript modular -->
+    <script type="module" src="./src/main.js"></script>
+
+</body>
+</html>
