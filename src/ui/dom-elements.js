@@ -34,6 +34,8 @@ export const createNewPlanButton = document.getElementById('create-new-plan-butt
 export const createFavoritePlanButton = document.getElementById('create-favorite-plan-button');
 
 export const planCreationSection = document.getElementById('plan-creation');
+export const planCreationTitle = document.getElementById('plan-creation-title');
+export const editingPlanIdInput = document.getElementById('editing-plan-id'); 
 export const planErrorDiv = document.getElementById('plan-error');
 export const planLoadingCreateDiv = document.getElementById('plan-loading-create');
 export const planNameInput = document.getElementById('plan-name');
