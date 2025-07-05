@@ -28,16 +28,20 @@ export const signupPasswordInput = document.getElementById('signup-password');
 export const signupButton = document.getElementById('signup-button');
 export const showLoginLink = document.getElementById('show-login');
 
-// --- Ações e Formulário de Criação de Plano ---
+// --- Ações e Formulário de Criação/Edição de Plano ---
 export const planCreationActionsSection = document.getElementById('plan-creation-actions');
 export const createNewPlanButton = document.getElementById('create-new-plan-button');
 export const createFavoritePlanButton = document.getElementById('create-favorite-plan-button');
 
 export const planCreationSection = document.getElementById('plan-creation');
+export const planCreationTitle = document.getElementById('plan-creation-title'); // NOVO
+export const editingPlanIdInput = document.getElementById('editing-plan-id'); // NOVO
 export const planErrorDiv = document.getElementById('plan-error');
 export const planLoadingCreateDiv = document.getElementById('plan-loading-create');
 export const planNameInput = document.getElementById('plan-name');
-export const googleDriveLinkInput = document.getElementById('google-drive-link');
+export const googleDriveLinkInput = document.getElementById('google-drive-link'); // NOVO
+export const iconSelectorContainer = document.getElementById('icon-selector-container'); // NOVO
+export const planStructureFieldset = document.getElementById('plan-structure-fieldset'); // NOVO
 export const creationMethodRadios = document.querySelectorAll('input[name="creation-method"]');
 export const intervalOptionsDiv = document.getElementById('interval-options');
 export const startBookSelect = document.getElementById("start-book-select");
@@ -47,7 +51,7 @@ export const endChapterInput = document.getElementById("end-chapter-input");
 export const selectionOptionsDiv = document.getElementById('selection-options');
 export const booksSelect = document.getElementById("books-select");
 export const chaptersInput = document.getElementById("chapters-input");
-export const bookSuggestionsDatalist = document.getElementById("book-suggestions");
+export const bookSuggestionsDatalist = document.getElementById("book-suggestions"); // NOVO
 export const durationMethodRadios = document.querySelectorAll('input[name="duration-method"]');
 export const daysOptionDiv = document.getElementById('days-option');
 export const daysInput = document.getElementById("days-input");
@@ -88,9 +92,7 @@ export const upcomingReadingsListDiv = document.getElementById('upcoming-reading
 // --- Container de Exibição dos Planos ---
 export const plansDisplaySection = document.getElementById('plans-display-section');
 // NOTA: Os elementos internos de cada card de plano (título, progresso, etc.)
-// não são mais selecionados aqui, pois não possuem IDs únicos.
-// Eles serão criados e gerenciados dinamicamente pelo módulo de UI correspondente.
-
+// são criados e gerenciados dinamicamente pelo módulo `reading-plan-ui.js`.
 
 // --- Modais ---
 
@@ -100,8 +102,6 @@ export const recalculateErrorDiv = document.getElementById('recalculate-error');
 export const recalculateLoadingDiv = document.getElementById('recalculate-loading');
 export const newPaceInput = document.getElementById('new-pace-input');
 export const confirmRecalculateButton = document.getElementById('confirm-recalculate');
-
-// REMOVIDO: O Modal de Gerenciar Planos e seus elementos foram removidos.
 
 // Modal de Estatísticas
 export const statsModal = document.getElementById('stats-modal');
@@ -119,9 +119,3 @@ export const historyModal = document.getElementById('history-modal');
 export const historyLoadingDiv = document.getElementById('history-loading');
 export const historyErrorDiv = document.getElementById('history-error');
 export const historyListDiv = document.getElementById('history-list');
-
-// Função auxiliar para fechar qualquer modal (pode ser movida para modals-ui.js)
-export function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.style.display = 'none';
-}
