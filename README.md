@@ -12,16 +12,13 @@ O projeto foi arquitetado com uma **estrutura de módulos JavaScript (ESM)**, fo
 
 O projeto é organizado na seguinte estrutura de diretórios, promovendo a separação de responsabilidades e a manutenibilidade:
 
-## Estrutura de Arquivos
-
-[...]
-
 └── src/ # Contém todo o código-fonte modular da aplicação
     ├── main.js # Ponto de entrada JS, orquestrador principal
     │
     ├── config/ # Módulos de configuração e dados estáticos
     │   ├── firebase-config.js # Credenciais e inicialização do Firebase
     │   ├── bible-data.js # Constantes dos livros e capítulos da Bíblia
+    │   ├── icon-config.js # Ícones selecionáveis e para planos favoritos
     │   └── plan-templates.js # Modelos para planos de leitura predefinidos
     │
     ├── services/ # Camada de abstração de dados (comunicação com backend)
@@ -34,20 +31,22 @@ O projeto é organizado na seguinte estrutura de diretórios, promovendo a separ
     │   ├── header-ui.js # Lógica da UI do cabeçalho
     │   ├── modals-ui.js # Lógica da UI de todos os modais
     │   ├── perseverance-panel-ui.js # Lógica da UI do painel de perseverança
-    │   ├── plan-creation-ui.js # Lógica da UI de criação de planos
-    │   ├── reading-plan-ui.js # Lógica da UI do plano de leitura ativo
-    │   └── side-panels-ui.js # **NOVO:** Lógica da UI dos painéis de leituras atrasadas e próximas.
+    │   ├── weekly-tracker-ui.js # Lógica da UI do painel de interações semanais
+    │   ├── plan-creation-ui.js # Lógica da UI de criação e edição de planos
+    │   ├── reading-plan-ui.js # Lógica da UI para renderizar os cards de todos os planos
+    │   ├── side-panels-ui.js # Lógica da UI dos painéis de leituras atrasadas e próximas
+    │   └── floating-navigator-ui.js # Lógica da UI do navegador/dock flutuante
     │
     └── utils/ # Funções puras e utilitárias
         ├── chapter-helpers.js # Funções para gerar e manipular capítulos
         ├── date-helpers.js # Funções para formatar e calcular datas
-        └── plan-logic-helpers.js # **NOVO:** Lógica para calcular a data efetiva de um dia de leitura, considerando recálculos.
-
+        └── plan-logic-helpers.js # Lógica para calcular a data efetiva de um dia de leitura
 
 ## Funcionalidades Principais
 
 *   **Autenticação de Usuários:** Cadastro e login seguros usando Firebase Authentication.
-*   **Gerenciamento de Múltiplos Planos:** Crie, alterne, gerencie e delete múltiplos planos de leitura.
+*   **Gerenciamento de Múltiplos Planos:** Crie, edite, gerencie e delete múltiplos planos de leitura em uma interface moderna baseada em cards.
+*   **Navegação Rápida:** Um *dock* flutuante permite alternar instantaneamente entre os seus planos de leitura.
 *   **Criação Rápida:** Gere um conjunto de três planos anuais estruturados com um único clique.
 *   **Criação de Planos Personalizados:** Defina conteúdo por intervalo, seleção de livros/capítulos avulsos e configure a duração e a periodicidade (dias da semana).
 *   **Acompanhamento de Progresso Detalhado:**
@@ -56,7 +55,7 @@ O projeto é organizado na seguinte estrutura de diretórios, promovendo a separ
     *   Painel de **Interações Semanais** com um resumo visual da sua atividade.
     *   Visualização de leituras atrasadas e próximas em todos os seus planos.
 *   **Recálculo de Plano:** Ajuste dinamicamente o ritmo de um plano ativo sem perder o progresso.
-*   **Histórico e Estatísticas:** Acesse o histórico de leituras concluídas e veja estatísticas sobre seu progresso.
+*   **Histórico e Estatísticas:** Acesse o histórico de leituras concluídas e veja estatísticas sobre seu progresso para cada plano.
 *   **Interface Responsiva:** Design moderno e otimizado para dispositivos móveis (Mobile-First).
 
 ## Tech Stack
@@ -106,7 +105,9 @@ Para executar este projeto localmente, você precisará configurar seu próprio 
 
 ## Uso
 
-1.  **Cadastro/Login:** Crie uma conta ou faça login.
-2.  **Gerenciar/Criar Planos:** Após o login, use o botão de engrenagem (⚙️) no cabeçalho para abrir o modal "Meus Planos". A partir daí, você pode criar um plano genérico, gerar o conjunto de planos anuais favoritos, ou ativar/excluir planos existentes.
-3.  **Acompanhamento:** A interface principal exibirá o plano ativo selecionado. Marque os capítulos como lidos e clique em "Concluir Leituras e Avançar" para registrar seu progresso e atualizar seus painéis de perseverança e atividade semanal.
-4.  **Ações do Plano:** Utilize os botões na seção do plano ativo para recalcular o ritmo, ver estatísticas ou acessar o histórico de leitura daquele plano.
+1.  **Cadastro/Login:** Crie uma conta ou faça login para acessar seus planos.
+2.  **Criação de Planos:** Após o login, você verá botões para "Criar Novo Plano (Genérico)" ou "Criar Plano Favorito Anual".
+3.  **Interface Principal:** Seus planos de leitura são exibidos como cards individuais. O plano ativo é destacado com uma borda roxa.
+4.  **Navegação:** Use o **dock flutuante** na parte inferior da tela para pular rapidamente para qualquer um dos seus planos.
+5.  **Acompanhamento:** Dentro de cada card, marque os capítulos lidos nos checkboxes e clique em "Concluir Leituras e Avançar" para registrar seu progresso. Isso atualizará seus painéis de perseverança e atividade semanal.
+6.  **Ações do Plano:** Cada card possui botões para **Editar** (nome e ícone), **Recalcular** o ritmo, ver **Estatísticas**, acessar o **Histórico** de leitura e **Excluir** o plano.
