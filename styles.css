@@ -57,9 +57,9 @@
     --header-logo-padding: 2px;
 
     /* NOVAS VARIÁVEIS PARA PAINÉIS MELHORADOS */
-    --panel-border-gradient: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--primary-action) 100%); /* Ajustado para incluir primary-action */
+    --panel-border-gradient: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-mid) 50%, var(--primary-action) 100%);
     --panel-border-width: 3px;
-    --panel-padding-enhanced: 25px; /* Padding interno consistente para os painéis aprimorados */
+    --panel-padding-enhanced: 25px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -73,7 +73,7 @@ body {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden; /* Previne scroll horizontal */
+    overflow-x: hidden;
 }
 
 /* --- Header Simplificado --- */
@@ -86,41 +86,41 @@ header {
     align-items: center;
     justify-content: space-between;
     gap: 15px;
-    position: sticky; /* Mantém no topo */
+    position: sticky;
     top: 0;
-    z-index: 900; /* Acima do conteúdo */
-    min-height: 65px; /* Altura mínima */
+    z-index: 900;
+    min-height: 65px;
 }
 header img#header-logo {
     height: var(--header-logo-size);
     width: var(--header-logo-size);
     border: var(--header-logo-border) solid white;
     border-radius: 50%;
-    background-color: white; /* Fundo branco para logo PNG */
+    background-color: white;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     padding: var(--header-logo-padding);
-    box-sizing: content-box; /* Padding não aumenta tamanho total */
-    object-fit: contain; /* Garante que a imagem caiba */
+    box-sizing: content-box;
+    object-fit: contain;
     display: block;
-    flex-shrink: 0; /* Não encolhe */
+    flex-shrink: 0;
     transition: all var(--transition-base);
 }
 .header-content {
-    flex-grow: 1; /* Ocupa espaço disponível */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Alinha à esquerda */
+    align-items: flex-start;
     gap: 2px;
-    overflow: hidden; /* Evita que texto longo quebre layout */
+    overflow: hidden;
 }
 header h1 {
     margin: 0;
-    font-size: 1.5em; /* Tamanho ajustado */
+    font-size: 1.5em;
     font-weight: 700;
     text-align: left;
-    white-space: nowrap; /* Impede quebra de linha */
+    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Adiciona "..." se muito longo */
+    text-overflow: ellipsis;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
     line-height: 1.2;
 }
@@ -144,18 +144,24 @@ header h1 {
 
 /* --- Main Content --- */
 main { max-width: 850px; margin: 25px auto; padding: 0 15px; }
-section { /* Estilo base para todas as sections, será sobreposto/complementado por .enhanced-panel */
+section {
     margin-bottom: 25px;
-    padding: var(--panel-padding-enhanced); /* Usa a variável para consistência */
+    padding: var(--panel-padding-enhanced);
     background-color: var(--background-card);
     border-radius: var(--base-border-radius);
     box-shadow: var(--box-shadow);
     transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
-section:not(.enhanced-panel):hover { /* Hover para sections que NÃO são .enhanced-panel */
+section:not(.enhanced-panel):hover {
     box-shadow: var(--box-shadow-lg);
 }
-section h2 { color: var(--primary-action); margin-top: 0; font-size: 1.5em; font-weight: 700; }
+section h2 { 
+    color: var(--primary-action); 
+    margin-top: 0; 
+    font-size: 1.5em; 
+    font-weight: 700; 
+    transition: color var(--transition-fast); /* ADICIONADO para transição suave */
+}
 
 /* ESTILOS PARA PAINÉIS MELHORADOS COM BORDA GRADIENTE */
 .enhanced-panel {
@@ -166,7 +172,6 @@ section h2 { color: var(--primary-action); margin-top: 0; font-size: 1.5em; font
     box-shadow: var(--box-shadow);
     overflow: hidden;
 }
-
 .enhanced-panel::before {
     content: "";
     position: absolute;
@@ -177,35 +182,36 @@ section h2 { color: var(--primary-action); margin-top: 0; font-size: 1.5em; font
     background: var(--panel-border-gradient);
     transition: filter var(--transition-base);
 }
-
 .enhanced-panel:hover {
     transform: translateY(-4px);
     box-shadow: var(--box-shadow-lg);
 }
-
 .enhanced-panel:hover::before {
     filter: brightness(1.15) saturate(1.1);
 }
-
 .enhanced-panel .perseverance-header h2,
 .enhanced-panel#global-weekly-tracker-section h3 {
     padding-bottom: 12px;
     border-bottom: 2px solid rgba(var(--primary-action-rgb), 0.2);
     margin-bottom: 25px;
+    transition: border-bottom-color var(--transition-fast); /* ADICIONADO para transição suave da borda */
 }
 
-/* --- MELHORIA DE LEGIBILIDADE DOS TÍTULOS --- */
+/* --- MELHORIA DE LEGIBILIDADE DOS TÍTULOS E TEXTOS NO HOVER --- */
 .enhanced-panel:hover h2,
 .enhanced-panel:hover h3 {
     color: var(--text-color-light);
-    transition: color var(--transition-fast);
+    border-bottom-color: rgba(255, 255, 255, 0.6);
 }
-
-/* Garante que o título do painel de leituras atrasadas também fique claro */
+.enhanced-panel:hover .milestone-legend,
+.enhanced-panel:hover .progress-percentage-left,
+.enhanced-panel:hover .day-label {
+    color: var(--text-color-light);
+}
 .enhanced-panel#overdue-readings:hover h2 {
     color: var(--text-color-light) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.6) !important;
 }
-
 
 /* --- Botões --- */
 button { padding: var(--button-padding-y) var(--button-padding-x); border: none; border-radius: var(--base-border-radius); cursor: pointer; font-size: 1em; font-weight: 600; transition: var(--transition-fast); margin: 5px; box-shadow: none; letter-spacing: 0.5px; line-height: 1.5; vertical-align: middle; min-height: var(--input-height); -webkit-tap-highlight-color: transparent; }
@@ -221,14 +227,8 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(var(--primary-a
 .button-danger:hover:not(:disabled) { background-color: var(--danger-color-dark); }
 .button-special { background-color: var(--success-color); color: var(--text-color-light); }
 .button-special:hover:not(:disabled) { background-color: var(--success-color-dark); }
-
-.button-edit {
-    background-color: #6c757d; /* Cinza Muted */
-    color: var(--text-color-light);
-}
-.button-edit:hover:not(:disabled) {
-    background-color: #5a6268;
-}
+.button-edit { background-color: #6c757d; color: var(--text-color-light); }
+.button-edit:hover:not(:disabled) { background-color: #5a6268; }
 
 /* --- Formulários --- */
 label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-color-muted); font-size: 0.9em; }
@@ -245,59 +245,17 @@ fieldset { border: 1px solid var(--border-color); padding: 20px 25px; margin-bot
 legend { font-weight: 700; color: var(--primary-action); padding: 0 10px; font-size: 1.15em; }
 hr { border: 0; height: 1px; background-color: var(--border-color); margin: 30px 0; }
 small { display: block; font-size: 0.85em; color: var(--text-color-muted); margin-top: -10px; margin-bottom: 15px; line-height: 1.4; }
-
-fieldset:disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
+fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 /* --- Estilos para o Seletor de Ícones no Formulário --- */
-.icon-selector-fieldset {
-    border-style: dashed;
-}
-.icon-selector-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    padding-top: 10px;
-}
-.icon-option {
-    position: relative;
-}
-.icon-option input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-}
-.icon-option .icon-label {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 50px;
-    height: 50px;
-    border: 2px solid var(--border-color);
-    border-radius: var(--base-border-radius);
-    font-size: 2em;
-    transition: var(--transition-fast);
-    cursor: pointer;
-    background-color: var(--background-light);
-}
-.icon-option input[type="radio"]:hover + .icon-label {
-    transform: scale(1.1);
-    border-color: var(--accent-color);
-}
-.icon-option input[type="radio"]:checked + .icon-label {
-    border-color: var(--primary-action);
-    background-color: rgba(var(--primary-action-rgb), 0.1);
-    transform: scale(1.1);
-    box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.2);
-}
-.icon-option input[type="radio"]:focus-visible + .icon-label {
-    box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.4);
-}
+.icon-selector-fieldset { border-style: dashed; }
+.icon-selector-container { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; padding-top: 10px; }
+.icon-option { position: relative; }
+.icon-option input[type="radio"] { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.icon-option .icon-label { display: flex; justify-content: center; align-items: center; width: 50px; height: 50px; border: 2px solid var(--border-color); border-radius: var(--base-border-radius); font-size: 2em; transition: var(--transition-fast); cursor: pointer; background-color: var(--background-light); }
+.icon-option input[type="radio"]:hover + .icon-label { transform: scale(1.1); border-color: var(--accent-color); }
+.icon-option input[type="radio"]:checked + .icon-label { border-color: var(--primary-action); background-color: rgba(var(--primary-action-rgb), 0.1); transform: scale(1.1); box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.2); }
+.icon-option input[type="radio"]:focus-visible + .icon-label { box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.4); }
 
 /* --- Autenticação --- */
 #auth-section { max-width: 450px; margin-left: auto; margin-right: auto; }
@@ -310,105 +268,22 @@ fieldset:disabled {
 .loading-indicator { text-align: center; padding: 15px; font-style: italic; color: var(--text-color-muted); }
 
 /* --- Estilos para o container de botões de criação --- */
-.plan-creation-actions-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-    padding: 10px 0; 
-    background-color: transparent;
-    box-shadow: none;
-    border: none;
-}
-#create-new-plan-button,
-#create-favorite-plan-button {
-    flex-grow: 1;
-    max-width: 350px;
-}
+.plan-creation-actions-container { display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; padding: 10px 0; background-color: transparent; box-shadow: none; border: none; }
+#create-new-plan-button, #create-favorite-plan-button { flex-grow: 1; max-width: 350px; }
 
 /* --- Estilos para a exibição de múltiplos planos --- */
-.plans-display-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
-    background-color: transparent;
-    padding: 0;
-    box-shadow: none;
-    border: none;
-    margin-bottom: 25px;
-}
+.plans-display-container { display: grid; grid-template-columns: 1fr; gap: 30px; background-color: transparent; padding: 0; box-shadow: none; border: none; margin-bottom: 25px; }
 
 /* Card de Plano reutilizável */
-.plan-card {
-    padding: var(--panel-padding-enhanced);
-    background-color: var(--background-card);
-    border-radius: var(--base-border-radius);
-    box-shadow: var(--box-shadow);
-    transition: var(--transition-base);
-    border: 3px solid transparent; /* Borda para o estado ativo */
-}
-.plan-card:hover {
-    box-shadow: var(--box-shadow-lg);
-    transform: translateY(-2px);
-}
-
-/* Estilo para destacar o plano ativo */
-.plan-card.active-plan {
-    border-color: var(--primary-action);
-    box-shadow: var(--box-shadow-lg);
-    transform: translateY(-2px);
-}
-
-/* Estilo para o Ícone no Card do Plano */
-.plan-card .plan-card-icon {
-    font-size: 1.5em;
-    margin-right: 12px;
-    line-height: 1;
-}
-.plan-card .plan-header-info {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    border-bottom: 2px solid var(--accent-color);
-    padding-bottom: 10px;
-    flex-wrap: wrap;
-}
-.plan-card .plan-card-title {
-    margin: 0;
-    padding: 0;
-    border: none;
-    color: var(--primary-action);
-    font-size: 1.5em;
-    font-weight: 700;
-    line-height: 1.3;
-}
-.plan-card .drive-link-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 0;
-    flex-shrink: 0;
-    padding: 4px;
-    border-radius: 6px;
-    cursor: pointer;
-    background-color: transparent;
-    transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
-    width: 28px;
-    height: 28px;
-    vertical-align: middle;
-}
-.plan-card .drive-link-icon:hover {
-    transform: scale(1.5);
-    background-color: var(--background-light);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-}
-.plan-card .drive-link-icon img.drive-png-icon {
-    display: block;
-    width: 100%;
-    height: auto;
-}
+.plan-card { padding: var(--panel-padding-enhanced); background-color: var(--background-card); border-radius: var(--base-border-radius); box-shadow: var(--box-shadow); transition: var(--transition-base); border: 3px solid transparent; }
+.plan-card:hover { box-shadow: var(--box-shadow-lg); transform: translateY(-2px); }
+.plan-card.active-plan { border-color: var(--primary-action); box-shadow: var(--box-shadow-lg); transform: translateY(-2px); }
+.plan-card .plan-card-icon { font-size: 1.5em; margin-right: 12px; line-height: 1; }
+.plan-card .plan-header-info { align-items: center; display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid var(--accent-color); padding-bottom: 10px; flex-wrap: wrap; }
+.plan-card .plan-card-title { margin: 0; padding: 0; border: none; color: var(--primary-action); font-size: 1.5em; font-weight: 700; line-height: 1.3; }
+.plan-card .drive-link-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 0; flex-shrink: 0; padding: 4px; border-radius: 6px; cursor: pointer; background-color: transparent; transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast); width: 28px; height: 28px; vertical-align: middle; }
+.plan-card .drive-link-icon:hover { transform: scale(1.5); background-color: var(--background-light); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12); }
+.plan-card .drive-link-icon img.drive-png-icon { display: block; width: 100%; height: auto; }
 
 /* Barra de Progresso (dentro de .plan-card) */
 .plan-card .progress-container { width: 100%; margin-bottom: 20px; }
@@ -491,17 +366,17 @@ fieldset:disabled {
 .progress { position: absolute; top: 0; left: 0; height: 100%; width: 0; border-radius: var(--base-border-radius); background: linear-gradient(135deg, var(--gradient-start), var(--gradient-mid), var(--gradient-end)); transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden; }
 .progress-shine-overlay { position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%); animation: shineEffect 4s infinite linear; }
 @keyframes shineEffect { from { left: -100%; } to { left: 100%; } }
-.progress-percentage-left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-color-light); font-weight: 600; font-size: 0.9em; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); z-index: 2; }
-.milestone-legend { text-align: center; font-size: 0.85em; color: var(--text-color-muted); }
+.progress-percentage-left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-color-light); font-weight: 600; font-size: 0.9em; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); z-index: 2; transition: color var(--transition-fast); }
+.milestone-legend { text-align: center; font-size: 0.85em; color: var(--text-color-muted); transition: color var(--transition-fast); }
 .milestone-legend span { white-space: nowrap; }
 
 /* Painel de Progresso Semanal */
-#global-weekly-tracker-section h3 { margin-top: 0; margin-bottom: 20px; text-align: center; color: var(--primary-action); font-size: 1.2em; font-weight: 700; }
+#global-weekly-tracker-section h3 { margin-top: 0; margin-bottom: 20px; text-align: center; color: var(--primary-action); font-size: 1.2em; font-weight: 700; transition: color var(--transition-fast); }
 .weekly-tracker-container .week-days { display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: 8px; }
 .weekly-tracker-container .day-indicator { display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: default; flex-basis: calc(100% / 7 - 10px); min-width: 42px; min-height: 70px; transition: transform var(--transition-fast), background-color var(--transition-fast); border-radius: calc(var(--base-border-radius) / 1.5); }
 .weekly-tracker-container .day-indicator.current-day-highlight { background-color: rgba(var(--primary-action-rgb), 0.15); padding: 8px 5px; box-shadow: 0 2px 4px rgba(var(--primary-action-rgb), 0.1); transform: scale(1.03); }
 .weekly-tracker-container .day-indicator.current-day-highlight .day-label { color: var(--primary-action); font-weight: 700; }
-.weekly-tracker-container .day-label { font-size: 0.75em; font-weight: 600; color: var(--text-color-muted); margin-bottom: 6px; text-transform: uppercase; }
+.weekly-tracker-container .day-label { font-size: 0.75em; font-weight: 600; color: var(--text-color-muted); margin-bottom: 6px; text-transform: uppercase; transition: color var(--transition-fast); }
 .weekly-tracker-container .day-marker { width: 32px; height: 32px; border-radius: 50%; background-color: var(--marker-inactive-color); border: 2px solid var(--marker-inactive-border); display: flex; justify-content: center; align-items: center; color: var(--text-color-light); font-weight: bold; transition: var(--transition-base); position: relative; }
 .weekly-tracker-container .day-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; font-weight: bold; line-height: 1; }
 .weekly-tracker-container .day-indicator.active .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); }
@@ -518,34 +393,28 @@ fieldset:disabled {
     left: 50%;
     transform: translateX(-50%) translateY(0);
     z-index: 950;
-
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
     padding: 10px;
     box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.12);
     border-radius: 50px;
-    
     display: flex;
     align-items: center;
     gap: 12px;
-
     transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
     opacity: 0;
     visibility: hidden;
 }
-
 #floating-navigator.visible {
     opacity: 1;
     visibility: visible;
 }
-
 #floating-navigator.hidden-at-bottom {
     transform: translateX(-50%) translateY(calc(100% + 25px));
     opacity: 0;
     visibility: hidden;
 }
-
 #floating-navigator .nav-button {
     display: flex;
     justify-content: center;
@@ -556,7 +425,7 @@ fieldset:disabled {
     border-radius: 50%;
     text-decoration: none;
     color: var(--text-color-dark);
-    font-size: 1.5rem; /* Ajustado para emojis */
+    font-size: 1.5rem;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
     background-color: #fff;
@@ -564,15 +433,13 @@ fieldset:disabled {
     padding: 0;
     line-height: 1;
 }
-
 #floating-navigator .nav-button:hover {
     transform: scale(1.1);
     box-shadow: var(--box-shadow);
     border-color: var(--accent-color);
 }
-
 #floating-navigator .nav-button.home-button {
-    font-size: 1.3rem; /* Tamanho ajustado para ícone de casa */
+    font-size: 1.3rem;
     font-weight: bold;
     color: var(--text-color-dark);
     border-color: var(--border-color);
@@ -580,7 +447,6 @@ fieldset:disabled {
 #floating-navigator .nav-button.home-button:hover {
     border-color: var(--accent-color);
 }
-
 #floating-navigator .nav-button.add-plan-button {
     color: var(--text-color-light);
     background-color: var(--success-color);
@@ -591,14 +457,11 @@ fieldset:disabled {
 #floating-navigator .nav-button.add-plan-button:hover {
     background-color: var(--success-color-dark);
 }
-
-/* MELHORIA DE UX: Classe de destaque para o botão do plano ativo/visível */
 #floating-navigator .nav-button.active-nav {
     border-color: var(--primary-action);
     transform: scale(1.1);
     box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.3);
 }
-
 
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
@@ -612,12 +475,10 @@ fieldset:disabled {
      .user-status-container { gap: 5px;} #user-email { max-width: 100px;} #logout-button { padding: 5px 10px; font-size: 0.8em; }
      .upcoming-readings-container { grid-template-columns: 1fr; }
      .plan-card .drive-link-icon { width: 26px; height: 26px; padding: 3px; border-radius: 5px; }
-    
     .weekly-tracker-container .day-indicator { min-width: 38px; min-height: 65px; }
     .weekly-tracker-container .day-indicator.current-day-highlight { padding: 6px 4px; }
     .weekly-tracker-container .day-marker { width: 30px; height: 30px; }
     .weekly-tracker-container .day-marker::after { font-size: 16px; }
-
      .plan-card .daily-reading-header-display { padding: 12px 15px; }
      .plan-card .daily-reading-chapters-list-display { padding: 8px 15px 15px 15px; }
      .plan-card .daily-chapter-item { padding: 8px 0; font-size: 1em; }
@@ -644,7 +505,6 @@ fieldset:disabled {
     #new-pace-input { margin-top: 5px; width: 100% !important; text-align: center; }
     #periodicity-options .checkbox-group { justify-content: space-around; gap: 8px; }
     #periodicity-options .checkbox-group label { font-size: 0.85em; padding: 4px 6px; }
-
     #global-weekly-tracker-section.enhanced-panel { padding: 15px 10px; }
     .weekly-tracker-container .week-days { gap: 4px; }
     .weekly-tracker-container .day-indicator { min-width: 30px; min-height: 60px; flex-basis: calc(100% / 7 - 5px); border-radius: calc(var(--base-border-radius) / 2); }
@@ -652,12 +512,10 @@ fieldset:disabled {
     .weekly-tracker-container .day-label { font-size: 0.65em; margin-bottom: 4px;}
     .weekly-tracker-container .day-marker { width: 26px; height: 26px; }
     .weekly-tracker-container .day-marker::after { font-size: 13px; }
-
     .plan-card .daily-reading-header-display { padding: 10px 15px; font-size: 1em; }
     .plan-card .daily-reading-chapters-list-display { padding: 5px 15px 15px 15px; }
     .plan-card .daily-chapter-item { padding: 6px 0; font-size: 0.95em; }
     .plan-card .daily-chapter-item input[type="checkbox"] { width: 16px; height: 16px; margin-right: 10px; }
-
     .plan-card .drive-link-icon { width: 24px; height: 24px; padding: 3px; border-radius: 5px; }
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
