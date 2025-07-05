@@ -52,13 +52,14 @@ export async function fetchUserInfo(userId, userEmail) {
 }
 
 /**
- * Busca a lista completa de planos de leitura de um usuário, ordenados por data de criação.
+ * Busca a lista completa de planos de leitura de um usuário, ordenados por data de criação (mais recentes primeiro).
  * @param {string} userId - O UID do usuário.
  * @returns {Promise<Array<object>>} Uma promessa que resolve para um array de objetos de plano, cada um com seu 'id'.
  */
 export async function fetchUserPlans(userId) {
     if (!userId) throw new Error("userId é obrigatório para buscar os planos.");
     const plansCollectionRef = collection(db, 'users', userId, 'plans');
+    // MELHORIA: Ordena os planos pela data de criação, do mais novo para o mais antigo.
     const q = query(plansCollectionRef, orderBy("createdAt", "desc"));
     const userPlansList = [];
     const querySnapshot = await getDocs(q);
@@ -66,25 +67,6 @@ export async function fetchUserPlans(userId) {
         userPlansList.push({ id: docSnap.id, ...docSnap.data() });
     });
     return userPlansList;
-}
-
-/**
- * Busca os dados detalhados de um único plano de leitura.
- * @param {string} userId - O UID do usuário.
- * @param {string} planId - O ID do plano a ser buscado.
- * @returns {Promise<object|null>} Uma promessa que resolve para o objeto de dados do plano, ou null se não for encontrado.
- */
-export async function fetchPlanData(userId, planId) {
-    if (!userId || !planId) return null;
-    const planDocRef = doc(db, 'users', userId, 'plans', planId);
-    const docSnap = await getDoc(planDocRef);
-
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
-    } else {
-        console.warn(`Plano com ID ${planId} não encontrado para o usuário ${userId}.`);
-        return null;
-    }
 }
 
 // --- Funções de Escrita de Dados (Create, Update, Delete) ---
@@ -98,9 +80,10 @@ export async function fetchPlanData(userId, planId) {
 export async function saveNewPlan(userId, planData) {
     if (!userId) throw new Error("userId é obrigatório para salvar um novo plano.");
     const plansCollectionRef = collection(db, 'users', userId, 'plans');
+    // MELHORIA: Adiciona um timestamp de criação do lado do servidor para ordenação confiável.
     const dataToSave = {
         ...planData,
-        createdAt: serverTimestamp(), // Garante que o timestamp de criação seja definido pelo servidor
+        createdAt: serverTimestamp(),
     };
     const newPlanDocRef = await addDoc(plansCollectionRef, dataToSave);
     return newPlanDocRef.id;
@@ -165,7 +148,6 @@ export async function updateChapterStatus(userId, planId, chapterName, isRead) {
  * Atualiza os dados de interação do usuário (sequência e interações semanais).
  * @param {string} userId - O UID do usuário.
  * @param {object} interactionUpdates - Um objeto contendo os campos a serem atualizados.
- *   Ex: { lastStreakInteractionDate: '...', currentStreak: 5, longestStreak: 10, globalWeeklyInteractions: {...} }
  * @returns {Promise<void>}
  */
 export async function updateUserInteractions(userId, interactionUpdates) {
@@ -206,7 +188,7 @@ export async function advanceToNextDay(userId, planId, newDay, dateMarkedStr, ch
 export async function saveRecalculatedPlan(userId, planId, updatedPlanData) {
     if (!userId || !planId) throw new Error("userId e planId são obrigatórios.");
     const planDocRef = doc(db, 'users',userId, 'plans', planId);
-    // Usamos setDoc aqui porque estamos substituindo todo o documento do plano com novos dados
-    // (novo mapa do plano, nova data final, etc.), preservando o ID do documento.
+    // Usamos setDoc aqui porque estamos substituindo todo o documento do plano com novos dados,
+    // mas preservando seu ID original.
     await setDoc(planDocRef, updatedPlanData);
 }
