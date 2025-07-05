@@ -22,7 +22,7 @@ import * as perseverancePanelUI from './ui/perseverance-panel-ui.js';
 import * as weeklyTrackerUI from './ui/weekly-tracker-ui.js';
 import * as readingPlanUI from './ui/reading-plan-ui.js';
 import * as sidePanelsUI from './ui/side-panels-ui.js';
-import * as floatingNavigatorUI from './ui/floating-navigator-ui.js'; // NOVO IMPORT
+import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
 
 // Helpers e Configurações
 import {
@@ -86,7 +86,8 @@ async function handleAuthStateChange(user) {
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
         
         renderAllPlanCards();
-        floatingNavigatorUI.render(appState.userPlans); // Renderiza o paginador
+        // ATUALIZADO: Passa o activePlanId para o paginador
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
         
         if (appState.userPlans.length === 0) {
             handleCreateNewPlanRequest();
@@ -102,7 +103,7 @@ async function handleAuthStateChange(user) {
         perseverancePanelUI.hide();
         weeklyTrackerUI.hide();
         sidePanelsUI.hide();
-        floatingNavigatorUI.hide(); // Esconde o paginador
+        floatingNavigatorUI.hide();
     }
 }
 
@@ -180,31 +181,52 @@ async function handleLogout() {
     }
 }
 
+/**
+ * REFATORADO: Função otimizada para troca de plano.
+ * Agora manipula o DOM diretamente para uma resposta visual instantânea,
+ * sem recarregar todos os dados do usuário.
+ */
 async function handleSwitchPlan(planId) {
     if (!appState.currentUser || planId === appState.activePlanId) {
-        // Se já está ativo, apenas rola a tela até ele
         const targetElement = document.getElementById(`plan-card-${planId}`);
         targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         return;
     }
 
     try {
+        // 1. Atualiza o backend
         await planService.setActivePlan(appState.currentUser.uid, planId);
-        await loadInitialUserData(appState.currentUser); 
-        
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
-        floatingNavigatorUI.render(appState.userPlans);
 
-        // MELHORIA: Após ativar e re-renderizar, rola suavemente para o card do plano
+        // 2. Atualiza o estado local
+        const oldActivePlanId = appState.activePlanId;
+        appState.activePlanId = planId;
+
+        // 3. Manipula o DOM para uma troca visual rápida
+        const oldActiveCard = document.querySelector(`.plan-card[data-plan-id="${oldActivePlanId}"]`);
+        if (oldActiveCard) {
+            oldActiveCard.classList.remove('active-plan');
+        }
+        const newActiveCard = document.getElementById(`plan-card-${planId}`);
+        if (newActiveCard) {
+            newActiveCard.classList.add('active-plan');
+        }
+
+        // 4. Re-renderiza componentes que dependem do plano ativo (como o paginador)
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+        // Os painéis laterais não precisam ser re-renderizados aqui, pois o conteúdo não muda.
+        
+        // 5. Rola a tela suavemente para o novo plano ativo
         requestAnimationFrame(() => {
-            const targetElement = document.getElementById(`plan-card-${planId}`);
-            targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            newActiveCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
 
     } catch (error) {
         console.error("Erro ao trocar de plano:", error);
         alert(`Erro ao ativar plano: ${error.message}`);
+        // Em caso de erro, recarrega os dados para garantir consistência
+        await loadInitialUserData(appState.currentUser);
+        renderAllPlanCards();
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
     }
 }
 
@@ -212,7 +234,7 @@ function handleCreateNewPlanRequest() {
     readingPlanUI.hide();
     sidePanelsUI.hide();
     planCreationActionsSection.style.display = 'none';
-    floatingNavigatorUI.hide(); // Esconde o paginador durante a criação
+    floatingNavigatorUI.hide();
     planCreationUI.show(appState.userPlans.length === 0);
 }
 
@@ -220,7 +242,7 @@ function handleCancelPlanCreation() {
     planCreationUI.hide();
     readingPlanUI.show();
     sidePanelsUI.show();
-    floatingNavigatorUI.show(); // Mostra o paginador novamente
+    floatingNavigatorUI.show();
     planCreationActionsSection.style.display = 'flex';
 }
 
@@ -228,16 +250,12 @@ async function handlePlanSubmit(formData, planId) {
     planCreationUI.showLoading();
     try {
         if (planId) {
-            // --- MODO DE EDIÇÃO ---
-            const updatedData = {
-                name: formData.name,
-                icon: formData.icon,
-                googleDriveLink: formData.googleDriveLink || null,
-            };
+            // ... (lógica de edição)
+            const updatedData = { name: formData.name, icon: formData.icon, googleDriveLink: formData.googleDriveLink || null };
             await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
             alert(`Plano "${formData.name}" atualizado com sucesso!`);
         } else {
-            // --- MODO DE CRIAÇÃO ---
+            // ... (lógica de criação)
             let chaptersToRead = [];
             if (formData.creationMethod === 'interval') {
                 chaptersToRead = generateChaptersInRange(formData.startBook, formData.startChapter, formData.endBook, formData.endChapter);
@@ -247,15 +265,11 @@ async function handlePlanSubmit(formData, planId) {
                 const combinedSet = new Set([...chaptersFromBooks, ...chaptersFromText]);
                 chaptersToRead = sortChaptersCanonically(Array.from(combinedSet));
             }
-
-            if (chaptersToRead.length === 0) {
-                throw new Error("Nenhum capítulo válido foi selecionado.");
-            }
-
+            if (chaptersToRead.length === 0) throw new Error("Nenhum capítulo válido foi selecionado.");
+            // ... (restante da lógica de cálculo de dias)
             let totalReadingDays = 0;
             let startDate = formData.startDate || getCurrentUTCDateString();
             const validAllowedDays = formData.allowedDays.length > 0 ? formData.allowedDays : [0, 1, 2, 3, 4, 5, 6];
-
             if (formData.creationMethod === 'chapters-per-day') {
                 totalReadingDays = Math.ceil(chaptersToRead.length / formData.chaptersPerDay);
             } else if (formData.durationMethod === 'days') {
@@ -277,27 +291,14 @@ async function handlePlanSubmit(formData, planId) {
                 }
                 totalReadingDays = Math.max(1, readingDaysInPeriod);
             }
-            
             const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
             const endDate = getEffectiveDateForDay({ startDate, allowedDays: formData.allowedDays }, totalReadingDays);
-            
             const newPlanData = {
-                name: formData.name,
-                icon: formData.icon,
-                googleDriveLink: formData.googleDriveLink || null,
-                plan: planMap,
-                chaptersList: chaptersToRead,
-                totalChapters: chaptersToRead.length,
-                currentDay: 1,
-                startDate: startDate,
-                endDate: endDate,
-                allowedDays: formData.allowedDays,
-                readLog: {},
-                dailyChapterReadStatus: {},
-                recalculationBaseDay: null,
-                recalculationBaseDate: null,
+                name: formData.name, icon: formData.icon, googleDriveLink: formData.googleDriveLink || null,
+                plan: planMap, chaptersList: chaptersToRead, totalChapters: chaptersToRead.length,
+                currentDay: 1, startDate: startDate, endDate: endDate, allowedDays: formData.allowedDays,
+                readLog: {}, dailyChapterReadStatus: {}, recalculationBaseDay: null, recalculationBaseDate: null,
             };
-
             const newPlanId = await planService.saveNewPlan(appState.currentUser.uid, newPlanData);
             await planService.setActivePlan(appState.currentUser.uid, newPlanId);
             alert(`Plano "${formData.name}" criado com sucesso!`);
@@ -310,7 +311,7 @@ async function handlePlanSubmit(formData, planId) {
         
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
-        floatingNavigatorUI.render(appState.userPlans);
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
 
     } catch (error) {
         planCreationUI.showError(`Erro: ${error.message}`);
@@ -381,6 +382,7 @@ async function handleCompleteDay(planId) {
         await loadInitialUserData(appState.currentUser);
         
         renderAllPlanCards();
+        // ATUALIZADO: Garante que os painéis laterais sejam re-renderizados com as novas informações.
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
         
         if (newDay > Object.keys(plan).length) {
@@ -410,7 +412,7 @@ async function handleDeletePlan(planId) {
             
             renderAllPlanCards();
             sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
-            floatingNavigatorUI.render(appState.userPlans);
+            floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
             
             if (appState.userPlans.length === 0) {
                 handleCreateNewPlanRequest();
@@ -428,7 +430,7 @@ function handleEditPlanRequest(planId) {
         readingPlanUI.hide();
         sidePanelsUI.hide();
         planCreationActionsSection.style.display = 'none';
-        floatingNavigatorUI.hide(); // Esconde o paginador durante a edição
+        floatingNavigatorUI.hide();
         planCreationUI.openForEditing(planToEdit);
     } else {
         alert("Erro: Plano não encontrado para edição.");
@@ -497,6 +499,9 @@ async function handleRecalculate(option, newPaceValue, planId) {
         
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
+        // ATUALIZADO: Garante que os painéis sejam re-renderizados após recálculo.
+        sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
 
     } catch (error) {
         modalsUI.showError('recalculate-modal', `Erro: ${error.message}`);
@@ -509,9 +514,9 @@ async function handleRecalculate(option, newPaceValue, planId) {
 // --- 4. FUNÇÕES DE MODAIS E OUTRAS AÇÕES ---
 
 function handleShowStats(planId) {
+    // ... (função sem alterações)
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
-
     const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
     const isCompleted = plan.currentDay > totalReadingDaysInPlan;
     const progressPercentage = totalReadingDaysInPlan > 0 ? Math.min(100, ((plan.currentDay - 1) / totalReadingDaysInPlan) * 100) : 0;
@@ -519,20 +524,13 @@ function handleShowStats(planId) {
     const daysWithReading = Object.keys(logEntries).length;
     const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + chapters.length, 0);
     const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading).toFixed(1) : '0.0';
-
-    const stats = {
-        activePlanName: plan.name || 'Plano sem nome',
-        activePlanProgress: progressPercentage,
-        chaptersReadFromLog: chaptersReadFromLog,
-        isCompleted: isCompleted,
-        avgPace: `${avgPace} caps/dia`
-    };
-
+    const stats = { activePlanName: plan.name || 'Plano sem nome', activePlanProgress: progressPercentage, chaptersReadFromLog: chaptersReadFromLog, isCompleted: isCompleted, avgPace: `${avgPace} caps/dia` };
     modalsUI.displayStats(stats);
     modalsUI.open('stats-modal');
 }
 
 function handleShowHistory(planId) {
+    // ... (função sem alterações)
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
     modalsUI.displayHistory(plan.readLog);
@@ -540,48 +538,34 @@ function handleShowHistory(planId) {
 }
 
 async function handleCreateFavoritePlanSet() {
+    // ... (função sem alterações)
     try {
         for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
             const chaptersToRead = config.intercalate
                 ? generateIntercalatedChapters(config.bookBlocks)
                 : generateChaptersForBookList(config.books);
-
             const totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
             const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
             const startDate = getCurrentUTCDateString();
             const endDate = getEffectiveDateForDay({ startDate, allowedDays: config.allowedDays }, totalReadingDays);
-            
             const planData = {
-                name: config.name,
-                icon: FAVORITE_PLAN_ICONS[config.name] || '📖',
-                plan: planMap,
-                chaptersList: chaptersToRead,
-                totalChapters: chaptersToRead.length,
-                currentDay: 1,
-                startDate,
-                endDate,
-                allowedDays: config.allowedDays,
-                readLog: {},
-                dailyChapterReadStatus: {},
-                googleDriveLink: null,
-                recalculationBaseDay: null,
+                name: config.name, icon: FAVORITE_PLAN_ICONS[config.name] || '📖', plan: planMap,
+                chaptersList: chaptersToRead, totalChapters: chaptersToRead.length, currentDay: 1,
+                startDate, endDate, allowedDays: config.allowedDays, readLog: {},
+                dailyChapterReadStatus: {}, googleDriveLink: null, recalculationBaseDay: null,
                 recalculationBaseDate: null,
             };
             await planService.saveNewPlan(appState.currentUser.uid, planData);
         }
-        
         const updatedPlans = await planService.fetchUserPlans(appState.currentUser.uid);
         if (updatedPlans.length > 0) {
             await planService.setActivePlan(appState.currentUser.uid, updatedPlans[0].id);
         }
-        
         alert("Conjunto de planos favoritos criado com sucesso!");
-        
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
-        floatingNavigatorUI.render(appState.userPlans);
-
+        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
     } catch (error) {
         alert(`Erro ao criar planos favoritos: ${error.message}`);
     }
@@ -593,22 +577,13 @@ async function handleCreateFavoritePlanSet() {
 function initApplication() {
     authService.onAuthStateChanged(handleAuthStateChange);
 
-    authUI.init({
-        onLogin: handleLogin,
-        onSignup: handleSignup,
-    });
-
-    headerUI.init({
-        onLogout: handleLogout,
-    });
+    authUI.init({ onLogin: handleLogin, onSignup: handleSignup });
+    headerUI.init({ onLogout: handleLogout });
     
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
 
-    planCreationUI.init({
-        onSubmit: handlePlanSubmit,
-        onCancel: handleCancelPlanCreation,
-    });
+    planCreationUI.init({ onSubmit: handlePlanSubmit, onCancel: handleCancelPlanCreation });
     
     readingPlanUI.init({
         onCompleteDay: handleCompleteDay,
@@ -623,14 +598,13 @@ function initApplication() {
         },
         onShowStats: handleShowStats,
         onShowHistory: handleShowHistory,
-        // onSwitchPlan foi removido daqui pois o botão não existe mais
     });
     
     perseverancePanelUI.init();
     weeklyTrackerUI.init();
     sidePanelsUI.init();
     
-    // MODIFICAÇÃO: Passa os callbacks para o novo módulo do paginador
+    // ATUALIZADO: Passa os callbacks para o módulo do paginador, incluindo o de troca de plano.
     floatingNavigatorUI.init({
         onSwitchPlan: handleSwitchPlan,
         onCreatePlan: handleCreateNewPlanRequest,
