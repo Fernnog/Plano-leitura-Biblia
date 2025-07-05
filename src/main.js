@@ -1,3 +1,5 @@
+// src/main.js
+
 /**
  * @file main.js
  * @description Ponto de entrada principal e orquestrador da aplicação.
@@ -20,6 +22,7 @@ import * as perseverancePanelUI from './ui/perseverance-panel-ui.js';
 import * as weeklyTrackerUI from './ui/weekly-tracker-ui.js';
 import * as readingPlanUI from './ui/reading-plan-ui.js';
 import * as sidePanelsUI from './ui/side-panels-ui.js';
+import * as floatingNavigatorUI from './ui/floating-navigator-ui.js'; // NOVO IMPORT
 
 // Helpers e Configurações
 import {
@@ -33,7 +36,7 @@ import {
 import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId } from './utils/date-helpers.js';
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
-import { FAVORITE_PLAN_ICONS } from './config/icon-config.js'; // Importa a configuração de ícones
+import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
 
 // Elementos do DOM para ações principais
 import {
@@ -83,6 +86,7 @@ async function handleAuthStateChange(user) {
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
         
         renderAllPlanCards();
+        floatingNavigatorUI.render(appState.userPlans); // Renderiza o paginador
         
         if (appState.userPlans.length === 0) {
             handleCreateNewPlanRequest();
@@ -98,6 +102,7 @@ async function handleAuthStateChange(user) {
         perseverancePanelUI.hide();
         weeklyTrackerUI.hide();
         sidePanelsUI.hide();
+        floatingNavigatorUI.hide(); // Esconde o paginador
     }
 }
 
@@ -176,7 +181,12 @@ async function handleLogout() {
 }
 
 async function handleSwitchPlan(planId) {
-    if (!appState.currentUser || planId === appState.activePlanId) return;
+    if (!appState.currentUser || planId === appState.activePlanId) {
+        // Se já está ativo, apenas rola a tela até ele
+        const targetElement = document.getElementById(`plan-card-${planId}`);
+        targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+    }
 
     try {
         await planService.setActivePlan(appState.currentUser.uid, planId);
@@ -184,6 +194,13 @@ async function handleSwitchPlan(planId) {
         
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
+        floatingNavigatorUI.render(appState.userPlans);
+
+        // MELHORIA: Após ativar e re-renderizar, rola suavemente para o card do plano
+        requestAnimationFrame(() => {
+            const targetElement = document.getElementById(`plan-card-${planId}`);
+            targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
 
     } catch (error) {
         console.error("Erro ao trocar de plano:", error);
@@ -195,6 +212,7 @@ function handleCreateNewPlanRequest() {
     readingPlanUI.hide();
     sidePanelsUI.hide();
     planCreationActionsSection.style.display = 'none';
+    floatingNavigatorUI.hide(); // Esconde o paginador durante a criação
     planCreationUI.show(appState.userPlans.length === 0);
 }
 
@@ -202,6 +220,7 @@ function handleCancelPlanCreation() {
     planCreationUI.hide();
     readingPlanUI.show();
     sidePanelsUI.show();
+    floatingNavigatorUI.show(); // Mostra o paginador novamente
     planCreationActionsSection.style.display = 'flex';
 }
 
@@ -291,6 +310,7 @@ async function handlePlanSubmit(formData, planId) {
         
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
+        floatingNavigatorUI.render(appState.userPlans);
 
     } catch (error) {
         planCreationUI.showError(`Erro: ${error.message}`);
@@ -390,6 +410,7 @@ async function handleDeletePlan(planId) {
             
             renderAllPlanCards();
             sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
+            floatingNavigatorUI.render(appState.userPlans);
             
             if (appState.userPlans.length === 0) {
                 handleCreateNewPlanRequest();
@@ -407,6 +428,7 @@ function handleEditPlanRequest(planId) {
         readingPlanUI.hide();
         sidePanelsUI.hide();
         planCreationActionsSection.style.display = 'none';
+        floatingNavigatorUI.hide(); // Esconde o paginador durante a edição
         planCreationUI.openForEditing(planToEdit);
     } else {
         alert("Erro: Plano não encontrado para edição.");
@@ -558,6 +580,7 @@ async function handleCreateFavoritePlanSet() {
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
+        floatingNavigatorUI.render(appState.userPlans);
 
     } catch (error) {
         alert(`Erro ao criar planos favoritos: ${error.message}`);
@@ -600,12 +623,18 @@ function initApplication() {
         },
         onShowStats: handleShowStats,
         onShowHistory: handleShowHistory,
-        onSwitchPlan: handleSwitchPlan,
+        // onSwitchPlan foi removido daqui pois o botão não existe mais
     });
     
     perseverancePanelUI.init();
     weeklyTrackerUI.init();
     sidePanelsUI.init();
+    
+    // MODIFICAÇÃO: Passa os callbacks para o novo módulo do paginador
+    floatingNavigatorUI.init({
+        onSwitchPlan: handleSwitchPlan,
+        onCreatePlan: handleCreateNewPlanRequest,
+    });
     
     modalsUI.init({
         onConfirmRecalculate: (option, newPace) => {
