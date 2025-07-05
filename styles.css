@@ -155,12 +155,12 @@ section {
 section:not(.enhanced-panel):hover {
     box-shadow: var(--box-shadow-lg);
 }
-section h2 { 
+section h2, section h3 { 
     color: var(--primary-action); 
     margin-top: 0; 
     font-size: 1.5em; 
     font-weight: 700; 
-    transition: color var(--transition-fast); /* ADICIONADO para transição suave */
+    transition: color var(--transition-fast);
 }
 
 /* ESTILOS PARA PAINÉIS MELHORADOS COM BORDA GRADIENTE */
@@ -194,7 +194,7 @@ section h2 {
     padding-bottom: 12px;
     border-bottom: 2px solid rgba(var(--primary-action-rgb), 0.2);
     margin-bottom: 25px;
-    transition: border-bottom-color var(--transition-fast); /* ADICIONADO para transição suave da borda */
+    transition: border-bottom-color var(--transition-fast);
 }
 
 /* --- MELHORIA DE LEGIBILIDADE DOS TÍTULOS E TEXTOS NO HOVER --- */
@@ -212,6 +212,15 @@ section h2 {
     color: var(--text-color-light) !important;
     border-bottom-color: rgba(255, 255, 255, 0.6) !important;
 }
+
+/* --- CORREÇÃO: Garante que os marcadores 'missed' fiquem brancos no hover --- */
+.enhanced-panel:hover .day-indicator.missed-day .day-label {
+    color: var(--text-color-light);
+}
+.enhanced-panel:hover .day-indicator.missed-day .day-marker::after {
+    color: var(--text-color-light);
+}
+
 
 /* --- Botões --- */
 button { padding: var(--button-padding-y) var(--button-padding-x); border: none; border-radius: var(--base-border-radius); cursor: pointer; font-size: 1em; font-weight: 600; transition: var(--transition-fast); margin: 5px; box-shadow: none; letter-spacing: 0.5px; line-height: 1.5; vertical-align: middle; min-height: var(--input-height); -webkit-tap-highlight-color: transparent; }
@@ -303,7 +312,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .plan-card .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .plan-card .plan-actions button { flex-grow: 1; min-width: 150px; }
 
-
 /* --- Estilos Periodicidade na Criação --- */
 #periodicity-options .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 15px; margin-top: 10px; justify-content: flex-start; }
 #periodicity-options .checkbox-group label { display: inline-flex; align-items: center; cursor: pointer; font-weight: normal; color: var(--text-color-dark); margin-bottom: 0; margin-right: 0; font-size: 0.9em; padding: 5px 8px; border: 1px solid transparent; border-radius: var(--base-border-radius); transition: background-color var(--transition-fast), border-color var(--transition-fast); }
@@ -378,7 +386,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .weekly-tracker-container .day-indicator.current-day-highlight .day-label { color: var(--primary-action); font-weight: 700; }
 .weekly-tracker-container .day-label { font-size: 0.75em; font-weight: 600; color: var(--text-color-muted); margin-bottom: 6px; text-transform: uppercase; transition: color var(--transition-fast); }
 .weekly-tracker-container .day-marker { width: 32px; height: 32px; border-radius: 50%; background-color: var(--marker-inactive-color); border: 2px solid var(--marker-inactive-border); display: flex; justify-content: center; align-items: center; color: var(--text-color-light); font-weight: bold; transition: var(--transition-base); position: relative; }
-.weekly-tracker-container .day-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; font-weight: bold; line-height: 1; }
+.weekly-tracker-container .day-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; font-weight: bold; line-height: 1; transition: color var(--transition-fast); }
 .weekly-tracker-container .day-indicator.active .day-marker { background: linear-gradient(135deg, var(--primary-action), var(--gradient-mid)); border-color: transparent; color: var(--text-color-light); box-shadow: 0 0 12px var(--marker-active-shadow); transform: scale(1.1); }
 .weekly-tracker-container .day-indicator.active .day-marker::after { content: '✓'; color: var(--text-color-light); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
 .weekly-tracker-container .day-indicator.missed-day .day-marker { background-color: var(--marker-missed-bg); border-color: var(--marker-missed-border); box-shadow: 0 0 8px var(--marker-missed-shadow); transform: scale(1.05); }
@@ -467,7 +475,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 @media (max-width: 768px) {
      main { max-width: 100%; }
      section, .enhanced-panel, .plan-card { padding: 20px; }
-     section h2, .plan-card .plan-card-title { font-size: 1.4em; }
+     section h2, section h3, .plan-card .plan-card-title { font-size: 1.4em; }
      #overdue-readings h2, #upcoming-readings h2 { font-size: 1.3em; }
      .modal-content { padding: 25px; max-width: calc(100% - 30px); }
      header h1 { font-size: 1.4em; }
@@ -494,7 +502,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     #user-email { max-width: 90%; text-align: center; } #logout-button { width: auto; padding: 8px 15px; }
     main { margin: 15px auto; padding: 0 10px; }
     section, .enhanced-panel, .plan-card { padding: 15px; margin-bottom: 20px; }
-    section h2, .plan-card .plan-card-title { font-size: 1.3em; }
+    section h2, section h3, .plan-card .plan-card-title { font-size: 1.3em; }
     #overdue-readings h2, #upcoming-readings h2 { font-size: 1.2em; }
     .modal-content { padding: 20px; max-width: calc(100% - 20px); } .modal h2 { font-size: 1.4em; }
     .plan-card .plan-actions { flex-direction: column; gap: 8px; } .plan-card .plan-actions button { width: 100%; margin: 0; min-width: auto; }
