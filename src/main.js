@@ -51,12 +51,10 @@ const appState = {
     userPlans: [],
     activePlanId: null,
     
-    // Getter para acessar facilmente as interações semanais
     get weeklyInteractions() {
         return this.userInfo ? this.userInfo.globalWeeklyInteractions : null;
     },
 
-    // Reseta o estado para o estado inicial (logout)
     reset() {
         this.currentUser = null;
         this.userInfo = null;
@@ -68,42 +66,29 @@ const appState = {
 
 // --- 3. ORQUESTRADOR PRINCIPAL E LÓGICA DE NEGÓCIOS ---
 
-/**
- * Lida com as mudanças de estado de autenticação (login/logout).
- * É a função central que direciona o fluxo da aplicação.
- * @param {import("firebase/auth").User | null} user - O objeto do usuário ou null.
- */
 async function handleAuthStateChange(user) {
     authUI.hideLoading(); 
     if (user) {
-        // --- Usuário LOGADO ---
         appState.currentUser = user;
         authUI.hide();
         headerUI.showLoading();
         
         await loadInitialUserData(user);
 
-        // Renderiza o cabeçalho simplificado
         headerUI.render(user); 
-        
-        // Mostra os botões de criação de plano
         planCreationActionsSection.style.display = 'flex';
         
-        // Renderiza os painéis de dashboard
         perseverancePanelUI.render(appState.userInfo);
         weeklyTrackerUI.render(appState.weeklyInteractions);
         sidePanelsUI.render(appState.userPlans, appState.activePlanId, handleSwitchPlan);
         
-        // NOVA LÓGICA DE RENDERIZAÇÃO DOS CARDS
         renderAllPlanCards();
         
-        // Se o usuário não tiver planos, mostra o formulário de criação
         if (appState.userPlans.length === 0) {
             handleCreateNewPlanRequest();
         }
 
     } else {
-        // --- Usuário DESLOGADO ---
         appState.reset();
         authUI.show();
         headerUI.render(null);
@@ -116,9 +101,6 @@ async function handleAuthStateChange(user) {
     }
 }
 
-/**
- * Função auxiliar para renderizar/re-renderizar todos os cards de plano.
- */
 function renderAllPlanCards() {
     const effectiveDatesMap = {};
     appState.userPlans.forEach(plan => {
@@ -128,11 +110,6 @@ function renderAllPlanCards() {
     readingPlanUI.renderAllPlanCards(appState.userPlans, appState.activePlanId, effectiveDatesMap);
 }
 
-
-/**
- * Carrega todos os dados essenciais do usuário do Firestore após o login.
- * @param {import("firebase/auth").User} user - O objeto do usuário autenticado.
- */
 async function loadInitialUserData(user) {
     try {
         appState.userInfo = await planService.fetchUserInfo(user.uid, user.email);
@@ -154,11 +131,6 @@ async function loadInitialUserData(user) {
     }
 }
 
-/**
- * Verifica a validade da sequência de interações do usuário.
- * @param {object} userInfo - O objeto de informações do usuário.
- * @returns {object | null} Um objeto para atualização ou null.
- */
 function verifyAndResetStreak(userInfo) {
     const todayStr = getCurrentUTCDateString();
     const { lastStreakInteractionDate, currentStreak } = userInfo;
@@ -174,9 +146,6 @@ function verifyAndResetStreak(userInfo) {
     return null;
 }
 
-/**
- * Lida com a tentativa de login.
- */
 async function handleLogin(email, password) {
     authUI.showLoading();
     try {
@@ -187,9 +156,6 @@ async function handleLogin(email, password) {
     }
 }
 
-/**
- * Lida com a tentativa de cadastro.
- */
 async function handleSignup(email, password) {
     authUI.showLoading();
     try {
@@ -201,9 +167,6 @@ async function handleSignup(email, password) {
     }
 }
 
-/**
- * Lida com o logout do usuário.
- */
 async function handleLogout() {
     try {
         await authService.logout();
@@ -212,14 +175,9 @@ async function handleLogout() {
     }
 }
 
-/**
- * Lida com a troca do plano ativo.
- * @param {string} planId - O ID do novo plano a ser ativado.
- */
 async function handleSwitchPlan(planId) {
     if (!appState.currentUser || planId === appState.activePlanId) return;
 
-    // TODO: Adicionar um indicador de carregamento no card clicado
     try {
         await planService.setActivePlan(appState.currentUser.uid, planId);
         await loadInitialUserData(appState.currentUser); 
@@ -233,9 +191,6 @@ async function handleSwitchPlan(planId) {
     }
 }
 
-/**
- * Exibe a UI para criar um novo plano.
- */
 function handleCreateNewPlanRequest() {
     readingPlanUI.hide();
     sidePanelsUI.hide();
@@ -243,9 +198,6 @@ function handleCreateNewPlanRequest() {
     planCreationUI.show(appState.userPlans.length === 0);
 }
 
-/**
- * Cancela a criação de um plano e retorna à visualização principal.
- */
 function handleCancelPlanCreation() {
     planCreationUI.hide();
     readingPlanUI.show();
@@ -253,11 +205,6 @@ function handleCancelPlanCreation() {
     planCreationActionsSection.style.display = 'flex';
 }
 
-/**
- * Orquestra a criação ou atualização de um plano a partir dos dados do formulário.
- * @param {object} formData - Os dados brutos coletados do formulário.
- * @param {string|null} planId - O ID do plano a ser atualizado, ou null se for um novo plano.
- */
 async function handlePlanSubmit(formData, planId) {
     planCreationUI.showLoading();
     try {
@@ -286,7 +233,6 @@ async function handlePlanSubmit(formData, planId) {
                 throw new Error("Nenhum capítulo válido foi selecionado.");
             }
 
-            // Lógica de cálculo de duração e distribuição
             let totalReadingDays = 0;
             let startDate = formData.startDate || getCurrentUTCDateString();
             const validAllowedDays = formData.allowedDays.length > 0 ? formData.allowedDays : [0, 1, 2, 3, 4, 5, 6];
@@ -301,7 +247,7 @@ async function handlePlanSubmit(formData, planId) {
                     tempDate.setUTCDate(tempDate.getUTCDate() + 1);
                 }
                 totalReadingDays = Math.max(1, readingDaysInPeriod);
-            } else { // end-date
+            } else {
                 if (!formData.endDate) throw new Error("A data final é obrigatória.");
                 const calendarDuration = dateDiffInDays(startDate, formData.endDate) + 1;
                 let readingDaysInPeriod = 0;
@@ -353,26 +299,17 @@ async function handlePlanSubmit(formData, planId) {
     }
 }
 
-
-/**
- * Lida com a marcação de um capítulo como lido/não lido.
- * @param {string} planId - O ID do plano onde o capítulo foi marcado.
- * @param {string} chapterName - O nome do capítulo.
- * @param {boolean} isRead - O novo estado de leitura.
- */
 async function handleChapterToggle(planId, chapterName, isRead) {
     if (!appState.currentUser) return;
 
     try {
         await planService.updateChapterStatus(appState.currentUser.uid, planId, chapterName, isRead);
         
-        // Atualiza estado local para re-renderização imediata
         const planToUpdate = appState.userPlans.find(p => p.id === planId);
         if (planToUpdate) {
             planToUpdate.dailyChapterReadStatus[chapterName] = isRead;
         }
         
-        // Lógica de atualização de streak e interações (sem alterações)
         const todayStr = getCurrentUTCDateString();
         let interactionUpdates = {};
         if (isRead && appState.userInfo.lastStreakInteractionDate !== todayStr) {
@@ -400,23 +337,17 @@ async function handleChapterToggle(planId, chapterName, isRead) {
             await planService.updateUserInteractions(appState.currentUser.uid, interactionUpdates);
         }
 
-        // Re-renderiza UIs relevantes
         renderAllPlanCards();
         perseverancePanelUI.render(appState.userInfo);
         weeklyTrackerUI.render(appState.weeklyInteractions);
         
     } catch (error) {
         alert(`Erro ao salvar progresso: ${error.message}`);
-        // Reverte a UI se a operação falhou
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
     }
 }
 
-/**
- * Lida com a conclusão do dia de leitura atual.
- * @param {string} planId - O ID do plano a ser avançado.
- */
 async function handleCompleteDay(planId) {
     const planToAdvance = appState.userPlans.find(p => p.id === planId);
     if (!planToAdvance) return;
@@ -440,10 +371,6 @@ async function handleCompleteDay(planId) {
     }
 }
 
-/**
- * Lida com a exclusão de um plano.
- * @param {string} planId - O ID do plano a ser excluído.
- */
 async function handleDeletePlan(planId) {
     const planToDelete = appState.userPlans.find(p => p.id === planId);
     if (!planToDelete) return;
@@ -474,10 +401,6 @@ async function handleDeletePlan(planId) {
     }
 }
 
-/**
- * Lida com a solicitação para editar um plano.
- * @param {string} planId - O ID do plano a ser editado.
- */
 function handleEditPlanRequest(planId) {
     const planToEdit = appState.userPlans.find(p => p.id === planId);
     if (planToEdit) {
@@ -490,13 +413,6 @@ function handleEditPlanRequest(planId) {
     }
 }
 
-
-/**
- * Lida com o recálculo do plano de leitura.
- * @param {string} option - A opção de recálculo.
- * @param {number} newPaceValue - O novo ritmo, se aplicável.
- * @param {string} planId - O ID do plano a ser recalculado.
- */
 async function handleRecalculate(option, newPaceValue, planId) {
     const planToRecalculate = appState.userPlans.find(p => p.id === planId);
     if (!appState.currentUser || !planToRecalculate) return;
@@ -570,10 +486,6 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
 // --- 4. FUNÇÕES DE MODAIS E OUTRAS AÇÕES ---
 
-/**
- * Calcula as estatísticas para um determinado plano.
- * @param {string} planId - O ID do plano.
- */
 function handleShowStats(planId) {
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
@@ -598,10 +510,6 @@ function handleShowStats(planId) {
     modalsUI.open('stats-modal');
 }
 
-/**
- * Exibe o histórico de um plano.
- * @param {string} planId - O ID do plano.
- */
 function handleShowHistory(planId) {
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
@@ -609,10 +517,6 @@ function handleShowHistory(planId) {
     modalsUI.open('history-modal');
 }
 
-
-/**
- * Orquestra a criação do conjunto de planos anuais favoritos.
- */
 async function handleCreateFavoritePlanSet() {
     try {
         for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
@@ -627,7 +531,7 @@ async function handleCreateFavoritePlanSet() {
             
             const planData = {
                 name: config.name,
-                icon: FAVORITE_PLAN_ICONS[config.name] || '📖', // Usa o ícone fixo
+                icon: FAVORITE_PLAN_ICONS[config.name] || '📖',
                 plan: planMap,
                 chaptersList: chaptersToRead,
                 totalChapters: chaptersToRead.length,
@@ -660,11 +564,9 @@ async function handleCreateFavoritePlanSet() {
     }
 }
 
+
 // --- 5. INICIALIZAÇÃO DA APLICAÇÃO ---
 
-/**
- * Inicializa todos os módulos e anexa os listeners de eventos.
- */
 function initApplication() {
     authService.onAuthStateChanged(handleAuthStateChange);
 
@@ -681,7 +583,7 @@ function initApplication() {
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
 
     planCreationUI.init({
-        onSubmit: handlePlanSubmit, // Callback unificado para criação e edição
+        onSubmit: handlePlanSubmit,
         onCancel: handleCancelPlanCreation,
     });
     
@@ -689,7 +591,7 @@ function initApplication() {
         onCompleteDay: handleCompleteDay,
         onChapterToggle: handleChapterToggle,
         onDeletePlan: handleDeletePlan,
-        onEditPlan: handleEditPlanRequest, // Novo callback para edição
+        onEditPlan: handleEditPlanRequest,
         onRecalculate: (planId) => { 
             modalsUI.resetRecalculateForm();
             const confirmBtn = document.getElementById('confirm-recalculate');
@@ -718,5 +620,4 @@ function initApplication() {
     console.log("Aplicação modular inicializada com nova arquitetura de UI.");
 }
 
-// Inicia a aplicação quando o DOM estiver pronto.
 document.addEventListener('DOMContentLoaded', initApplication);
