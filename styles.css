@@ -194,6 +194,19 @@ section h2 { color: var(--primary-action); margin-top: 0; font-size: 1.5em; font
     margin-bottom: 25px;
 }
 
+/* --- MELHORIA DE LEGIBILIDADE DOS TÍTULOS --- */
+.enhanced-panel:hover h2,
+.enhanced-panel:hover h3 {
+    color: var(--text-color-light);
+    transition: color var(--transition-fast);
+}
+
+/* Garante que o título do painel de leituras atrasadas também fique claro */
+.enhanced-panel#overdue-readings:hover h2 {
+    color: var(--text-color-light) !important;
+}
+
+
 /* --- Botões --- */
 button { padding: var(--button-padding-y) var(--button-padding-x); border: none; border-radius: var(--base-border-radius); cursor: pointer; font-size: 1em; font-weight: 600; transition: var(--transition-fast); margin: 5px; box-shadow: none; letter-spacing: 0.5px; line-height: 1.5; vertical-align: middle; min-height: var(--input-height); -webkit-tap-highlight-color: transparent; }
 button:disabled { background-color: var(--disabled-color); color: var(--disabled-text-color); cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none !important; }
@@ -209,9 +222,6 @@ button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(var(--primary-a
 .button-special { background-color: var(--success-color); color: var(--text-color-light); }
 .button-special:hover:not(:disabled) { background-color: var(--success-color-dark); }
 
-/* REMOVIDO: .button-activate tornou-se obsoleto */
-
-/* NOVO: Botão de Edição */
 .button-edit {
     background-color: #6c757d; /* Cinza Muted */
     color: var(--text-color-light);
@@ -236,13 +246,12 @@ legend { font-weight: 700; color: var(--primary-action); padding: 0 10px; font-s
 hr { border: 0; height: 1px; background-color: var(--border-color); margin: 30px 0; }
 small { display: block; font-size: 0.85em; color: var(--text-color-muted); margin-top: -10px; margin-bottom: 15px; line-height: 1.4; }
 
-/* NOVO: Estilo para desabilitar fieldset na edição */
 fieldset:disabled {
     opacity: 0.5;
     pointer-events: none;
 }
 
-/* --- NOVO: Estilos para o Seletor de Ícones no Formulário --- */
+/* --- Estilos para o Seletor de Ícones no Formulário --- */
 .icon-selector-fieldset {
     border-style: dashed;
 }
@@ -312,7 +321,8 @@ fieldset:disabled {
     box-shadow: none;
     border: none;
 }
-.plan-creation-actions-container button {
+#create-new-plan-button,
+#create-favorite-plan-button {
     flex-grow: 1;
     max-width: 350px;
 }
@@ -320,7 +330,6 @@ fieldset:disabled {
 /* --- Estilos para a exibição de múltiplos planos --- */
 .plans-display-container {
     display: grid;
-    /* MODIFICADO: Layout de coluna única em todas as telas */
     grid-template-columns: 1fr;
     gap: 30px;
     background-color: transparent;
@@ -351,14 +360,13 @@ fieldset:disabled {
     transform: translateY(-2px);
 }
 
-/* --- NOVO: Estilo para o Ícone no Card do Plano --- */
+/* Estilo para o Ícone no Card do Plano */
 .plan-card .plan-card-icon {
-    font-size: 1.5em; /* Tamanho do ícone */
+    font-size: 1.5em;
     margin-right: 12px;
     line-height: 1;
 }
 .plan-card .plan-header-info {
-    /* Garante alinhamento vertical correto */
     align-items: center;
     display: flex;
     gap: 10px;
@@ -503,9 +511,96 @@ fieldset:disabled {
 .weekly-tracker-container .day-indicator.missed-day .day-label { color: var(--marker-missed-text); }
 
 
-/* --- Media Queries (Ajustes Responsivos) --- */
-/* REMOVIDO: Media query obsoleta para layout de 2 colunas */
+/* --- Estilos do Paginador Flutuante (Dock) --- */
+#floating-navigator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    z-index: 950;
 
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    padding: 10px;
+    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.12);
+    border-radius: 50px;
+    
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
+    opacity: 0;
+    visibility: hidden;
+}
+
+#floating-navigator.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#floating-navigator.hidden-at-bottom {
+    transform: translateX(-50%) translateY(calc(100% + 25px));
+    opacity: 0;
+    visibility: hidden;
+}
+
+#floating-navigator .nav-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 45px;
+    height: 45px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    text-decoration: none;
+    color: var(--text-color-dark);
+    font-size: 1.5rem; /* Ajustado para emojis */
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    background-color: #fff;
+    box-shadow: var(--box-shadow-sm);
+    padding: 0;
+    line-height: 1;
+}
+
+#floating-navigator .nav-button:hover {
+    transform: scale(1.1);
+    box-shadow: var(--box-shadow);
+    border-color: var(--accent-color);
+}
+
+#floating-navigator .nav-button.home-button {
+    font-size: 1.3rem; /* Tamanho ajustado para ícone de casa */
+    font-weight: bold;
+    color: var(--text-color-dark);
+    border-color: var(--border-color);
+}
+#floating-navigator .nav-button.home-button:hover {
+    border-color: var(--accent-color);
+}
+
+#floating-navigator .nav-button.add-plan-button {
+    color: var(--text-color-light);
+    background-color: var(--success-color);
+    border-color: transparent;
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+#floating-navigator .nav-button.add-plan-button:hover {
+    background-color: var(--success-color-dark);
+}
+
+/* MELHORIA DE UX: Classe de destaque para o botão do plano ativo/visível */
+#floating-navigator .nav-button.active-nav {
+    border-color: var(--primary-action);
+    transform: scale(1.1);
+    box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.3);
+}
+
+
+/* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; }
      section, .enhanced-panel, .plan-card { padding: 20px; }
@@ -571,94 +666,4 @@ fieldset:disabled {
     .progress-bar { height: 26px; }
     .progress-percentage-left { font-size: 0.8em; left: 10px; }
     .milestone-legend { font-size: 0.75em; }
-}
-
-/* --- NOVO: Estilos do Paginador Flutuante (Dock) --- */
-#floating-navigator {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(0);
-    z-index: 950;
-
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-    padding: 10px;
-    box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.12);
-    border-radius: 50px;
-    
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s ease;
-    opacity: 0;
-    visibility: hidden;
-}
-
-#floating-navigator.visible {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Classe para animação de desaparecimento no final da página */
-#floating-navigator.hidden-at-bottom {
-    transform: translateX(-50%) translateY(calc(100% + 25px));
-    opacity: 0;
-    visibility: hidden;
-}
-
-#floating-navigator .nav-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 45px;
-    height: 45px;
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    text-decoration: none;
-    color: var(--text-color-dark);
-    font-size: 1.5rem; /* Ajustado para emojis */
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
-    background-color: #fff;
-    box-shadow: var(--box-shadow-sm);
-    padding: 0;
-    line-height: 1;
-}
-
-#floating-navigator .nav-button:hover {
-    transform: scale(1.1);
-    box-shadow: var(--box-shadow);
-    border-color: var(--accent-color);
-}
-
-#floating-navigator .nav-button.home-button {
-    font-size: 1.3rem; /* Tamanho ajustado para ícone de casa */
-    font-weight: bold;
-    color: var(--text-color-dark);
-    border-color: var(--border-color);
-}
-#floating-navigator .nav-button.home-button:hover {
-    border-color: var(--accent-color);
-}
-
-/* Classe para o botão de 'Adicionar Plano' */
-#floating-navigator .nav-button.add-plan-button {
-    color: var(--text-color-light);
-    background-color: var(--success-color);
-    border-color: transparent;
-    font-size: 1.8rem;
-    font-weight: bold;
-}
-#floating-navigator .nav-button.add-plan-button:hover {
-    background-color: var(--success-color-dark);
-}
-
-/* Classe de destaque para o botão do plano ativo/visível */
-#floating-navigator .nav-button.active-nav {
-    border-color: var(--primary-action);
-    transform: scale(1.1);
-    box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.3);
 }
