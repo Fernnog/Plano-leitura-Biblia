@@ -15,6 +15,7 @@ let state = {
         onCompleteDay: null,
         onChapterToggle: null,
         onDeletePlan: null,
+        onEditPlan: null, // NOVO: Callback para edição
         onRecalculate: null,
         onShowStats: null,
         onShowHistory: null,
@@ -113,6 +114,7 @@ function _renderCardActions(plan, isActive) {
             ${!isCompleted ? `<button class="button-primary" data-action="completeDay" ${!allChaptersChecked ? 'disabled' : ''}>Concluir Leituras e Avançar</button>` : ''}
             <button class="button-activate" data-action="activate" ${isActive ? 'disabled' : ''}>${isActive ? 'Ativo' : 'Ativar'}</button>
             <button class="button-secondary" data-action="recalculate" ${isCompleted ? 'disabled' : ''}>Recalcular</button>
+            <button class="button-edit" data-action="edit">Editar</button>
             <button class="button-secondary" data-action="showStats">Estatísticas</button>
             <button class="button-secondary" data-action="showHistory">Histórico</button>
             <button class="button-danger" data-action="delete">Excluir</button>
@@ -143,6 +145,7 @@ export function init(callbacks) {
         if (action === 'completeDay') state.callbacks.onCompleteDay?.(planId);
         if (action === 'delete') state.callbacks.onDeletePlan?.(planId);
         if (action === 'activate') state.callbacks.onSwitchPlan?.(planId);
+        if (action === 'edit') state.callbacks.onEditPlan?.(planId); // NOVO
         if (action === 'recalculate') state.callbacks.onRecalculate?.(planId);
         if (action === 'showStats') state.callbacks.onShowStats?.(planId);
         if (action === 'showHistory') state.callbacks.onShowHistory?.(planId);
@@ -190,6 +193,7 @@ export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
         // Constrói o HTML interno do card usando as funções de template
         planCard.innerHTML = `
             <div class="plan-header-info">
+                ${plan.icon ? `<span class="plan-card-icon">${plan.icon}</span>` : ''}
                 <h2 class="plan-card-title">${plan.name || 'Plano sem nome'}</h2>
                 ${plan.googleDriveLink ? `<a href="${plan.googleDriveLink}" target="_blank" class="drive-link-icon" title="Abrir link do Drive"><img src="drive_icon.png" alt="Ícone Google Drive" class="drive-png-icon"></a>` : ''}
             </div>
