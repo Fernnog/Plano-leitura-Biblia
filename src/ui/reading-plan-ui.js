@@ -1,3 +1,5 @@
+// src/ui/reading-plan-ui.js
+
 /**
  * @file reading-plan-ui.js
  * @description Módulo de UI responsável por renderizar e gerenciar os cards de
@@ -15,11 +17,11 @@ let state = {
         onCompleteDay: null,
         onChapterToggle: null,
         onDeletePlan: null,
-        onEditPlan: null, // NOVO: Callback para edição
+        onEditPlan: null,
         onRecalculate: null,
         onShowStats: null,
         onShowHistory: null,
-        onSwitchPlan: null,
+        // onSwitchPlan foi removido pois o botão 'Ativar' não existe mais neste módulo
     },
 };
 
@@ -98,11 +100,11 @@ function _renderDailyReading(plan, effectiveDate) {
 
 /**
  * Gera o HTML para os botões de ação de um plano.
+ * O botão "Ativar" foi removido.
  * @param {object} plan - O objeto do plano.
- * @param {boolean} isActive - Se este é o plano ativo.
  * @returns {string} Uma string HTML com os botões de ação.
  */
-function _renderCardActions(plan, isActive) {
+function _renderCardActions(plan) {
     const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
     const isCompleted = plan.currentDay > totalReadingDaysInPlan;
 
@@ -112,7 +114,6 @@ function _renderCardActions(plan, isActive) {
     return `
         <div class="plan-actions">
             ${!isCompleted ? `<button class="button-primary" data-action="completeDay" ${!allChaptersChecked ? 'disabled' : ''}>Concluir Leituras e Avançar</button>` : ''}
-            <button class="button-activate" data-action="activate" ${isActive ? 'disabled' : ''}>${isActive ? 'Ativo' : 'Ativar'}</button>
             <button class="button-secondary" data-action="recalculate" ${isCompleted ? 'disabled' : ''}>Recalcular</button>
             <button class="button-edit" data-action="edit">Editar</button>
             <button class="button-secondary" data-action="showStats">Estatísticas</button>
@@ -144,8 +145,8 @@ export function init(callbacks) {
         // Dispara o callback correspondente com o ID do plano
         if (action === 'completeDay') state.callbacks.onCompleteDay?.(planId);
         if (action === 'delete') state.callbacks.onDeletePlan?.(planId);
-        if (action === 'activate') state.callbacks.onSwitchPlan?.(planId);
-        if (action === 'edit') state.callbacks.onEditPlan?.(planId); // NOVO
+        // Ação 'activate' foi removida
+        if (action === 'edit') state.callbacks.onEditPlan?.(planId);
         if (action === 'recalculate') state.callbacks.onRecalculate?.(planId);
         if (action === 'showStats') state.callbacks.onShowStats?.(planId);
         if (action === 'showHistory') state.callbacks.onShowHistory?.(planId);
@@ -171,7 +172,7 @@ export function init(callbacks) {
  * @param {object} effectiveDatesMap - Um mapa de { planId: "data_efetiva" }.
  */
 export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
-    plansDisplaySection.innerHTML = ''; // Limpa a área antes de re-renderizar
+    plansDisplaySection.innerHTML = '';
 
     if (!allPlans || allPlans.length === 0) {
         hide();
@@ -181,6 +182,8 @@ export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
     allPlans.forEach(plan => {
         const planCard = document.createElement('div');
         planCard.className = 'plan-card';
+        // MODIFICAÇÃO CRÍTICA: Adiciona um ID único para servir de âncora de navegação.
+        planCard.id = `plan-card-${plan.id}`;
         planCard.dataset.planId = plan.id;
 
         const isActive = plan.id === activePlanId;
@@ -190,7 +193,6 @@ export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
 
         const effectiveDate = effectiveDatesMap[plan.id];
         
-        // Constrói o HTML interno do card usando as funções de template
         planCard.innerHTML = `
             <div class="plan-header-info">
                 ${plan.icon ? `<span class="plan-card-icon">${plan.icon}</span>` : ''}
@@ -199,7 +201,7 @@ export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
             </div>
             ${_renderProgressBar(plan)}
             ${_renderDailyReading(plan, effectiveDate)}
-            ${_renderCardActions(plan, isActive)}
+            ${_renderCardActions(plan)}
         `;
         
         plansDisplaySection.appendChild(planCard);
@@ -212,7 +214,7 @@ export function renderAllPlanCards(allPlans, activePlanId, effectiveDatesMap) {
  * Mostra o container dos cards de plano.
  */
 export function show() {
-    plansDisplaySection.style.display = 'grid'; // Usa 'grid' para ativar o layout de colunas
+    plansDisplaySection.style.display = 'grid';
 }
 
 /**
