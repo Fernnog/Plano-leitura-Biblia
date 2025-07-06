@@ -189,13 +189,31 @@
 </section>
 
         <!-- Painel de Progresso Semanal Global -->
-        <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;"></section>
+       <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
+     <h3>Suas Interações na Semana</h3>
+     <div class="week-days" id="global-week-days-indicators">
+         <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
+         <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
+     </div>
+</section>
         
          <!-- Seção Leituras Atrasadas -->
-         <section id="overdue-readings" class="enhanced-panel" style="display: none;"></section>
-
+         <section id="overdue-readings" class="enhanced-panel" style="display: none;">
+      <h2>⚠️ Leituras Atrasadas</h2>
+      <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
+      <div id="overdue-readings-list" class="overdue-readings-container"></div>
+</section>
          <!-- Seção Próximas Leituras -->
-         <section id="upcoming-readings" class="enhanced-panel" style="display: none;"></section>
+        <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
+      <h2>Próximas Leituras</h2>
+      <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+      <div id="upcoming-readings-list" class="upcoming-readings-container"></div>
+</section>
 
         <!-- Container que abrigará os múltiplos cards de planos -->
         <section id="plans-display-section" class="plans-display-container" style="display: none;"></section>
