@@ -159,61 +159,62 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-        <!-- Painel de Perseverança Aprimorado -->
-       <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
-    <div class="perseverance-header">
-        <h2>Sua Perseverança</h2>
-    </div>
-    <div class="milestone-icons-area">
-        <span class="milestone-icon record-crown">👑</span>
-        <span class="milestone-icon" data-milestone="sun">☀️</span>
-        <span class="milestone-icon" data-milestone="diamond">💎</span>
-        <span class="milestone-icon" data-milestone="tree">🌳</span>
-        <span id="starContainer" class="milestone-icon-container"></span>
-        <span class="milestone-icon" data-milestone="flame">🔥</span>
-        <span class="milestone-icon" data-milestone="seed">🌱</span>
-    </div>
-    <div class="perseverance-bar-container">
-        <div class="progress-bar">
-            <span class="progress-percentage-left">
-                <span class="current-days-text">0</span> / <span class="record-days-text">0</span> dias
-            </span>
-            <div id="perseverance-progress-fill" class="progress">
-                <div class="progress-shine-overlay"></div>
+        <!-- Painel de Perseverança Aprimorado (CORRIGIDO) -->
+        <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
+            <div class="perseverance-header">
+                <h2>Sua Perseverança</h2>
             </div>
-        </div>
-    </div>
-    <div class="milestone-legend">
-        <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 365d</span> | <span>☀️ 1000d</span>
-    </div>
-</section>
+            <div class="milestone-icons-area">
+                <span class="milestone-icon record-crown">👑</span>
+                <span class="milestone-icon" data-milestone="sun">☀️</span>
+                <span class="milestone-icon" data-milestone="diamond">💎</span>
+                <span class="milestone-icon" data-milestone="tree">🌳</span>
+                <span id="starContainer" class="milestone-icon-container"></span>
+                <span class="milestone-icon" data-milestone="flame">🔥</span>
+                <span class="milestone-icon" data-milestone="seed">🌱</span>
+            </div>
+            <div class="perseverance-bar-container">
+                <div class="progress-bar">
+                    <span class="progress-percentage-left">
+                        <span class="current-days-text">0</span> / <span class="record-days-text">0</span> dias
+                    </span>
+                    <div id="perseverance-progress-fill" class="progress">
+                        <div class="progress-shine-overlay"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="milestone-legend">
+                <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 365d</span> | <span>☀️ 1000d</span>
+            </div>
+        </section>
 
-        <!-- Painel de Progresso Semanal Global -->
-       <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
-     <h3>Suas Interações na Semana</h3>
-     <div class="week-days" id="global-week-days-indicators">
-         <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
-         <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
-     </div>
-</section>
+        <!-- Painel de Progresso Semanal Global (CORRIGIDO) -->
+        <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
+             <h3>Suas Interações na Semana</h3>
+             <div class="week-days" id="global-week-days-indicators">
+                 <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
+                 <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
+             </div>
+        </section>
         
-         <!-- Seção Leituras Atrasadas -->
+         <!-- Seção Leituras Atrasadas (CORRIGIDO) -->
          <section id="overdue-readings" class="enhanced-panel" style="display: none;">
-      <h2>⚠️ Leituras Atrasadas</h2>
-      <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
-      <div id="overdue-readings-list" class="overdue-readings-container"></div>
-</section>
-         <!-- Seção Próximas Leituras -->
-        <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
-      <h2>Próximas Leituras</h2>
-      <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
-      <div id="upcoming-readings-list" class="upcoming-readings-container"></div>
-</section>
+              <h2>⚠️ Leituras Atrasadas</h2>
+              <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
+              <div id="overdue-readings-list" class="overdue-readings-container"></div>
+         </section>
+
+         <!-- Seção Próximas Leituras (CORRIGIDO) -->
+         <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
+              <h2>Próximas Leituras</h2>
+              <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+              <div id="upcoming-readings-list" class="upcoming-readings-container"></div>
+         </section>
 
         <!-- Container que abrigará os múltiplos cards de planos -->
         <section id="plans-display-section" class="plans-display-container" style="display: none;"></section>
@@ -282,8 +283,13 @@
         <!-- Rodapé opcional -->
     </footer>
 
-    <!-- NOVO: Inclusão da biblioteca Chart.js via CDN -->
+    <!-- Inclusão da biblioteca Chart.js via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- NOVO E ESSENCIAL: Inclusão do Date-FNS e seu Adaptador para o Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- FIM DA ADIÇÃO -->
 
     <!-- Ponto de entrada para o JavaScript modular -->
     <script type="module" src="./src/main.js"></script>
