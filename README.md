@@ -40,7 +40,8 @@ O projeto é organizado na seguinte estrutura de diretórios, promovendo a separ
     └── utils/ # Funções puras e utilitárias
         ├── chapter-helpers.js # Funções para gerar e manipular capítulos
         ├── date-helpers.js # Funções para formatar e calcular datas
-        └── plan-logic-helpers.js # Lógica para calcular a data efetiva de um dia de leitura
+        ├── plan-logic-helpers.js # Lógica para calcular a data efetiva de um dia de leitura
+        └── plan-builder.js # (NOVO) Lógica de negócios para construir um objeto de plano completo a partir dos dados do formulário
 
 ## Funcionalidades Principais
 
