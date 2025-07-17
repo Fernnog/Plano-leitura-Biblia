@@ -159,19 +159,17 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-        <!-- Painel de Perseverança Aprimorado (CORRIGIDO) -->
+        <!-- Painel de Perseverança Aprimorado (MODIFICADO) -->
         <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
             <div class="perseverance-header">
                 <h2>Sua Perseverança</h2>
             </div>
+            <!-- ÁREA DE ÍCONES MODIFICADA -->
             <div class="milestone-icons-area">
+                <!-- O ícone da coroa permanece, pois sua lógica é separada -->
                 <span class="milestone-icon record-crown">👑</span>
-                <span class="milestone-icon" data-milestone="sun">☀️</span>
-                <span class="milestone-icon" data-milestone="diamond">💎</span>
-                <span class="milestone-icon" data-milestone="tree">🌳</span>
-                <span id="starContainer" class="milestone-icon-container"></span>
-                <span class="milestone-icon" data-milestone="flame">🔥</span>
-                <span class="milestone-icon" data-milestone="seed">🌱</span>
+                <!-- Este container será preenchido dinamicamente pelo JavaScript -->
+                <div id="cumulative-milestones-container"></div>
             </div>
             <div class="perseverance-bar-container">
                 <div class="progress-bar">
@@ -183,12 +181,13 @@
                     </div>
                 </div>
             </div>
+            <!-- LEGENDA ATUALIZADA -->
             <div class="milestone-legend">
-                <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 365d</span> | <span>☀️ 1000d</span>
+                <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 300d</span> | <span>☀️ 1000d</span>
             </div>
         </section>
 
-        <!-- Painel de Progresso Semanal Global (CORRIGIDO) -->
+        <!-- Painel de Progresso Semanal Global (INALTERADO) -->
         <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
              <h3>Suas Interações na Semana</h3>
              <div class="week-days" id="global-week-days-indicators">
@@ -202,14 +201,14 @@
              </div>
         </section>
         
-         <!-- Seção Leituras Atrasadas (CORRIGIDO) -->
+         <!-- Seção Leituras Atrasadas (INALTERADO) -->
          <section id="overdue-readings" class="enhanced-panel" style="display: none;">
               <h2>⚠️ Leituras Atrasadas</h2>
               <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
               <div id="overdue-readings-list" class="overdue-readings-container"></div>
          </section>
 
-         <!-- Seção Próximas Leituras (CORRIGIDO) -->
+         <!-- Seção Próximas Leituras (INALTERADO) -->
          <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
               <h2>Próximas Leituras</h2>
               <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
@@ -238,7 +237,7 @@
             </div>
         </div>
 
-         <!-- Modal Estatísticas (MODIFICADO) -->
+         <!-- Modal Estatísticas (INALTERADO) -->
          <div id="stats-modal" class="modal" style="display: none;">
              <div class="modal-content modal-content-scrollable">
                  <span class="close-button">×</span>
