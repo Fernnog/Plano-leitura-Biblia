@@ -475,8 +475,8 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 /* --- Painel de Perseverança Aprimorado --- */
 .perseverance-header h2 { text-align: center; color: var(--primary-action); margin-top: 0; font-size: 1.4em; font-weight: 700; }
 .milestone-icons-area { display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; min-height: 45px; }
-.milestone-icon, .star-icon { font-size: 2.2em; display: none; transition: transform 0.3s ease-out, text-shadow 0.3s ease-out; cursor: default; }
-.milestone-icon.achieved, .star-icon.achieved { display: inline-block; transform: scale(1.1); -webkit-animation: icon-pop 0.4s; animation: icon-pop 0.4s; text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35); }
+.milestone-icon { font-size: 2.2em; display: inline-block; /* Ícone da coroa precisa ser inline-block */ transition: transform 0.3s ease-out, text-shadow 0.3s ease-out; cursor: default; }
+.milestone-icon.achieved { transform: scale(1.1); -webkit-animation: icon-pop 0.4s; animation: icon-pop 0.4s; text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35); }
 @keyframes icon-pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1.1); } }
 .perseverance-bar-container { width: 100%; margin-bottom: 12px; }
 .progress-bar { position: relative; height: 28px; background-color: var(--marker-inactive-color); border: 1px solid var(--border-color); border-radius: var(--base-border-radius); overflow: hidden; }
@@ -486,6 +486,49 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .progress-percentage-left { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-color-light); font-weight: 600; font-size: 0.9em; text-shadow: 1px 1px 2px rgba(0,0,0,0.4); z-index: 2; transition: color var(--transition-fast); }
 .milestone-legend { text-align: center; font-size: 0.85em; color: var(--text-color-muted); transition: color var(--transition-fast); }
 .milestone-legend span { white-space: nowrap; }
+
+/* INÍCIO DAS MODIFICAÇÕES NO CSS */
+/* Container para os novos marcos cumulativos */
+#cumulative-milestones-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px; /* Espaçamento entre os itens de marco */
+    flex-wrap: wrap; /* Permite que os ícones quebrem a linha em telas menores */
+}
+
+/* Item individual de marco (contém o ícone e o contador) */
+.milestone-item {
+    display: inline-flex;
+    align-items: baseline; /* Alinha o ícone e o texto do contador na base */
+    line-height: 1;
+}
+
+/* Estilo para o ícone dentro do item de marco */
+.milestone-item .icon {
+    font-size: 2.2em; /* Mantém o tamanho original do .milestone-icon */
+    display: inline-block;
+    /* Animação que será adicionada via JS */
+    transition: transform 0.3s ease-out, text-shadow 0.3s ease-out;
+}
+
+/* Estilo para o contador (ex: x2, x3) */
+.milestone-item .counter {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--primary-action);
+    margin-left: 2px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Animação de 'pop' para ser aplicada via JS */
+.milestone-item .icon.achieved {
+    transform: scale(1.1);
+    -webkit-animation: icon-pop 0.4s;
+    animation: icon-pop 0.4s;
+    text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35);
+}
+/* FIM DAS MODIFICAÇÕES NO CSS */
 
 /* Painel de Progresso Semanal */
 #global-weekly-tracker-section h3 { margin-top: 0; margin-bottom: 20px; text-align: center; color: var(--primary-action); font-size: 1.2em; font-weight: 700; transition: color var(--transition-fast); }
@@ -638,7 +681,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
     .perseverance-header h2 { font-size: 1.3em; }
-    .milestone-icon, .star-icon { font-size: 1.8em; }
+    
+    /* MODIFICAÇÃO: Ajuste do tamanho dos ícones de marco em telas pequenas */
+    .milestone-icon { font-size: 1.8em; }
+    .milestone-item .icon { font-size: 1.8em; }
+    .milestone-item .counter { font-size: 0.9em; }
+
     .progress-bar { height: 26px; }
     .progress-percentage-left { font-size: 0.8em; left: 10px; }
     .milestone-legend { font-size: 0.75em; }
