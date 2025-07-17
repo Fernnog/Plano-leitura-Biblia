@@ -417,17 +417,18 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border: 1px solid var(--border-color);
 }
 
+/* --- INÍCIO: ALTERAÇÕES PARA A PRIORIDADE 1 --- */
 /* --- Estilos Seção Leituras Atrasadas e Próximas --- */
 #overdue-readings h2 { color: var(--warning-text-dark); border-bottom: 2px solid var(--warning-border-strong); font-size: 1.4em; margin-bottom: 15px; padding-bottom: 10px; }
 .enhanced-panel#overdue-readings h2 { color: var(--warning-text-dark) !important; border-bottom-color: var(--warning-border-strong) !important; }
 .overdue-readings-container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
-.overdue-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); border-left: 5px solid var(--warning-item-border); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; }
+.overdue-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); border-left: 5px solid var(--warning-item-border); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
 .overdue-reading-item:hover { transform: translateY(-3px); box-shadow: var(--box-shadow); }
-.overdue-date { font-weight: 700; font-size: 1.1em; color: var(--warning-item-text); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
-.overdue-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 5px; }
+.overdue-date { font-weight: 700; font-size: 1.1em; color: var(--warning-item-text); margin-bottom: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+.overdue-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
 .overdue-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
 
-/* --- ESTILOS PARA SUGESTÃO DE RECÁLCULO (Prioridade 1) --- */
+/* ESTILOS PARA SUGESTÃO DE RECÁLCULO */
 .recalc-suggestion-item {
     background-color: var(--warning-bg-light);
     padding: 18px;
@@ -439,18 +440,28 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     flex-direction: column;
     align-items: center;
     gap: 12px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+.recalc-suggestion-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--box-shadow);
+    border-style: solid;
 }
 .recalc-suggestion-item .recalc-plan-name {
     font-weight: 700;
     font-size: 1.1em;
     color: var(--warning-text-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .recalc-suggestion-item .recalc-suggestion-text {
     font-size: 0.95em;
     color: var(--text-color-muted);
     line-height: 1.5;
     max-width: 90%;
-    margin-bottom: 5px;
+    margin: 0;
 }
 .recalc-suggestion-item .recalc-suggestion-button {
     margin: 5px 0 0 0;
@@ -466,11 +477,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 #upcoming-readings h2 { border-bottom: 2px solid var(--primary-action); font-size: 1.4em; margin-bottom: 15px; padding-bottom: 10px; }
 .upcoming-readings-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px; }
-.upcoming-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; }
+.upcoming-reading-item { background-color: var(--background-card); padding: 15px; border-radius: var(--base-border-radius); border: 1px solid var(--border-color); box-shadow: var(--box-shadow-sm); transition: transform var(--transition-fast), box-shadow var(--transition-fast); cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
 .upcoming-reading-item:hover { transform: translateY(-3px); box-shadow: var(--box-shadow); }
-.upcoming-date { font-weight: 700; font-size: 1.1em; color: var(--primary-action); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
-.upcoming-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 5px; }
+.upcoming-date { font-weight: 700; font-size: 1.1em; color: var(--primary-action); margin-bottom: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+.upcoming-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
 .upcoming-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
+/* --- FIM: ALTERAÇÕES PARA A PRIORIDADE 1 --- */
 
 /* --- Painel de Perseverança Aprimorado --- */
 .perseverance-header h2 { text-align: center; color: var(--primary-action); margin-top: 0; font-size: 1.4em; font-weight: 700; }
