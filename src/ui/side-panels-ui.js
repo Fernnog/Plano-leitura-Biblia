@@ -41,7 +41,10 @@ function _createReadingItemElement(itemData, type, onSwitchPlan) {
     
     itemEl.innerHTML = `
         <div class="${type}-date">${formattedDate}</div>
-        <div class="${type}-plan-name">${plan.name}</div>
+        <div class="${type}-plan-name">
+            <span class="plan-icon">${plan.icon || '📖'}</span>
+            <span>${plan.name}</span>
+        </div>
         <div class="${type}-chapters">${chaptersText}</div>
     `;
 
@@ -67,7 +70,10 @@ function _createRecalcSuggestionElement(plan, daysLate, onRecalculate) {
     itemEl.className = 'recalc-suggestion-item';
 
     itemEl.innerHTML = `
-        <div class="recalc-plan-name">${plan.name}</div>
+        <div class="recalc-plan-name">
+            <span class="plan-icon">${plan.icon || '📖'}</span>
+            <span>${plan.name}</span>
+        </div>
         <p class="recalc-suggestion-text">
             Este plano parece estar <strong>${daysLate} dias de leitura</strong> atrasado. Que tal ajustar o ritmo para voltar aos trilhos?
         </p>
@@ -102,10 +108,9 @@ export function init() {
 /**
  * Renderiza os painéis de leituras atrasadas e próximas.
  * @param {Array<object>} allUserPlans - Lista de todos os planos do usuário.
- * @param {string|null} activePlanId - O ID do plano ativo.
  * @param {object} callbacks - Objeto contendo os callbacks { onSwitchPlan, onRecalculate }.
  */
-export function render(allUserPlans, activePlanId, callbacks) {
+export function render(allUserPlans, callbacks) {
     overdueReadingsListDiv.innerHTML = '';
     upcomingReadingsListDiv.innerHTML = '';
     
@@ -158,16 +163,16 @@ export function render(allUserPlans, activePlanId, callbacks) {
     // Ordena e limita a exibição dos próximos para não poluir
     upcomingReadings.sort((a, b) => a.date.localeCompare(b.date));
     const nextReadingsToShow = upcomingReadings.slice(0, 7);
-    nextReadingsToShow.forEach(itemData => {
-        const itemEl = _createReadingItemElement(itemData, 'upcoming', callbacks.onSwitchPlan);
-        upcomingReadingsListDiv.appendChild(itemEl);
-    });
     
-    if (upcomingReadingsListDiv.children.length > 0) {
+    if (nextReadingsToShow.length > 0) {
+        upcomingReadingsListDiv.innerHTML = ''; // Limpa antes de adicionar
+        nextReadingsToShow.forEach(itemData => {
+            const itemEl = _createReadingItemElement(itemData, 'upcoming', callbacks.onSwitchPlan);
+            upcomingReadingsListDiv.appendChild(itemEl);
+        });
         upcomingReadingsSection.style.display = 'block';
     } else {
-        upcomingReadingsListDiv.innerHTML = '<p>Nenhuma leitura programada para hoje ou para os próximos dias em seus planos ativos.</p>';
-        upcomingReadingsSection.style.display = 'block'; // Mostra a mensagem
+        upcomingReadingsSection.style.display = 'none';
     }
 
     show();
