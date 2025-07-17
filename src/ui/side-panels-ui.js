@@ -122,47 +122,72 @@ export function render(allUserPlans, callbacks) {
     const todayStr = getCurrentUTCDateString();
     let hasOverdueItems = false;
     const upcomingReadings = [];
+    const UPCOMING_DAYS_WINDOW = 10; // Define quantos dias de leitura vamos projetar para o futuro
 
     allUserPlans.forEach(plan => {
         const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-        // Ignora planos já concluídos
         if (plan.currentDay > totalReadingDaysInPlan) {
-            return;
+            return; // Ignora planos já concluídos
         }
 
-        const effectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
-        
-        if (!effectiveDateStr) return; // Ignora se a data não puder ser calculada
+        // --- LÓGICA DE ATRASADOS (Inalterada) ---
+        const firstEffectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
+        if (!firstEffectiveDateStr) return; 
 
-        if (effectiveDateStr < todayStr) {
+        if (firstEffectiveDateStr < todayStr) {
             hasOverdueItems = true;
-            const readingDaysLate = countReadingDaysBetween(effectiveDateStr, todayStr, plan.allowedDays);
+            const readingDaysLate = countReadingDaysBetween(firstEffectiveDateStr, todayStr, plan.allowedDays);
             
             if (readingDaysLate >= 2) {
-                // Nova Lógica: Mostrar sugestão de recálculo
                 const suggestionEl = _createRecalcSuggestionElement(plan, readingDaysLate, callbacks.onRecalculate);
                 overdueReadingsListDiv.appendChild(suggestionEl);
             } else {
-                // Lógica Antiga: Mostrar item de leitura atrasada normal
                 const chaptersForDay = plan.plan[plan.currentDay.toString()] || [];
-                const readingItem = { plan, date: effectiveDateStr, chapters: chaptersForDay };
+                const readingItem = { plan, date: firstEffectiveDateStr, chapters: chaptersForDay };
                 const itemEl = _createReadingItemElement(readingItem, 'overdue', callbacks.onSwitchPlan);
                 overdueReadingsListDiv.appendChild(itemEl);
             }
-        } else {
-            // Lógica para Próximas Leituras
-            const chaptersForDay = plan.plan[plan.currentDay.toString()] || [];
-            const readingItem = { plan, date: effectiveDateStr, chapters: chaptersForDay };
-            upcomingReadings.push(readingItem);
+        }
+        
+        // --- NOVA LÓGICA DE PRÓXIMAS LEITURAS (Ciclo Semanal) ---
+        // Para cada plano, projetamos suas próximas N leituras
+        for (let i = 0; i < UPCOMING_DAYS_WINDOW; i++) {
+            const dayNumber = plan.currentDay + i;
+            if (dayNumber > totalReadingDaysInPlan) {
+                break; // Para de projetar se o plano acabou
+            }
+
+            const projectedDateStr = getEffectiveDateForDay(plan, dayNumber);
+
+            // Adiciona à lista apenas se a data for de hoje em diante
+            if (projectedDateStr && projectedDateStr >= todayStr) {
+                const chapters = plan.plan[dayNumber.toString()] || [];
+                upcomingReadings.push({
+                    plan,
+                    date: projectedDateStr,
+                    chapters
+                });
+            }
         }
     });
 
-    // Controle de Visibilidade
+    // --- RENDERIZAÇÃO FINAL ---
+
+    // Controle de Visibilidade dos Atrasados
     overdueReadingsSection.style.display = hasOverdueItems ? 'block' : 'none';
     
-    // Ordena e limita a exibição dos próximos para não poluir
+    // 1. Ordena a lista AGREGADA de todas as próximas leituras por data
     upcomingReadings.sort((a, b) => a.date.localeCompare(b.date));
-    const nextReadingsToShow = upcomingReadings.slice(0, 7);
+
+    // 2. Remove duplicatas (caso um recálculo tenha gerado datas sobrepostas)
+    const uniqueUpcomingReadings = upcomingReadings.filter((reading, index, self) =>
+        index === self.findIndex((r) => (
+            r.date === reading.date && r.plan.id === reading.plan.id
+        ))
+    );
+    
+    // 3. Pega os 7 primeiros itens para criar a visão semanal
+    const nextReadingsToShow = uniqueUpcomingReadings.slice(0, 7);
     
     if (nextReadingsToShow.length > 0) {
         upcomingReadingsListDiv.innerHTML = ''; // Limpa antes de adicionar
@@ -172,6 +197,7 @@ export function render(allUserPlans, callbacks) {
         });
         upcomingReadingsSection.style.display = 'block';
     } else {
+        // Se, após toda a projeção, não houver leituras futuras, esconde o painel
         upcomingReadingsSection.style.display = 'none';
     }
 
@@ -183,7 +209,6 @@ export function render(allUserPlans, callbacks) {
  */
 export function show() {
     // A função render agora controla a visibilidade de cada seção individualmente
-    // Esta função garante que os containers não estejam com `display: none` no nível do body.
 }
 
 /**
