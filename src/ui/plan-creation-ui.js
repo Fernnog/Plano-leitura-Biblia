@@ -163,8 +163,7 @@ function _handleFormSubmit() {
     };
 
     // Apenas coleta dados de estrutura se estiver criando um novo plano (sem planId)
-    // OU se o campo de estrutura estiver habilitado (caso do modo de reavaliação)
-    if (!planId || !planStructureFieldset.disabled) {
+    if (!planId) {
         Object.assign(formData, {
             creationMethod: document.querySelector('input[name="creation-method"]:checked').value,
             startBook: startBookSelect.value,
@@ -229,6 +228,8 @@ export function show(isPlanListEmpty = true) {
     const periodicityFieldset = document.getElementById('periodicity-options');
     if (periodicityFieldset) {
         periodicityFieldset.style.border = '1px solid var(--border-color)';
+        // Habilita todos os fieldsets internos para o modo de criação padrão
+        planStructureFieldset.querySelectorAll('fieldset').forEach(fs => fs.disabled = false);
     }
 
     cancelCreationButton.style.display = isPlanListEmpty ? 'none' : 'inline-block';
@@ -279,27 +280,35 @@ export function openForEditing(plan) {
  * permitindo editar apenas os dias da semana.
  * @param {object} plan - O objeto do plano a ser editado.
  */
-export function openForReassessment(plan) { // NOVO
-    openForEditing(plan); // Reutiliza a função de edição existente para preencher os dados
+export function openForReassessment(plan) {
+    // 1. Reutilizamos a função de edição, que preenche os dados mas desabilita a estrutura inteira.
+    openForEditing(plan);
 
-    // Sobrescreve títulos para o contexto de reavaliação
+    // 2. Sobrescrevemos os textos para o contexto de reavaliação.
     planCreationTitle.textContent = "Ajustar Dias de Leitura";
     createPlanButton.textContent = "Salvar Dias";
 
-    // Busca o fieldset de periodicidade
+    // 3. A CORREÇÃO DEFINITIVA:
+    // Forçamos o fieldset PAI a se tornar habilitado novamente.
+    // Isso "quebra" a herança do estado desabilitado que veio de openForEditing.
+    planStructureFieldset.disabled = false;
+
+    // 4. Agora que o pai está habilitado, podemos controlar seus filhos.
+    // Desabilitamos individualmente todas as outras seções que NÃO SÃO de periodicidade.
+    const fieldsetsToDisable = planStructureFieldset.querySelectorAll('fieldset:not(#periodicity-options)');
+    fieldsetsToDisable.forEach(fieldset => {
+        fieldset.disabled = true;
+    });
+
+    // 5. Por fim, garantimos que a seção de periodicidade esteja funcional e destacada.
     const periodicityFieldset = document.getElementById('periodicity-options');
     if (periodicityFieldset) {
-        // Garante que o container principal esteja desabilitado
-        planStructureFieldset.disabled = true;
-        // Habilita APENAS o fieldset de periodicidade para edição
-        periodicityFieldset.disabled = false;
-        
-        // Adiciona um destaque visual para focar a atenção do usuário
+        periodicityFieldset.disabled = false; // Garante que está habilitado
         periodicityFieldset.style.border = '2px dashed var(--primary-action)';
         periodicityFieldset.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-    
-    // Preenche as checkboxes com os dias atuais do plano
+
+    // 6. Preenchemos as checkboxes com os dias atuais do plano.
     const allowedDays = plan.allowedDays || [];
     periodicityCheckboxes.forEach(cb => {
         cb.checked = allowedDays.includes(parseInt(cb.value, 10));
