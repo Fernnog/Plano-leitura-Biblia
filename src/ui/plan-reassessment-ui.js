@@ -2,6 +2,7 @@
  * @file plan-reassessment-ui.js
  * @description Módulo de UI para gerenciar o Quadro de Carga Semanal, permitindo
  * que o usuário visualize a distribuição de seus planos e inicie a reavaliação.
+ * INCLUI FUNCIONALIDADE DE DRAG & DROP PARA DESKTOP E TOUCH E VISUALIZAÇÃO DE CARGA.
  */
 
 // --- Importações de Elementos do DOM ---
@@ -16,7 +17,8 @@ import {
 let state = {
     callbacks: {
         onClose: null, // Callback para fechar a seção e voltar ao painel principal
-        onPlanSelect: null, // Callback para quando um plano é selecionado para ajuste
+        onPlanSelect: null, // Callback para quando um plano é selecionado para ajuste via clique
+        onUpdatePlanDays: null, // Callback unificado para atualizar dias via Drag & Drop
     },
 };
 
@@ -28,7 +30,6 @@ let state = {
  * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
  */
 function _renderGridAndLegend(allUserPlans) {
-    // Limpa o conteúdo anterior para garantir uma nova renderização
     reassessmentGrid.innerHTML = '';
     reassessmentLegendList.innerHTML = '';
 
@@ -37,20 +38,19 @@ function _renderGridAndLegend(allUserPlans) {
         return;
     }
 
-    const weeklyLoad = {}; // Estrutura de dados: { 0: [{planData}], 1: [...] }
+    const weeklyLoad = {};
     const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const activePlansForLegend = new Map();
+    const CHAPTER_OVERLOAD_THRESHOLD = 20; // Limite para alerta de sobrecarga
 
-    // 1. Calcular a "carga" de capítulos para cada plano em seus respectivos dias
+    // 1. Calcular a "carga" de capítulos para cada plano
     allUserPlans.forEach(plan => {
         const totalReadingDays = Object.keys(plan.plan || {}).length;
         if (totalReadingDays === 0) return; // Ignora planos vazios
 
-        // Calcula a média de capítulos por dia de leitura como uma métrica de "carga"
         const avgChapters = Math.ceil(plan.totalChapters / totalReadingDays);
         if (avgChapters < 1) return;
 
-        // Distribui essa carga nos dias da semana permitidos pelo plano
         (plan.allowedDays || []).forEach(dayIndex => {
             if (dayIndex >= 0 && dayIndex <= 6) {
                 if (!weeklyLoad[dayIndex]) {
@@ -64,7 +64,6 @@ function _renderGridAndLegend(allUserPlans) {
             }
         });
         
-        // Adiciona o plano ao mapa para a legenda, evitando duplicatas
         if (!activePlansForLegend.has(plan.id)) {
             activePlansForLegend.set(plan.id, { icon: plan.icon || '📖', name: plan.name || 'Plano sem nome' });
         }
@@ -74,23 +73,32 @@ function _renderGridAndLegend(allUserPlans) {
     daysOfWeek.forEach((dayName, index) => {
         const dayColumn = document.createElement('div');
         dayColumn.className = 'reassessment-day-column';
+        dayColumn.dataset.day = index; // Adiciona o data-day para identificação fácil
+        
         let entriesHTML = '';
+        let totalChaptersThisDay = 0;
 
         if (weeklyLoad[index]) {
-            // Ordena os planos dentro do dia pela maior carga de capítulos
             weeklyLoad[index].sort((a, b) => b.chapters - a.chapters);
 
             weeklyLoad[index].forEach(entry => {
+                totalChaptersThisDay += entry.chapters;
                 entriesHTML += `
-                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" title="Ajustar dias do plano">
+                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" draggable="true" title="Arraste para remanejar o plano">
                         <span class="plan-icon">${entry.icon}</span>
                         <span class="chapter-count">${entry.chapters} cap.</span>
                     </div>
                 `;
             });
         }
+        
+        // Verifica se há sobrecarga e adiciona a classe correspondente
+        if (totalChaptersThisDay > CHAPTER_OVERLOAD_THRESHOLD) {
+            dayColumn.classList.add('overload');
+        }
 
-        dayColumn.innerHTML = `<div class="reassessment-day-header">${dayName}</div>${entriesHTML}`;
+        const totalLoadHTML = `<span class="total-load">Total: ${totalChaptersThisDay} caps</span>`;
+        dayColumn.innerHTML = `<div class="reassessment-day-header">${dayName}${totalLoadHTML}</div><div class="day-entries">${entriesHTML}</div>`;
         reassessmentGrid.appendChild(dayColumn);
     });
 
@@ -112,29 +120,139 @@ function _renderGridAndLegend(allUserPlans) {
 // --- Funções Públicas (API do Módulo) ---
 
 /**
- * Inicializa o módulo de reavaliação de planos, configurando os listeners de eventos.
- * @param {object} callbacks - Objeto contendo os callbacks { onClose, onPlanSelect }.
+ * Inicializa o módulo, configurando os listeners para clique e Drag & Drop (desktop e touch).
+ * @param {object} callbacks - Objeto contendo os callbacks { onClose, onPlanSelect, onUpdatePlanDays }.
  */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
-    // Listener para o botão de fechar a seção
-    closeReassessmentButton.addEventListener('click', () => {
-        state.callbacks.onClose?.();
-    });
+    closeReassessmentButton.addEventListener('click', () => state.callbacks.onClose?.());
 
-    // Usa delegação de eventos na grade para lidar com cliques nos itens de plano
     reassessmentGrid.addEventListener('click', (event) => {
         const planEntry = event.target.closest('.reassessment-plan-entry');
         if (planEntry && planEntry.dataset.planId) {
             state.callbacks.onPlanSelect?.(planEntry.dataset.planId);
         }
     });
+
+    // --- LÓGICA DE DRAG & DROP (DESKTOP) ---
+    let draggedItem = null;
+
+    reassessmentGrid.addEventListener('dragstart', (e) => {
+        const target = e.target.closest('.reassessment-plan-entry');
+        if (target) {
+            draggedItem = target;
+            setTimeout(() => target.classList.add('dragging'), 0);
+            e.dataTransfer.setData('text/plain', target.dataset.planId);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+    });
+    
+    reassessmentGrid.addEventListener('dragend', () => {
+        draggedItem?.classList.remove('dragging');
+        draggedItem = null;
+    });
+    
+    reassessmentGrid.addEventListener('dragover', (e) => e.preventDefault());
+
+    reassessmentGrid.addEventListener('dragenter', (e) => {
+        const targetColumn = e.target.closest('.reassessment-day-column');
+        if (targetColumn) {
+            e.preventDefault();
+            targetColumn.classList.add('over');
+        }
+    });
+
+    reassessmentGrid.addEventListener('dragleave', (e) => {
+        e.target.closest('.reassessment-day-column')?.classList.remove('over');
+    });
+
+    reassessmentGrid.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const targetColumn = e.target.closest('.reassessment-day-column');
+        document.querySelectorAll('.reassessment-day-column.over').forEach(col => col.classList.remove('over'));
+
+        if (targetColumn && draggedItem) {
+            const planId = draggedItem.dataset.planId;
+            const sourceColumn = draggedItem.closest('.reassessment-day-column');
+            const sourceDay = parseInt(sourceColumn.dataset.day, 10);
+            const targetDay = parseInt(targetColumn.dataset.day, 10);
+
+            if (sourceDay !== targetDay) {
+                state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
+            }
+        }
+    });
+    
+    // --- LÓGICA DE DRAG & DROP (TOUCH) ---
+    let touchDraggedItem = null;
+    let ghostElement = null;
+    let lastTouchTargetColumn = null;
+    
+    reassessmentGrid.addEventListener('touchstart', (e) => {
+        const target = e.target.closest('.reassessment-plan-entry');
+        if (target) {
+            touchDraggedItem = target;
+            touchDraggedItem.classList.add('dragging');
+            
+            ghostElement = touchDraggedItem.cloneNode(true);
+            ghostElement.classList.add('touch-ghost');
+            document.body.appendChild(ghostElement);
+            
+            const touch = e.touches[0];
+            ghostElement.style.left = `${touch.clientX}px`;
+            ghostElement.style.top = `${touch.clientY}px`;
+        }
+    }, { passive: true });
+    
+    reassessmentGrid.addEventListener('touchmove', (e) => {
+        if (!touchDraggedItem || !ghostElement) return;
+        
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        ghostElement.style.left = `${touch.clientX}px`;
+        ghostElement.style.top = `${touch.clientY}px`;
+        
+        ghostElement.style.display = 'none';
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        ghostElement.style.display = '';
+
+        const currentTargetColumn = elementBelow ? elementBelow.closest('.reassessment-day-column') : null;
+
+        if (lastTouchTargetColumn !== currentTargetColumn) {
+            lastTouchTargetColumn?.classList.remove('over');
+            currentTargetColumn?.classList.add('over');
+            lastTouchTargetColumn = currentTargetColumn;
+        }
+    }, { passive: false });
+    
+    reassessmentGrid.addEventListener('touchend', () => {
+        if (!touchDraggedItem) return;
+        
+        if (lastTouchTargetColumn) {
+            const planId = touchDraggedItem.dataset.planId;
+            const sourceColumn = touchDraggedItem.closest('.reassessment-day-column');
+            const sourceDay = parseInt(sourceColumn.dataset.day, 10);
+            const targetDay = parseInt(lastTouchTargetColumn.dataset.day, 10);
+            
+            if (sourceDay !== targetDay) {
+                state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
+            }
+        }
+        
+        touchDraggedItem.classList.remove('dragging');
+        ghostElement?.remove();
+        lastTouchTargetColumn?.classList.remove('over');
+        
+        touchDraggedItem = null;
+        ghostElement = null;
+        lastTouchTargetColumn = null;
+    });
 }
 
 /**
  * Renderiza o conteúdo do quadro de reavaliação com os dados mais recentes.
- * Esta função deve ser chamada antes de exibir a seção.
  * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
  */
 export function render(allUserPlans) {
