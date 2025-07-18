@@ -149,11 +149,18 @@ function _toggleFormOptions() {
 
 /**
  * Lida com a submissão do formulário, seja para criar ou editar.
+ * // CÓDIGO MODIFICADO E CORRIGIDO
  */
 function _handleFormSubmit() {
     hideError();
     
-    const planId = editingPlanIdInput.value || null; // Pega o ID (se houver)
+    const planId = editingPlanIdInput.value || null;
+    
+    // Detecta de forma confiável se estamos no modo de reavaliação.
+    // A condição é: estamos editando (planStructureFieldset estaria desabilitado) E
+    // a seção de periodicidade foi a única habilitada dentro dele.
+    const isReassessing = planId && planStructureFieldset.disabled === false && 
+                          document.getElementById('periodicity-options').disabled === false;
 
     // Coleta os dados que são comuns a ambos os modos (criação e edição)
     const formData = {
@@ -162,8 +169,15 @@ function _handleFormSubmit() {
         googleDriveLink: googleDriveLinkInput.value.trim(),
     };
 
-    // Apenas coleta dados de estrutura se estiver criando um novo plano (sem planId)
-    if (!planId) {
+    if (planId) {
+        // Se estivermos especificamente reavaliando, adiciona os dias da semana.
+        if (isReassessing) {
+            formData.allowedDays = Array.from(periodicityCheckboxes)
+                                        .filter(cb => cb.checked)
+                                        .map(cb => parseInt(cb.value, 10));
+        }
+    } else {
+        // Lógica de criação (permanece a mesma)
         Object.assign(formData, {
             creationMethod: document.querySelector('input[name="creation-method"]:checked').value,
             startBook: startBookSelect.value,
@@ -187,8 +201,9 @@ function _handleFormSubmit() {
         return;
     }
     
+    // A chamada de callback agora inclui o flag 'isReassessing'
     if (state.callbacks.onSubmit) {
-        state.callbacks.onSubmit(formData, planId); // Passa os dados e o ID (ou null)
+        state.callbacks.onSubmit(formData, planId, isReassessing);
     }
 }
 
