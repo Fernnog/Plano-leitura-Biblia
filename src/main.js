@@ -255,6 +255,12 @@ function handleCancelPlanCreation() {
     sidePanelsUI.show();
     floatingNavigatorUI.show();
     planCreationActionsSection.style.display = 'flex';
+    
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // Reexibe os painéis de status ao voltar para a tela principal
+    perseverancePanelUI.render(appState.userInfo);
+    weeklyTrackerUI.render(appState.weeklyInteractions);
+    // --- FIM DA ALTERAÇÃO ---
 }
 
 async function handlePlanSubmit(formData, planId) {
@@ -448,6 +454,12 @@ function handleReassessPlansRequest() {
     floatingNavigatorUI.hide();
     planCreationUI.hide();
 
+    // --- INÍCIO DA ALTERAÇÃO ---
+    // Esconde os painéis de status para focar na tarefa de reavaliação
+    perseverancePanelUI.hide();
+    weeklyTrackerUI.hide();
+    // --- FIM DA ALTERAÇÃO ---
+
     // Renderiza e mostra a nova seção de reavaliação
     planReassessmentUI.render(appState.userPlans);
     planReassessmentUI.show();
@@ -563,7 +575,7 @@ function handleShowStats(planId) {
     if (!plan) return;
 
     const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-    const isCompleted = currentDay > totalReadingDaysInPlan;
+    const isCompleted = plan.currentDay > totalReadingDaysInPlan;
     const progressPercentage = totalReadingDaysInPlan > 0 ? Math.min(100, ((plan.currentDay - 1) / totalReadingDaysInPlan) * 100) : 0;
     
     const logEntries = plan.readLog || {};
