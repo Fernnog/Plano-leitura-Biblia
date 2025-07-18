@@ -163,7 +163,8 @@ function _handleFormSubmit() {
     };
 
     // Apenas coleta dados de estrutura se estiver criando um novo plano (sem planId)
-    if (!planId) {
+    // OU se o campo de estrutura estiver habilitado (caso do modo de reavaliação)
+    if (!planId || !planStructureFieldset.disabled) {
         Object.assign(formData, {
             creationMethod: document.querySelector('input[name="creation-method"]:checked').value,
             startBook: startBookSelect.value,
@@ -224,7 +225,7 @@ export function show(isPlanListEmpty = true) {
     createPlanButton.textContent = "Criar Plano";
     planStructureFieldset.disabled = false; // Garante que a estrutura esteja editável
     
-    // NOVO: Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
+    // Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
     const periodicityFieldset = document.getElementById('periodicity-options');
     if (periodicityFieldset) {
         periodicityFieldset.style.border = '1px solid var(--border-color)';
@@ -262,7 +263,7 @@ export function openForEditing(plan) {
     // Desabilita a edição da estrutura do plano (capítulos, duração etc)
     planStructureFieldset.disabled = true;
 
-    // NOVO: Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
+    // Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
     const periodicityFieldset = document.getElementById('periodicity-options');
     if (periodicityFieldset) {
         periodicityFieldset.style.border = '1px solid var(--border-color)';
