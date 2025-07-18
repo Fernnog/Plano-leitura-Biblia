@@ -791,12 +791,15 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-bottom: 25px;
 }
 
+/* ===== INÍCIO DA ALTERAÇÃO CHAVE ===== */
 .reassessment-grid-container {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    /* De 'repeat(7, 1fr)' para o valor responsivo abaixo */
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 10px;
     margin-bottom: 30px;
 }
+/* ===== FIM DA ALTERAÇÃO CHAVE ===== */
 
 .reassessment-day-column {
     background-color: var(--background-light);
@@ -874,11 +877,11 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 /* --- Media Queries Adicionais para a Reavaliação --- */
 @media (max-width: 768px) {
-    .reassessment-grid-container {
-        /* Permite que o layout quebre para menos colunas se não houver espaço */
+    /* A regra 'auto-fit' no container principal já torna esta seção redundante */
+    /* .reassessment-grid-container {
         grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
         gap: 8px;
-    }
+    } */
 }
 
 
