@@ -119,3 +119,10 @@ export const historyModal = document.getElementById('history-modal');
 export const historyLoadingDiv = document.getElementById('history-loading');
 export const historyErrorDiv = document.getElementById('history-error');
 export const historyListDiv = document.getElementById('history-list');
+
+// --- Seção de Reavaliação de Planos (NOVO) ---
+export const reassessPlansButton = document.getElementById('reassess-plans-button');
+export const planReassessmentSection = document.getElementById('plan-reassessment-section');
+export const closeReassessmentButton = document.getElementById('close-reassessment-button');
+export const reassessmentGrid = document.getElementById('reassessment-grid');
+export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
