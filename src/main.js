@@ -245,6 +245,8 @@ function handleCreateNewPlanRequest() {
     planCreationActionsSection.style.display = 'none';
     floatingNavigatorUI.hide();
     planReassessmentUI.hide();
+    perseverancePanelUI.hide();
+    weeklyTrackerUI.hide();
     planCreationUI.show(appState.userPlans.length === 0);
 }
 
@@ -252,12 +254,10 @@ function handleCancelPlanCreation() {
     planCreationUI.hide();
     planReassessmentUI.hide();
     
-    // Mostra as seções principais novamente
     planCreationActionsSection.style.display = 'flex';
     readingPlanUI.show();
     floatingNavigatorUI.show();
     
-    // Renderiza os painéis de perseverança e semanal
     perseverancePanelUI.render(appState.userInfo);
     weeklyTrackerUI.render(appState.weeklyInteractions);
 
@@ -272,33 +272,48 @@ function handleCancelPlanCreation() {
     });
 }
 
+/**
+ * // CÓDIGO MODIFICADO E CORRIGIDO
+ * Lida com a submissão do formulário de criação/edição de plano.
+ * @param {object} formData Os dados do formulário.
+ * @param {string|null} planId O ID do plano, se estiver editando.
+ * @param {boolean} isReassessing Flag que indica se a edição é apenas dos dias da semana.
+ */
 async function handlePlanSubmit(formData, planId, isReassessing) {
     planCreationUI.showLoading();
         
     try {
-        if (planId) {
+        if (planId) { // Entra aqui para edição ou reavaliação
+            let updatedData = {};
             
             if (isReassessing) {
-            
-                const periodicityCheckboxes = document.querySelectorAll('#periodicity-options input:checked');
-                const allowedDays = Array.from(periodicityCheckboxes).map(cb => parseInt(cb.value, 10));
-                
-                // Salva apenas os dias da semana no Firestore.
-                await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays });
-
+                // Se está reavaliando, o único dado que importa são os dias da semana.
+                updatedData = { allowedDays: formData.allowedDays };
+                await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert('Dias de leitura atualizados com sucesso!');
+
             } else { // Edição normal (nome, ícone, etc.)
-                const updatedData = { name: formData.name, icon: formData.icon, googleDriveLink: formData.googleDriveLink || null };
+                updatedData = { 
+                    name: formData.name, 
+                    icon: formData.icon, 
+                    googleDriveLink: formData.googleDriveLink || null 
+                };
                 await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert(`Plano "${formData.name}" atualizado com sucesso!`);
             }
-        } else { // Criação de um novo plano (esta parte não muda)
-            // ...código para criar novo plano...
+        } else { // Criação de um novo plano
+            const newPlan = buildPlanFromFormData(formData);
+            const newPlanId = await planService.saveNewPlan(appState.currentUser.uid, newPlan);
+            if (appState.userPlans.length === 0) {
+                await planService.setActivePlan(appState.currentUser.uid, newPlanId);
+            }
+            alert(`Plano "${newPlan.name}" criado com sucesso!`);
         }
 
         await loadInitialUserData(appState.currentUser);
 
         planCreationUI.hide();
+        // Volta para a tela correta dependendo da ação
         if (isReassessing) {
             handleReassessPlansRequest(); // Volta para o quadro.
         } else {
@@ -441,6 +456,8 @@ function handleEditPlanRequest(planId) {
         planCreationActionsSection.style.display = 'none';
         floatingNavigatorUI.hide();
         planReassessmentUI.hide();
+        perseverancePanelUI.hide();
+        weeklyTrackerUI.hide();
         planCreationUI.openForEditing(planToEdit);
     } else {
         alert("Erro: Plano não encontrado para edição.");
@@ -451,6 +468,7 @@ function handleEditPlanRequest(planId) {
 // --- 4. NOVAS FUNÇÕES PARA A REAVALIAÇÃO DE PLANOS ---
 
 /**
+ * // NOVO
  * Lida com a solicitação para mostrar o quadro de reavaliação de planos.
  */
 function handleReassessPlansRequest() {
@@ -460,12 +478,8 @@ function handleReassessPlansRequest() {
     planCreationActionsSection.style.display = 'none';
     floatingNavigatorUI.hide();
     planCreationUI.hide();
-
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // Esconde os painéis de status para focar na tarefa de reavaliação
     perseverancePanelUI.hide();
     weeklyTrackerUI.hide();
-    // --- FIM DA ALTERAÇÃO ---
 
     // Renderiza e mostra a nova seção de reavaliação
     planReassessmentUI.render(appState.userPlans);
@@ -473,7 +487,8 @@ function handleReassessPlansRequest() {
 }
 
 /**
- * Lida com a seleção de um plano no quadro para edição dos dias da semana.
+ * // NOVO
+ * Lida com a seleção de um plano no quadro para edição dos dias da semana (via clique).
  * @param {string} planId O ID do plano a ser editado.
  */
 function handleReassessPlanEdit(planId) {
@@ -481,6 +496,44 @@ function handleReassessPlanEdit(planId) {
     if (planToEdit) {
         planReassessmentUI.hide();
         planCreationUI.openForReassessment(planToEdit);
+    }
+}
+
+/**
+ * // NOVO
+ * Lida com a atualização dos dias de um plano via Drag and Drop.
+ * @param {string} planId O ID do plano movido.
+ * @param {number} sourceDay O dia de origem (0-6).
+ * @param {number} targetDay O dia de destino (0-6).
+ */
+async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
+    if (sourceDay === targetDay) return; // Não faz nada se soltar no mesmo lugar
+
+    const planToUpdate = appState.userPlans.find(p => p.id === planId);
+    if (!planToUpdate) return;
+    
+    // Calcula os novos dias
+    let newAllowedDays = [...(planToUpdate.allowedDays || [])];
+    // Remove o dia de origem
+    newAllowedDays = newAllowedDays.filter(day => day !== sourceDay);
+    // Adiciona o dia de destino, se ainda não existir
+    if (!newAllowedDays.includes(targetDay)) {
+        newAllowedDays.push(targetDay);
+    }
+    
+    try {
+        // Chama o serviço do Firebase para salvar
+        await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays: newAllowedDays });
+        
+        // Recarrega os dados para a UI refletir a mudança
+        await loadInitialUserData(appState.currentUser);
+        
+        // Renderiza novamente o quadro de reavaliação com os dados atualizados
+        planReassessmentUI.render(appState.userPlans);
+
+    } catch (error) {
+        console.error("Erro ao atualizar plano por Drag & Drop:", error);
+        alert("Ocorreu um erro ao remanejar o plano.");
     }
 }
 
@@ -699,7 +752,7 @@ function initApplication() {
     planCreationUI.init({
         onSubmit: handlePlanSubmit,
         onCancel: () => {
-            const isReassessing = planStructureFieldset.disabled;
+            const isReassessing = !planStructureFieldset.disabled;
             planCreationUI.hide();
             if (isReassessing) {
                 handleReassessPlansRequest(); // Volta para o quadro se estava reavaliando
@@ -728,10 +781,11 @@ function initApplication() {
     weeklyTrackerUI.init();
     sidePanelsUI.init();
     
-    // NOVO: Inicialização do módulo de reavaliação
+    // NOVO: Inicialização do módulo de reavaliação com todos os callbacks
     planReassessmentUI.init({
         onClose: handleCancelPlanCreation, // Reutiliza a função para voltar ao painel principal
-        onPlanSelect: handleReassessPlanEdit,
+        onPlanSelect: handleReassessPlanEdit, // Para edição via clique/modal
+        onUpdatePlanDays: handlePlanUpdateDaysByDrag, // Para edição via Drag & Drop
     });
 
     floatingNavigatorUI.init({
