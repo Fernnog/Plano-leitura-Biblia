@@ -251,16 +251,25 @@ function handleCreateNewPlanRequest() {
 function handleCancelPlanCreation() {
     planCreationUI.hide();
     planReassessmentUI.hide();
-    readingPlanUI.show();
-    sidePanelsUI.show();
-    floatingNavigatorUI.show();
-    planCreationActionsSection.style.display = 'flex';
     
-    // --- INÍCIO DA ALTERAÇÃO ---
-    // Reexibe os painéis de status ao voltar para a tela principal
+    // Mostra as seções principais novamente
+    planCreationActionsSection.style.display = 'flex';
+    readingPlanUI.show();
+    floatingNavigatorUI.show();
+    
+    // Renderiza os painéis de perseverança e semanal
     perseverancePanelUI.render(appState.userInfo);
     weeklyTrackerUI.render(appState.weeklyInteractions);
-    // --- FIM DA ALTERAÇÃO ---
+
+    sidePanelsUI.render(appState.userPlans, {
+        onSwitchPlan: handleSwitchPlan,
+        onRecalculate: (planId) => {
+            modalsUI.resetRecalculateForm();
+            const confirmBtn = document.getElementById('confirm-recalculate');
+            confirmBtn.dataset.planId = planId;
+            modalsUI.open('recalculate-modal');
+        }
+    });
 }
 
 async function handlePlanSubmit(formData, planId) {
