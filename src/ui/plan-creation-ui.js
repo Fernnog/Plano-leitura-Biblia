@@ -33,7 +33,6 @@ import {
     endDateInput,
     chaptersPerDayOptionDiv,
     chaptersPerDayInput,
-    periodicityOptions, // MODIFICAÇÃO: Importa o fieldset de periodicidade
     periodicityCheckboxes,
     periodicityWarningDiv,
     createPlanButton,
@@ -121,11 +120,6 @@ function _resetFormFields() {
         cb.checked = (dayVal >= 1 && dayVal <= 5);
     });
 
-    // Garante que o destaque da reavaliação seja resetado
-    if(periodicityOptions) {
-        periodicityOptions.style.border = '';
-    }
-
     hideError();
     _toggleFormOptions();
 }
@@ -166,7 +160,6 @@ function _handleFormSubmit() {
         name: planNameInput.value.trim(),
         icon: document.querySelector('input[name="plan-icon"]:checked').value,
         googleDriveLink: googleDriveLinkInput.value.trim(),
-        allowedDays: Array.from(periodicityCheckboxes).filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)),
     };
 
     // Apenas coleta dados de estrutura se estiver criando um novo plano (sem planId)
@@ -184,6 +177,7 @@ function _handleFormSubmit() {
             startDate: startDateInput.value,
             endDate: endDateInput.value,
             chaptersPerDay: parseInt(chaptersPerDayInput.value, 10),
+            allowedDays: Array.from(periodicityCheckboxes).filter(cb => cb.checked).map(cb => parseInt(cb.value, 10)),
         });
     }
 
@@ -194,8 +188,7 @@ function _handleFormSubmit() {
     }
     
     if (state.callbacks.onSubmit) {
-        // Passa os dados e o ID (ou null). Agora allowedDays é sempre enviado.
-        state.callbacks.onSubmit(formData, planId); 
+        state.callbacks.onSubmit(formData, planId); // Passa os dados e o ID (ou null)
     }
 }
 
@@ -231,6 +224,12 @@ export function show(isPlanListEmpty = true) {
     createPlanButton.textContent = "Criar Plano";
     planStructureFieldset.disabled = false; // Garante que a estrutura esteja editável
     
+    // NOVO: Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
+    const periodicityFieldset = document.getElementById('periodicity-options');
+    if (periodicityFieldset) {
+        periodicityFieldset.style.border = '1px solid var(--border-color)';
+    }
+
     cancelCreationButton.style.display = isPlanListEmpty ? 'none' : 'inline-block';
     planCreationSection.style.display = 'block';
     window.scrollTo(0, 0);
@@ -259,15 +258,15 @@ export function openForEditing(plan) {
         // Se o ícone do plano não estiver na lista (ex: ícone de plano favorito), seleciona o primeiro
         iconSelectorContainer.querySelector('input[type="radio"]')?.setAttribute('checked', 'true');
     }
-    
-    // Preenche os dias da semana
-    const allowedDays = plan.allowedDays || [];
-    periodicityCheckboxes.forEach(cb => {
-        cb.checked = allowedDays.includes(parseInt(cb.value, 10));
-    });
 
     // Desabilita a edição da estrutura do plano (capítulos, duração etc)
     planStructureFieldset.disabled = true;
+
+    // NOVO: Reseta estilos que podem ter sido aplicados pelo modo de reavaliação
+    const periodicityFieldset = document.getElementById('periodicity-options');
+    if (periodicityFieldset) {
+        periodicityFieldset.style.border = '1px solid var(--border-color)';
+    }
     
     cancelCreationButton.style.display = 'inline-block';
     planCreationSection.style.display = 'block';
@@ -275,29 +274,36 @@ export function openForEditing(plan) {
 }
 
 /**
- * (NOVO) Abre o formulário em um modo especial para reavaliação,
+ * Abre o formulário em um modo especial para reavaliação,
  * permitindo editar apenas os dias da semana.
  * @param {object} plan - O objeto do plano a ser editado.
  */
-export function openForReassessment(plan) {
-    // Reutiliza a função de edição padrão que já desabilita a estrutura inteira
-    openForEditing(plan); 
+export function openForReassessment(plan) { // NOVO
+    openForEditing(plan); // Reutiliza a função de edição existente para preencher os dados
 
-    // Modifica os títulos e textos para o contexto de reavaliação
+    // Sobrescreve títulos para o contexto de reavaliação
     planCreationTitle.textContent = "Ajustar Dias de Leitura";
     createPlanButton.textContent = "Salvar Dias";
 
-    // Habilita APENAS o fieldset de periodicidade, que estava dentro do fieldset desabilitado
-    if (periodicityOptions) {
-        periodicityOptions.disabled = false;
-        periodicityOptions.style.opacity = 1;
-        periodicityOptions.style.border = '2px dashed var(--primary-action)'; // Destaque visual
+    // Busca o fieldset de periodicidade
+    const periodicityFieldset = document.getElementById('periodicity-options');
+    if (periodicityFieldset) {
+        // Garante que o container principal esteja desabilitado
+        planStructureFieldset.disabled = true;
+        // Habilita APENAS o fieldset de periodicidade para edição
+        periodicityFieldset.disabled = false;
         
-        // Foco visual para o usuário
-        periodicityOptions.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Adiciona um destaque visual para focar a atenção do usuário
+        periodicityFieldset.style.border = '2px dashed var(--primary-action)';
+        periodicityFieldset.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    
+    // Preenche as checkboxes com os dias atuais do plano
+    const allowedDays = plan.allowedDays || [];
+    periodicityCheckboxes.forEach(cb => {
+        cb.checked = allowedDays.includes(parseInt(cb.value, 10));
+    });
 }
-
 
 /**
  * Esconde a seção de criação/edição.
