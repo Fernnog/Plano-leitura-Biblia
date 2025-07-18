@@ -1,5 +1,3 @@
-// src/main.js
-
 /**
  * @file main.js
  * @description Ponto de entrada principal e orquestrador da aplicação.
@@ -23,15 +21,13 @@ import * as weeklyTrackerUI from './ui/weekly-tracker-ui.js';
 import * as readingPlanUI from './ui/reading-plan-ui.js';
 import * as sidePanelsUI from './ui/side-panels-ui.js';
 import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
+import * as planReassessmentUI from './ui/plan-reassessment-ui.js'; // NOVO: Importa o novo módulo de UI
 
 // Helpers e Configurações
 import {
-    generateChaptersInRange,
-    parseChaptersInput,
-    generateChaptersForBookList,
     generateIntercalatedChapters,
+    generateChaptersForBookList,
     distributeChaptersOverReadingDays,
-    sortChaptersCanonically
 } from './utils/chapter-helpers.js';
 import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays } from './utils/date-helpers.js';
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
@@ -43,7 +39,8 @@ import { buildPlanFromFormData } from './utils/plan-builder.js';
 import {
     planCreationActionsSection,
     createNewPlanButton,
-    createFavoritePlanButton
+    createFavoritePlanButton,
+    reassessPlansButton // NOVO: Importa o novo botão
 } from './ui/dom-elements.js';
 
 
@@ -85,8 +82,7 @@ async function handleAuthStateChange(user) {
         perseverancePanelUI.render(appState.userInfo);
         weeklyTrackerUI.render(appState.weeklyInteractions);
 
-        // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+        sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
             onRecalculate: (planId) => {
                 modalsUI.resetRecalculateForm();
@@ -114,6 +110,7 @@ async function handleAuthStateChange(user) {
         weeklyTrackerUI.hide();
         sidePanelsUI.hide();
         floatingNavigatorUI.hide();
+        planReassessmentUI.hide(); // NOVO: Garante que a nova tela seja escondida no logout
     }
 }
 
@@ -143,8 +140,7 @@ async function loadInitialUserData(user) {
         console.error("Erro ao carregar dados iniciais do usuário:", error);
         alert(`Falha ao carregar dados: ${error.message}`);
     } finally {
-        // MODIFICADO: Garante que os painéis sejam re-renderizados com os callbacks corretos após carregar os dados.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+        sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
             onRecalculate: (planId) => {
                 modalsUI.resetRecalculateForm();
@@ -239,23 +235,43 @@ function handleCreateNewPlanRequest() {
     sidePanelsUI.hide();
     planCreationActionsSection.style.display = 'none';
     floatingNavigatorUI.hide();
+    planReassessmentUI.hide(); // NOVO: Garante que a outra tela está oculta
     planCreationUI.show(appState.userPlans.length === 0);
 }
 
+// MODIFICADO: A lógica de cancelamento agora é mais robusta
 function handleCancelPlanCreation() {
+    const creationTitleEl = document.getElementById('plan-creation-title');
+    const cameFromReassessment = creationTitleEl && creationTitleEl.textContent === "Ajustar Dias de Leitura";
+
     planCreationUI.hide();
-    readingPlanUI.show();
-    sidePanelsUI.show();
-    floatingNavigatorUI.show();
-    planCreationActionsSection.style.display = 'flex';
+
+    if (cameFromReassessment) {
+        handleReassessPlansRequest(); // Volta para a tela de reavaliação
+    } else {
+        // Comportamento original
+        readingPlanUI.show();
+        sidePanelsUI.show();
+        planCreationActionsSection.style.display = 'flex';
+        floatingNavigatorUI.show();
+    }
 }
 
+// MODIFICADO: A lógica de submissão agora é ciente do contexto (criação vs. reavaliação)
 async function handlePlanSubmit(formData, planId) {
     planCreationUI.showLoading();
+    
+    const creationTitleEl = document.getElementById('plan-creation-title');
+    const cameFromReassessment = planId && creationTitleEl && creationTitleEl.textContent === "Ajustar Dias de Leitura";
+
     try {
         if (planId) {
-            const updatedData = { name: formData.name, icon: formData.icon, googleDriveLink: formData.googleDriveLink || null };
-            await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
+            // Se veio da reavaliação, atualiza apenas os dias. Senão, atualização normal.
+            const dataToUpdate = cameFromReassessment
+                ? { allowedDays: formData.allowedDays }
+                : { name: formData.name, icon: formData.icon, googleDriveLink: formData.googleDriveLink || null };
+
+            await planService.updatePlan(appState.currentUser.uid, planId, dataToUpdate);
             alert(`Plano "${formData.name}" atualizado com sucesso!`);
         } else {
             const newPlanData = buildPlanFromFormData(formData);
@@ -264,23 +280,19 @@ async function handlePlanSubmit(formData, planId) {
             alert(`Plano "${formData.name}" criado com sucesso!`);
         }
 
-        planCreationUI.hide();
-        planCreationActionsSection.style.display = 'flex';
-        
         await loadInitialUserData(appState.currentUser);
-        
-        renderAllPlanCards();
-        // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+        planCreationUI.hide();
+
+        // Decide para qual tela retornar
+        if (cameFromReassessment) {
+            handleReassessPlansRequest();
+        } else {
+            planCreationActionsSection.style.display = 'flex';
+            renderAllPlanCards();
+            sidePanelsUI.render(appState.userPlans, { onSwitchPlan: handleSwitchPlan, onRecalculate: (planId) => modalsUI.open('recalculate-modal', { planId }) });
+            floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+            readingPlanUI.show();
+        }
 
     } catch (error) {
         planCreationUI.showError(`Erro: ${error.message}`);
@@ -288,6 +300,7 @@ async function handlePlanSubmit(formData, planId) {
         planCreationUI.hideLoading();
     }
 }
+
 
 async function handleChapterToggle(planId, chapterName, isRead) {
     if (!appState.currentUser) return;
@@ -297,6 +310,7 @@ async function handleChapterToggle(planId, chapterName, isRead) {
         
         const planToUpdate = appState.userPlans.find(p => p.id === planId);
         if (planToUpdate) {
+            if (!planToUpdate.dailyChapterReadStatus) planToUpdate.dailyChapterReadStatus = {};
             planToUpdate.dailyChapterReadStatus[chapterName] = isRead;
         }
         
@@ -351,8 +365,7 @@ async function handleCompleteDay(planId) {
         await loadInitialUserData(appState.currentUser);
         
         renderAllPlanCards();
-        // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+        sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
             onRecalculate: (planId) => {
                 modalsUI.resetRecalculateForm();
@@ -389,8 +402,7 @@ async function handleDeletePlan(planId) {
             await loadInitialUserData(appState.currentUser); 
             
             renderAllPlanCards();
-            // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-            sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+            sidePanelsUI.render(appState.userPlans, {
                 onSwitchPlan: handleSwitchPlan,
                 onRecalculate: (planId) => {
                     modalsUI.resetRecalculateForm();
@@ -495,8 +507,7 @@ async function handleRecalculate(option, newPaceValue, planId) {
         
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
-        // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+        sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
             onRecalculate: (planId) => {
                 modalsUI.resetRecalculateForm();
@@ -515,7 +526,37 @@ async function handleRecalculate(option, newPaceValue, planId) {
 }
 
 
-// --- 4. FUNÇÕES DE MODAIS E OUTRAS AÇÕES ---
+// --- 4. FUNÇÕES DE MODAIS, REAVALIAÇÃO E OUTRAS AÇÕES ---
+
+// NOVO: Handler para abrir a tela de reavaliação
+function handleReassessPlansRequest() {
+    readingPlanUI.hide();
+    sidePanelsUI.hide();
+    planCreationActionsSection.style.display = 'none';
+    floatingNavigatorUI.hide();
+    planCreationUI.hide();
+
+    planReassessmentUI.show(appState.userPlans);
+}
+
+// NOVO: Handler para fechar a tela de reavaliação e voltar ao painel principal
+function handleCloseReassessment() {
+    planReassessmentUI.hide();
+
+    readingPlanUI.show();
+    sidePanelsUI.show();
+    planCreationActionsSection.style.display = 'flex';
+    floatingNavigatorUI.show();
+}
+
+// NOVO: Handler para quando um plano é clicado na grade de reavaliação
+function handleReassessPlanEdit(planId) {
+    const planToEdit = appState.userPlans.find(p => p.id === planId);
+    if (planToEdit) {
+        planReassessmentUI.hide();
+        planCreationUI.openForReassessment(planToEdit);
+    }
+}
 
 function handleShowStats(planId) {
     const plan = appState.userPlans.find(p => p.id === planId);
@@ -607,8 +648,7 @@ async function handleCreateFavoritePlanSet() {
         alert("Conjunto de planos favoritos criado com sucesso!");
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
-        // MODIFICADO: Passa um objeto de callbacks para render, incluindo a função de recálculo.
-        sidePanelsUI.render(appState.userPlans, appState.activePlanId, {
+        sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
             onRecalculate: (planId) => {
                 modalsUI.resetRecalculateForm();
@@ -634,7 +674,9 @@ function initApplication() {
     
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
+    reassessPlansButton.addEventListener('click', handleReassessPlansRequest); // NOVO: Listener para o novo botão
 
+    // MODIFICADO: Os callbacks de submit e cancel foram movidos para handlers com reconhecimento de contexto
     planCreationUI.init({ onSubmit: handlePlanSubmit, onCancel: handleCancelPlanCreation });
     
     readingPlanUI.init({
@@ -654,8 +696,14 @@ function initApplication() {
     
     perseverancePanelUI.init();
     weeklyTrackerUI.init();
-    sidePanelsUI.init(); // A inicialização permanece sem callbacks, pois eles são passados no render.
+    sidePanelsUI.init();
     
+    // NOVO: Inicializa o novo módulo de UI com seus callbacks
+    planReassessmentUI.init({
+        onClose: handleCloseReassessment,
+        onEditPlan: handleReassessPlanEdit
+    });
+
     floatingNavigatorUI.init({
         onSwitchPlan: handleSwitchPlan,
         onCreatePlan: handleCreateNewPlanRequest,
