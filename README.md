@@ -8,7 +8,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
 
 O projeto foi arquitetado com uma **estrutura de módulos JavaScript (ESM)**, focando em separação de responsabilidades, manutenibilidade e escalabilidade.
 
-## Estrutura de Arquivos
+## Estrutura de Arquivos [ATUALIZADO]
 
 O projeto é organizado na seguinte estrutura de diretórios, promovendo a separação de responsabilidades e a manutenibilidade:
 
@@ -35,18 +35,20 @@ O projeto é organizado na seguinte estrutura de diretórios, promovendo a separ
     │   ├── plan-creation-ui.js # Lógica da UI de criação e edição de planos
     │   ├── reading-plan-ui.js # Lógica da UI para renderizar os cards de todos os planos
     │   ├── side-panels-ui.js # Lógica da UI dos painéis de leituras atrasadas e próximas
-    │   └── floating-navigator-ui.js # Lógica da UI do navegador/dock flutuante
+    │   ├── floating-navigator-ui.js # Lógica da UI do navegador/dock flutuante
+    │   └── plan-reassessment-ui.js # **[NOVO]** Lógica da UI para o Quadro de Carga Semanal (Reavaliação de Planos)
     │
     └── utils/ # Funções puras e utilitárias
         ├── chapter-helpers.js # Funções para gerar e manipular capítulos
         ├── date-helpers.js # Funções para formatar e calcular datas
         ├── plan-logic-helpers.js # Lógica para calcular a data efetiva de um dia de leitura
-        └── plan-builder.js # (NOVO) Lógica de negócios para construir um objeto de plano completo a partir dos dados do formulário
+        └── plan-builder.js # Lógica de negócios para construir um objeto de plano completo a partir dos dados do formulário
 
-## Funcionalidades Principais
+## Funcionalidades Principais [ATUALIZADO]
 
 *   **Autenticação de Usuários:** Cadastro e login seguros usando Firebase Authentication.
 *   **Gerenciamento de Múltiplos Planos:** Crie, edite, gerencie e delete múltiplos planos de leitura em uma interface moderna baseada em cards.
+*   **Reavaliação Inteligente de Planos:** **[NOVO]** Visualize a distribuição de capítulos de todos os seus planos em um "Quadro de Carga Semanal". Remaneje a carga de leitura entre os dias da semana de forma intuitiva, arrastando e soltando (Drag & Drop) os planos para balancear seus estudos.
 *   **Navegação Rápida:** Um *dock* flutuante permite alternar instantaneamente entre os seus planos de leitura.
 *   **Criação Rápida:** Gere um conjunto de três planos anuais estruturados com um único clique.
 *   **Criação de Planos Personalizados:** Defina conteúdo por intervalo, seleção de livros/capítulos avulsos e configure a duração e a periodicidade (dias da semana).
@@ -104,11 +106,12 @@ Para executar este projeto localmente, você precisará configurar seu próprio 
 3.  Publique as Regras de Segurança do Firestore no seu projeto Firebase.
 4.  Abra o arquivo `index.html` no seu navegador. **É recomendado usar um servidor local simples**, como a extensão "Live Server" no VS Code, pois os navegadores podem restringir o uso de Módulos ES6 (`import`/`export`) abertos diretamente do sistema de arquivos (`file://`).
 
-## Uso
+## Uso [ATUALIZADO]
 
 1.  **Cadastro/Login:** Crie uma conta ou faça login para acessar seus planos.
 2.  **Criação de Planos:** Após o login, você verá botões para "Criar Novo Plano (Genérico)" ou "Criar Plano Favorito Anual".
 3.  **Interface Principal:** Seus planos de leitura são exibidos como cards individuais. O plano ativo é destacado com uma borda roxa.
 4.  **Navegação:** Use o **dock flutuante** na parte inferior da tela para pular rapidamente para qualquer um dos seus planos.
-5.  **Acompanhamento:** Dentro de cada card, marque os capítulos lidos nos checkboxes e clique em "Concluir Leituras e Avançar" para registrar seu progresso. Isso atualizará seus painéis de perseverança e atividade semanal.
-6.  **Ações do Plano:** Cada card possui botões para **Editar** (nome e ícone), **Recalcular** o ritmo, ver **Estatísticas**, acessar o **Histórico** de leitura e **Excluir** o plano.
+5.  **Reavaliar e Balancear:** **[NOVO]** Clique em **"Reavaliar Planos"** para visualizar o Quadro de Carga Semanal. Arraste e solte os cards de plano entre os dias da semana para ajustar a distribuição da sua leitura. Você também pode clicar em um card para editar os dias da semana através de checkboxes.
+6.  **Acompanhamento:** Dentro de cada card, marque os capítulos lidos nos checkboxes e clique em "Concluir Leituras e Avançar" para registrar seu progresso. Isso atualizará seus painéis de perseverança e atividade semanal.
+7.  **Ações do Plano:** Cada card possui botões para **Editar** (nome e ícone), **Recalcular** o ritmo, ver **Estatísticas**, acessar o **Histórico** de leitura e **Excluir** o plano.
