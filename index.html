@@ -67,6 +67,9 @@
         <!-- Container para botões de criação de plano, visível após login -->
         <section id="plan-creation-actions" class="plan-creation-actions-container" style="display: none;">
             <button id="create-new-plan-button" class="button-primary">Criar Novo Plano (Genérico)</button>
+            <!-- INÍCIO DA ALTERAÇÃO: Adicionado o novo botão de reavaliação -->
+            <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
+            <!-- FIM DA ALTERAÇÃO -->
             <button id="create-favorite-plan-button" class="button-special">Criar Plano Favorito Anual</button>
         </section>
 
@@ -158,6 +161,27 @@
             <button id="create-plan" class="button-primary">Criar Plano</button>
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
+
+        <!-- INÍCIO DA ALTERAÇÃO: Adicionada a nova seção de reavaliação -->
+        <section id="plan-reassessment-section" style="display: none;">
+            <div class="reassessment-header">
+                <h2>Quadro de Carga Semanal</h2>
+                <button id="close-reassessment-button" class="button-secondary">Voltar ao Painel</button>
+            </div>
+            <p class="reassessment-description">
+                Visualize a distribuição dos seus planos ao longo da semana. Clique em um item para ajustar seus dias de leitura.
+            </p>
+            <div id="reassessment-grid" class="reassessment-grid-container">
+                <!-- O conteúdo da grade será gerado dinamicamente via JS -->
+            </div>
+            <div id="reassessment-legend" class="reassessment-legend-container">
+                <h3>Legenda dos Planos</h3>
+                <div id="reassessment-legend-list">
+                    <!-- A legenda será gerada dinamicamente via JS -->
+                </div>
+            </div>
+        </section>
+        <!-- FIM DA ALTERAÇÃO -->
 
         <!-- Painel de Perseverança Aprimorado (MODIFICADO) -->
         <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
