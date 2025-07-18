@@ -757,3 +757,147 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         padding: 10px;
     }
 }
+
+/* 
+================================================================================
+  NOVAS REGRAS DE CSS PARA A FUNCIONALIDADE DE REAVALIAÇÃO DE PLANOS
+================================================================================
+*/
+
+/* --- Estilos da Seção de Reavaliação de Planos --- */
+#plan-reassessment-section {
+    border-top: 5px solid var(--primary-action);
+}
+
+.reassessment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 10px;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+.reassessment-header h2 {
+    margin: 0;
+}
+
+.reassessment-description {
+    text-align: center;
+    color: var(--text-color-muted);
+    font-size: 0.95em;
+    margin-bottom: 25px;
+}
+
+.reassessment-grid-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.reassessment-day-column {
+    background-color: var(--background-light);
+    border-radius: var(--base-border-radius);
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    min-height: 150px;
+}
+
+.reassessment-day-header {
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary-action);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.reassessment-plan-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--background-card);
+    padding: 8px;
+    border-radius: calc(var(--base-border-radius) / 1.5);
+    margin-bottom: 8px;
+    box-shadow: var(--box-shadow-sm);
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    border-left: 4px solid var(--accent-color);
+}
+
+.reassessment-plan-entry:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--box-shadow);
+}
+
+.reassessment-plan-entry .plan-icon {
+    font-size: 1.5em;
+}
+
+.reassessment-plan-entry .chapter-count {
+    font-weight: 600;
+    color: var(--text-color-dark);
+    font-size: 0.9em;
+}
+
+.reassessment-legend-container {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.reassessment-legend-container h3 {
+    text-align: center;
+    color: var(--text-color-muted);
+    font-size: 1em;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+#reassessment-legend-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.reassessment-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+/* --- Media Queries Adicionais para a Reavaliação --- */
+@media (max-width: 768px) {
+    .reassessment-grid-container {
+        /* Permite que o layout quebre para menos colunas se não houver espaço */
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 8px;
+    }
+}
+
+
+@media (max-width: 600px) {
+    #plan-reassessment-section {
+        padding: 15px;
+    }
+    
+    .reassessment-grid-container {
+        grid-template-columns: 1fr; /* Empilha as colunas verticalmente */
+        gap: 20px;
+    }
+
+    .reassessment-day-column {
+        min-height: auto; /* Remove a altura mínima em layout de coluna única */
+    }
+
+    .reassessment-legend-item {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
