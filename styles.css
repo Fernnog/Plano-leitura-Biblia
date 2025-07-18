@@ -719,12 +719,8 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 .reassessment-grid-container {
     display: grid;
-    /* A MUDANÇA CRÍTICA:
-       'auto-fit' cria quantas colunas couberem.
-       'minmax(120px, 1fr)' define que cada coluna terá no MÍNIMO 120px,
-       e o espaço restante será distribuído igualmente (1fr). */
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px; /* Um bom espaçamento entre os itens */
+    gap: 15px; 
     margin-bottom: 30px;
 }
 
@@ -734,6 +730,9 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     padding: 10px;
     border: 1px solid var(--border-color);
     min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .reassessment-day-header {
@@ -745,6 +744,14 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border-bottom: 1px solid var(--border-color);
 }
 
+/* NOVO: Div que agrupa os cards para melhor controle */
+.day-entries {
+    flex-grow: 1; /* Faz com que ocupe o espaço disponível */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
 .reassessment-plan-entry {
     display: flex;
     align-items: center;
@@ -752,11 +759,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     background-color: var(--background-card);
     padding: 8px;
     border-radius: calc(var(--base-border-radius) / 1.5);
-    margin-bottom: 8px;
     box-shadow: var(--box-shadow-sm);
     cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
     border-left: 4px solid var(--accent-color);
+    -webkit-user-select: none; /* Impede seleção de texto ao arrastar */
+    user-select: none;
 }
 
 .reassessment-plan-entry:hover {
@@ -802,6 +810,63 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     font-size: 0.9em;
 }
 
+/* 
+================================================================================
+  ESTILOS ADICIONAIS PARA DRAG & DROP E MELHORIAS DE UX
+================================================================================
+*/
+
+/* NOVO: Estilo para o contador de carga total no cabeçalho do dia */
+.reassessment-day-header .total-load {
+    display: block;
+    font-size: 0.8em;
+    font-weight: normal;
+    color: var(--text-color-muted);
+    margin-top: 4px;
+}
+
+/* NOVO: Estilo para a coluna com sobrecarga */
+.reassessment-day-column.overload {
+    background-color: var(--warning-bg-light);
+    border-color: var(--warning-item-border);
+}
+
+.reassessment-day-column.overload .reassessment-day-header {
+    color: var(--warning-item-text);
+}
+
+/* Estilo para o item que está sendo arrastado (desktop) ou tocado (mobile) */
+.reassessment-plan-entry.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+    box-shadow: 0 8px 25px rgba(var(--primary-action-rgb), 0.2);
+}
+
+/* Estilo para a coluna do dia que é um alvo válido para soltar o item */
+.reassessment-day-column.over {
+    background-color: rgba(var(--primary-action-rgb), 0.1);
+    border-style: dashed;
+    border-color: var(--primary-action);
+}
+
+/* NOVO: Estilo para o elemento "fantasma" que segue o toque no mobile */
+.touch-ghost {
+    position: absolute; /* Posição absoluta para seguir o dedo */
+    pointer-events: none; /* Não deve interferir com outros eventos de toque */
+    z-index: 1100; /* Deve ficar acima de outros elementos */
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.05); /* Centraliza e aumenta um pouco */
+    /* Garante que o estilo seja o mesmo do item original */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: var(--background-card);
+    padding: 8px;
+    border-radius: calc(var(--base-border-radius) / 1.5);
+    box-shadow: var(--box-shadow-lg);
+    border-left: 4px solid var(--accent-color);
+}
+
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; }
@@ -823,15 +888,13 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
      .plan-card .daily-chapter-item { padding: 8px 0; font-size: 1em; }
      .plan-card .daily-chapter-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 12px; }
 
-    /* ===== INÍCIO DA ALTERAÇÃO FOCADA ===== */
     .reassessment-grid-container {
-        grid-template-columns: 1fr; /* Força uma única coluna para empilhar verticalmente */
-        gap: 20px; /* Ajusta o espaçamento para o layout vertical */
+        grid-template-columns: 1fr; 
+        gap: 20px;
     }
     .reassessment-day-column {
         min-height: auto;
     }
-    /* ===== FIM DA ALTERAÇÃO FOCADA ===== */
 }
 
 @media (max-width: 600px) {
@@ -870,7 +933,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     .overdue-date, .upcoming-date { font-size: 1em; }
     .perseverance-header h2 { font-size: 1.3em; }
     
-    /* MODIFICAÇÃO: Ajuste do tamanho dos ícones de marco em telas pequenas */
     .milestone-icon { font-size: 1.8em; }
     .milestone-item .icon { font-size: 1.8em; }
     .milestone-item .counter { font-size: 0.9em; }
@@ -879,9 +941,8 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     .progress-percentage-left { font-size: 0.8em; left: 10px; }
     .milestone-legend { font-size: 0.75em; }
     
-    /* NOVO: Media query para o container do gráfico */
     .stats-chart-container {
-        height: 220px; /* Reduz a altura em telas pequenas */
+        height: 220px;
         padding: 10px;
     }
 
