@@ -719,8 +719,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 .reassessment-grid-container {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
+    /* A MUDANÇA CRÍTICA:
+       'auto-fit' cria quantas colunas couberem.
+       'minmax(120px, 1fr)' define que cada coluna terá no MÍNIMO 120px,
+       e o espaço restante será distribuído igualmente (1fr). */
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px; /* Um bom espaçamento entre os itens */
     margin-bottom: 30px;
 }
 
