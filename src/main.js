@@ -23,7 +23,6 @@ import * as weeklyTrackerUI from './ui/weekly-tracker-ui.js';
 import * as readingPlanUI from './ui/reading-plan-ui.js';
 import * as sidePanelsUI from './ui/side-panels-ui.js';
 import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
-// NOVO: Importação do módulo de reavaliação
 import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
 
 
@@ -36,8 +35,9 @@ import {
     distributeChaptersOverReadingDays,
     sortChaptersCanonically
 } from './utils/chapter-helpers.js';
-import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays } from './utils/date-helpers.js';
-import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
+import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId } from './utils/date-helpers.js';
+// MODIFICAÇÃO: Importa a nova função de cálculo de previsão
+import { getEffectiveDateForDay, calculatePlanForecast } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
@@ -47,9 +47,10 @@ import {
     planCreationActionsSection,
     createNewPlanButton,
     createFavoritePlanButton,
-    // NOVO: Importação do botão de reavaliação
     reassessPlansButton,
-    planStructureFieldset // Importado para checar o modo de edição
+    planStructureFieldset,
+    // NOVO: Importação do botão de sincronização do HTML
+    syncRhythmButton
 } from './ui/dom-elements.js';
 
 
@@ -115,7 +116,7 @@ async function handleAuthStateChange(user) {
         planCreationActionsSection.style.display = 'none';
         readingPlanUI.hide();
         planCreationUI.hide();
-        planReassessmentUI.hide(); // Garante que a nova tela seja escondida no logout
+        planReassessmentUI.hide();
         perseverancePanelUI.hide();
         weeklyTrackerUI.hide();
         sidePanelsUI.hide();
@@ -125,44 +126,31 @@ async function handleAuthStateChange(user) {
 
 function renderAllPlanCards() {
     const effectiveDatesMap = {};
-    const forecastsMap = {}; // NOVO: Mapa para armazenar as previsões
+    const forecastsMap = {}; 
 
     appState.userPlans.forEach(plan => {
-         effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
+        effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
 
-        // --- INÍCIO DA NOVA LÓGICA DE CÁLCULO DA PREVISÃO ---
-        const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-        const isCompleted = plan.currentDay > totalReadingDaysInPlan;
-        
-        if (!isCompleted) {
-            const logEntries = plan.readLog || {};
-            const daysWithReading = Object.keys(logEntries).length;
-            const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + chapters.length, 0);
-            const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
-
-            if (avgPace > 0) {
-                const remainingChapters = plan.totalChapters - chaptersReadFromLog;
-                const remainingDays = Math.ceil(remainingChapters / avgPace);
-                const today = new Date();
-                const forecastDate = addUTCDays(today, remainingDays);
-                const forecastDateStr = forecastDate.toISOString().split('T')[0];
-                
-                let colorClass = 'forecast-neutral';
-                if (forecastDateStr < plan.endDate) {
-                    colorClass = 'forecast-ahead'; // Adiantado (verde)
+        // --- INÍCIO DA LÓGICA REATORADA ---
+        const forecastDateStr = calculatePlanForecast(plan);
+        if (forecastDateStr) {
+            let colorClass = 'forecast-neutral';
+            // A data final do plano pode não existir se ele for inválido
+            if (plan.endDate) {
+                 if (forecastDateStr < plan.endDate) {
+                    colorClass = 'forecast-ahead'; 
                 } else if (forecastDateStr > plan.endDate) {
-                    colorClass = 'forecast-behind'; // Atrasado (vermelho)
+                    colorClass = 'forecast-behind';
                 }
-                
-                forecastsMap[plan.id] = { forecastDateStr, colorClass };
             }
+            forecastsMap[plan.id] = { forecastDateStr, colorClass };
         }
-        // --- FIM DA NOVA LÓGICA ---
+        // --- FIM DA LÓGICA REATORADA ---
     });
     
-    // Passa o novo mapa para a função de renderização da UI
     readingPlanUI.renderAllPlanCards(appState.userPlans, appState.activePlanId, effectiveDatesMap, forecastsMap);
 }
+
 
 async function loadInitialUserData(user) {
     try {
@@ -304,27 +292,19 @@ function handleCancelPlanCreation() {
     });
 }
 
-/**
- * // CÓDIGO MODIFICADO E CORRIGIDO
- * Lida com a submissão do formulário de criação/edição de plano.
- * @param {object} formData Os dados do formulário.
- * @param {string|null} planId O ID do plano, se estiver editando.
- * @param {boolean} isReassessing Flag que indica se a edição é apenas dos dias da semana.
- */
 async function handlePlanSubmit(formData, planId, isReassessing) {
     planCreationUI.showLoading();
         
     try {
-        if (planId) { // Entra aqui para edição ou reavaliação
+        if (planId) {
             let updatedData = {};
             
             if (isReassessing) {
-                // Se está reavaliando, o único dado que importa são os dias da semana.
                 updatedData = { allowedDays: formData.allowedDays };
                 await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert('Dias de leitura atualizados com sucesso!');
 
-            } else { // Edição normal (nome, ícone, etc.)
+            } else { 
                 updatedData = { 
                     name: formData.name, 
                     icon: formData.icon, 
@@ -333,7 +313,7 @@ async function handlePlanSubmit(formData, planId, isReassessing) {
                 await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert(`Plano "${formData.name}" atualizado com sucesso!`);
             }
-        } else { // Criação de um novo plano
+        } else { 
             const newPlan = buildPlanFromFormData(formData);
             const newPlanId = await planService.saveNewPlan(appState.currentUser.uid, newPlan);
             if (appState.userPlans.length === 0) {
@@ -345,11 +325,10 @@ async function handlePlanSubmit(formData, planId, isReassessing) {
         await loadInitialUserData(appState.currentUser);
 
         planCreationUI.hide();
-        // Volta para a tela correta dependendo da ação
         if (isReassessing) {
-            handleReassessPlansRequest(); // Volta para o quadro.
+            handleReassessPlansRequest(); 
         } else {
-            handleCancelPlanCreation(); // Volta para o painel principal.
+            handleCancelPlanCreation(); 
         }
 
     } catch (error) {
@@ -497,14 +476,9 @@ function handleEditPlanRequest(planId) {
 }
 
 
-// --- 4. NOVAS FUNÇÕES PARA A REAVALIAÇÃO DE PLANOS ---
+// --- 4. FUNÇÕES PARA REAVALIAÇÃO E SINCRONIZAÇÃO DE PLANOS ---
 
-/**
- * // NOVO
- * Lida com a solicitação para mostrar o quadro de reavaliação de planos.
- */
 function handleReassessPlansRequest() {
-    // Esconde as telas principais
     readingPlanUI.hide();
     sidePanelsUI.hide();
     planCreationActionsSection.style.display = 'none';
@@ -513,16 +487,63 @@ function handleReassessPlansRequest() {
     perseverancePanelUI.hide();
     weeklyTrackerUI.hide();
 
-    // Renderiza e mostra a nova seção de reavaliação
-    planReassessmentUI.render(appState.userPlans);
+    // --- LÓGICA REATORADA ---
+    const forecastsMap = {};
+    appState.userPlans.forEach(plan => {
+        const forecastDateStr = calculatePlanForecast(plan);
+        if (forecastDateStr) {
+            forecastsMap[plan.id] = forecastDateStr;
+        }
+    });
+    // --- FIM DA LÓGICA REATORADA ---
+
+    planReassessmentUI.render(appState.userPlans, forecastsMap);
     planReassessmentUI.show();
 }
 
-/**
- * // NOVO
- * Lida com a seleção de um plano no quadro para edição dos dias da semana (via clique).
- * @param {string} planId O ID do plano a ser editado.
- */
+// NOVO: Abre o modal de sincronização.
+function handleSyncRhythmRequest() {
+    // Filtra apenas os planos que não estão concluídos
+    const activePlans = appState.userPlans.filter(plan => {
+        const totalDays = Object.keys(plan.plan || {}).length;
+        return plan.currentDay <= totalDays;
+    });
+
+    if (activePlans.length > 0) {
+        modalsUI.openSyncRhythm(activePlans);
+    } else {
+        alert("Não há planos ativos para sincronizar.");
+    }
+}
+
+// NOVO: Lida com a confirmação do modal de sincronização.
+async function handleConfirmSync(plansToUpdate) {
+    modalsUI.showLoading('sync-rhythm-modal');
+    modalsUI.hideError('sync-rhythm-modal');
+
+    try {
+        // Usa um loop for...of para garantir que as operações await sejam sequenciais
+        for (const planId in plansToUpdate) {
+            if (Object.hasOwnProperty.call(plansToUpdate, planId)) {
+                const newPace = plansToUpdate[planId];
+                console.log(`Recalculando plano ${planId} com o novo ritmo de ${newPace} caps/dia.`);
+                await handleRecalculate('new_pace', newPace, planId);
+            }
+        }
+        
+        alert("Planos sincronizados e recalculados com sucesso!");
+        modalsUI.close('sync-rhythm-modal');
+        // A tela de reavaliação será atualizada automaticamente pois o handleRecalculate já recarrega os dados.
+        handleReassessPlansRequest();
+
+    } catch (error) {
+        modalsUI.showError('sync-rhythm-modal', `Erro na sincronização: ${error.message}`);
+    } finally {
+        modalsUI.hideLoading('sync-rhythm-modal');
+    }
+}
+
+
 function handleReassessPlanEdit(planId) {
     const planToEdit = appState.userPlans.find(p => p.id === planId);
     if (planToEdit) {
@@ -531,37 +552,23 @@ function handleReassessPlanEdit(planId) {
     }
 }
 
-/**
- * // NOVO
- * Lida com a atualização dos dias de um plano via Drag and Drop.
- * @param {string} planId O ID do plano movido.
- * @param {number} sourceDay O dia de origem (0-6).
- * @param {number} targetDay O dia de destino (0-6).
- */
 async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
-    if (sourceDay === targetDay) return; // Não faz nada se soltar no mesmo lugar
+    if (sourceDay === targetDay) return;
 
     const planToUpdate = appState.userPlans.find(p => p.id === planId);
     if (!planToUpdate) return;
     
-    // Calcula os novos dias
     let newAllowedDays = [...(planToUpdate.allowedDays || [])];
-    // Remove o dia de origem
     newAllowedDays = newAllowedDays.filter(day => day !== sourceDay);
-    // Adiciona o dia de destino, se ainda não existir
     if (!newAllowedDays.includes(targetDay)) {
         newAllowedDays.push(targetDay);
     }
     
     try {
-        // Chama o serviço do Firebase para salvar
         await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays: newAllowedDays });
-        
-        // Recarrega os dados para a UI refletir a mudança
         await loadInitialUserData(appState.currentUser);
-        
-        // Renderiza novamente o quadro de reavaliação com os dados atualizados
-        planReassessmentUI.render(appState.userPlans);
+        planReassessmentUI.render(appState.userPlans, {}); // O forecastsMap será recalculado em handleReassessPlansRequest
+        handleReassessPlansRequest(); // Recarrega a tela de reavaliação com dados atualizados
 
     } catch (error) {
         console.error("Erro ao atualizar plano por Drag & Drop:", error);
@@ -636,7 +643,11 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
         await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
         
-        alert("Plano recalculado com sucesso!");
+        // Só exibe o alerta se não for parte da sincronização em massa
+        if (option !== 'new_pace' || !document.getElementById('sync-rhythm-modal').style.display.includes('flex')) {
+            alert("Plano recalculado com sucesso!");
+        }
+
         modalsUI.close('recalculate-modal');
         
         await loadInitialUserData(appState.currentUser);
@@ -679,23 +690,17 @@ function handleShowStats(planId) {
     
     let forecastDateStr = '--';
     if (!isCompleted && avgPace > 0) {
-        const remainingChapters = plan.totalChapters - chaptersReadFromLog;
-        const remainingDays = Math.ceil(remainingChapters / avgPace);
-        const today = new Date();
-        const forecastDate = addUTCDays(today, remainingDays);
-        forecastDateStr = forecastDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+        const forecastDate = calculatePlanForecast(plan);
+        if (forecastDate) {
+            const dateObj = new Date(forecastDate + 'T00:00:00Z');
+            forecastDateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+        }
     }
 
-    const chartData = {
-        idealLine: [],
-        actualProgress: []
-    };
+    const chartData = { idealLine: [], actualProgress: [] };
     const originalEndDate = getEffectiveDateForDay({ startDate: plan.startDate, allowedDays: plan.allowedDays }, Object.keys(plan.plan).length);
     chartData.idealLine.push({ x: plan.startDate, y: 0 });
-    if(originalEndDate) {
-        chartData.idealLine.push({ x: originalEndDate, y: plan.totalChapters });
-    }
-    
+    if(originalEndDate) chartData.idealLine.push({ x: originalEndDate, y: plan.totalChapters });
     chartData.actualProgress.push({ x: plan.startDate, y: 0 });
     const sortedLog = Object.entries(logEntries).sort((a, b) => a[0].localeCompare(b[0]));
     let cumulativeChapters = 0;
@@ -705,14 +710,10 @@ function handleShowStats(planId) {
     }
 
     const stats = {
-        activePlanName: plan.name || 'Plano sem nome',
-        activePlanProgress: progressPercentage,
-        chaptersReadFromLog: chaptersReadFromLog,
-        isCompleted: isCompleted,
-        avgPace: `${avgPace.toFixed(1)} caps/dia`,
-        recalculationsCount: recalculationsCount,
-        forecastDate: forecastDateStr,
-        chartData: chartData
+        activePlanName: plan.name || 'Plano sem nome', activePlanProgress: progressPercentage,
+        chaptersReadFromLog: chaptersReadFromLog, isCompleted: isCompleted,
+        avgPace: `${avgPace.toFixed(1)} caps/dia`, recalculationsCount: recalculationsCount,
+        forecastDate: forecastDateStr, chartData: chartData
     };
     
     modalsUI.displayStats(stats);
@@ -778,8 +779,9 @@ function initApplication() {
     
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
-    // NOVO: Listener para o botão de reavaliação
     reassessPlansButton.addEventListener('click', handleReassessPlansRequest);
+    // NOVO: Listener para o botão de sincronização
+    syncRhythmButton.addEventListener('click', handleSyncRhythmRequest);
 
     planCreationUI.init({
         onSubmit: handlePlanSubmit,
@@ -787,37 +789,33 @@ function initApplication() {
             const isReassessing = !planStructureFieldset.disabled;
             planCreationUI.hide();
             if (isReassessing) {
-                handleReassessPlansRequest(); // Volta para o quadro se estava reavaliando
+                handleReassessPlansRequest(); 
             } else {
-                handleCancelPlanCreation(); // Comportamento padrão
+                handleCancelPlanCreation(); 
             }
         }
     });
     
     readingPlanUI.init({
-        onCompleteDay: handleCompleteDay,
-        onChapterToggle: handleChapterToggle,
-        onDeletePlan: handleDeletePlan,
-        onEditPlan: handleEditPlanRequest,
+        onCompleteDay: handleCompleteDay, onChapterToggle: handleChapterToggle,
+        onDeletePlan: handleDeletePlan, onEditPlan: handleEditPlanRequest,
         onRecalculate: (planId) => { 
             modalsUI.resetRecalculateForm();
             const confirmBtn = document.getElementById('confirm-recalculate');
             confirmBtn.dataset.planId = planId;
             modalsUI.open('recalculate-modal'); 
         },
-        onShowStats: handleShowStats,
-        onShowHistory: handleShowHistory,
+        onShowStats: handleShowStats, onShowHistory: handleShowHistory,
     });
     
     perseverancePanelUI.init();
     weeklyTrackerUI.init();
     sidePanelsUI.init();
     
-    // NOVO: Inicialização do módulo de reavaliação com todos os callbacks
     planReassessmentUI.init({
-        onClose: handleCancelPlanCreation, // Reutiliza a função para voltar ao painel principal
-        onPlanSelect: handleReassessPlanEdit, // Para edição via clique/modal
-        onUpdatePlanDays: handlePlanUpdateDaysByDrag, // Para edição via Drag & Drop
+        onClose: handleCancelPlanCreation, 
+        onPlanSelect: handleReassessPlanEdit, 
+        onUpdatePlanDays: handlePlanUpdateDaysByDrag, 
     });
 
     floatingNavigatorUI.init({
@@ -831,6 +829,10 @@ function initApplication() {
             if (planId) {
                 handleRecalculate(option, newPace, planId);
             }
+        },
+        // NOVO: Callback para a confirmação da sincronização
+        onConfirmSync: (plansToUpdate) => {
+            handleConfirmSync(plansToUpdate);
         },
     });
     
