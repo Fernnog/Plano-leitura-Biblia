@@ -5,6 +5,7 @@
  * @description Contém funções de lógica complexa para calcular datas efetivas
  * dentro de um plano de leitura, considerando a periodicidade e recálculos.
  */
+import { getCurrentUTCDateString, addUTCDays } from './date-helpers.js';
 
 /**
  * Calcula a data exata para um dia de leitura específico, considerando os dias da semana permitidos.
@@ -77,4 +78,38 @@ export function getEffectiveDateForDay(planData, targetDayNumber) {
         // Se não, usa a data de início original do plano
         return calculateDateForDay(planData.startDate, targetDayNumber, planData.allowedDays);
     }
+}
+
+
+/**
+ * Calcula a data de término prevista para um plano com base no ritmo de leitura real.
+ * @param {object} plan - O objeto do plano.
+ * @returns {string|null} A data de término prevista no formato YYYY-MM-DD, ou null.
+ */
+export function calculatePlanForecast(plan) {
+    const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
+    // Retorna nulo se o plano já estiver concluído
+    if (plan.currentDay > totalReadingDaysInPlan) {
+        return null;
+    }
+
+    const logEntries = plan.readLog || {};
+    const daysWithReading = Object.keys(logEntries).length;
+    const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + chapters.length, 0);
+    const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
+
+    // Só calcula se houver um ritmo (avgPace > 0)
+    if (avgPace > 0) {
+        const remainingChapters = plan.totalChapters - chaptersReadFromLog;
+        // Calcula quantos dias de leitura (não de calendário) são necessários
+        const remainingReadingDaysNeeded = Math.ceil(remainingChapters / avgPace);
+        
+        // A previsão é calculada a partir de hoje
+        const todayStr = getCurrentUTCDateString();
+        const forecastDate = addUTCDays(new Date(todayStr + 'T00:00:00Z'), remainingReadingDaysNeeded);
+        
+        return forecastDate.toISOString().split('T')[0];
+    }
+
+    return null; // Retorna nulo se não houver ritmo para calcular a previsão
 }
