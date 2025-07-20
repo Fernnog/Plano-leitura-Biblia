@@ -32,17 +32,22 @@ jobs:
           # Usamos `cp --backup=numbered` para evitar que arquivos com o mesmo nome se sobrescrevam.
           find . -type f -not -path './.git/*' -not -path './.github/*' -exec cp --backup=numbered {} flat-files/ \;
 
-      # Passo 3: Compacta a pasta com os arquivos em um único arquivo .zip
-      - name: Compactar arquivos em um ZIP
-        run: zip -r arquivos-achatados.zip ./flat-files
+      # Passo 3: Compacta a pasta com os arquivos em um único arquivo .zip com o nome do repositório
+      - name: Compactar arquivos em um ZIP com o nome do repositório
+        id: get_repo_name # Adiciona um ID a este passo para referenciar seu output
+        run: |
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          echo "Nome do arquivo ZIP será: ${REPO_NAME}.zip"
+          zip -r "${REPO_NAME}.zip" ./flat-files
+          echo "zip_name=${REPO_NAME}.zip" >> $GITHUB_OUTPUT
 
       # Passo 4: Usa a action 'softprops/action-gh-release' para criar ou atualizar a release
       # Esta é a parte principal da lógica de atualização.
       - name: Criar ou Atualizar a Release e fazer upload do ZIP
         uses: softprops/action-gh-release@v2
         with:
-          # Lista de arquivos a serem anexados à release.
-          files: arquivos-achatados.zip
+          # Lista de arquivos a serem anexados à release, usando o nome dinâmico.
+          files: ${{ steps.get_repo_name.outputs.zip_name }}
           
           # IMPORTANTE: Usamos uma tag fixa. Se a tag já existir, a action
           # irá atualizar a release existente em vez de criar uma nova.
