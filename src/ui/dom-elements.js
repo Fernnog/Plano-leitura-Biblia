@@ -126,3 +126,12 @@ export const planReassessmentSection = document.getElementById('plan-reassessmen
 export const closeReassessmentButton = document.getElementById('close-reassessment-button');
 export const reassessmentGrid = document.getElementById('reassessment-grid');
 export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
+
+// --- INÍCIO DA ALTERAÇÃO: NOVOS ELEMENTOS PARA O MODAL DE SINCRONIZAÇÃO DE RITMO ---
+export const syncRhythmButton = document.getElementById('sync-rhythm-button');
+export const syncRhythmModal = document.getElementById('sync-rhythm-modal');
+export const syncRhythmLoadingDiv = document.getElementById('sync-rhythm-loading');
+export const syncRhythmErrorDiv = document.getElementById('sync-rhythm-error');
+export const syncPlanListDiv = document.getElementById('sync-plan-list');
+export const confirmSyncButton = document.getElementById('confirm-sync-button');
+// --- FIM DA ALTERAÇÃO ---
