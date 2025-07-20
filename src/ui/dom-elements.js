@@ -34,14 +34,14 @@ export const createNewPlanButton = document.getElementById('create-new-plan-butt
 export const createFavoritePlanButton = document.getElementById('create-favorite-plan-button');
 
 export const planCreationSection = document.getElementById('plan-creation');
-export const planCreationTitle = document.getElementById('plan-creation-title'); // NOVO
-export const editingPlanIdInput = document.getElementById('editing-plan-id'); // NOVO
+export const planCreationTitle = document.getElementById('plan-creation-title');
+export const editingPlanIdInput = document.getElementById('editing-plan-id');
 export const planErrorDiv = document.getElementById('plan-error');
 export const planLoadingCreateDiv = document.getElementById('plan-loading-create');
 export const planNameInput = document.getElementById('plan-name');
-export const googleDriveLinkInput = document.getElementById('google-drive-link'); // NOVO
-export const iconSelectorContainer = document.getElementById('icon-selector-container'); // NOVO
-export const planStructureFieldset = document.getElementById('plan-structure-fieldset'); // NOVO
+export const googleDriveLinkInput = document.getElementById('google-drive-link');
+export const iconSelectorContainer = document.getElementById('icon-selector-container');
+export const planStructureFieldset = document.getElementById('plan-structure-fieldset');
 export const creationMethodRadios = document.querySelectorAll('input[name="creation-method"]');
 export const intervalOptionsDiv = document.getElementById('interval-options');
 export const startBookSelect = document.getElementById("start-book-select");
@@ -51,7 +51,7 @@ export const endChapterInput = document.getElementById("end-chapter-input");
 export const selectionOptionsDiv = document.getElementById('selection-options');
 export const booksSelect = document.getElementById("books-select");
 export const chaptersInput = document.getElementById("chapters-input");
-export const bookSuggestionsDatalist = document.getElementById("book-suggestions"); // NOVO
+export const bookSuggestionsDatalist = document.getElementById("book-suggestions");
 export const durationMethodRadios = document.querySelectorAll('input[name="duration-method"]');
 export const daysOptionDiv = document.getElementById('days-option');
 export const daysInput = document.getElementById("days-input");
@@ -120,18 +120,21 @@ export const historyLoadingDiv = document.getElementById('history-loading');
 export const historyErrorDiv = document.getElementById('history-error');
 export const historyListDiv = document.getElementById('history-list');
 
-// --- Seção de Reavaliação de Planos --- // NOVO
+// --- INÍCIO DA ALTERAÇÃO ---
+
+// Modal de Sincronização de Ritmo
+export const syncRhythmModal = document.getElementById('sync-rhythm-modal');
+export const syncRhythmButton = document.getElementById('sync-rhythm-button');
+export const syncRhythmLoadingDiv = document.getElementById('sync-rhythm-loading');
+export const syncRhythmErrorDiv = document.getElementById('sync-rhythm-error');
+export const syncPlanList = document.getElementById('sync-plan-list');
+export const confirmSyncButton = document.getElementById('confirm-sync-button');
+
+// --- FIM DA ALTERAÇÃO ---
+
+// --- Seção de Reavaliação de Planos ---
 export const reassessPlansButton = document.getElementById('reassess-plans-button');
 export const planReassessmentSection = document.getElementById('plan-reassessment-section');
 export const closeReassessmentButton = document.getElementById('close-reassessment-button');
 export const reassessmentGrid = document.getElementById('reassessment-grid');
 export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
-
-// --- INÍCIO DA ALTERAÇÃO: NOVOS ELEMENTOS PARA O MODAL DE SINCRONIZAÇÃO DE RITMO ---
-export const syncRhythmButton = document.getElementById('sync-rhythm-button');
-export const syncRhythmModal = document.getElementById('sync-rhythm-modal');
-export const syncRhythmLoadingDiv = document.getElementById('sync-rhythm-loading');
-export const syncRhythmErrorDiv = document.getElementById('sync-rhythm-error');
-export const syncPlanListDiv = document.getElementById('sync-plan-list');
-export const confirmSyncButton = document.getElementById('confirm-sync-button');
-// --- FIM DA ALTERAÇÃO ---
