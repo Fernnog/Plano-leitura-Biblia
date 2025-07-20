@@ -30,6 +30,7 @@ import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays } fro
 import { getEffectiveDateForDay, calculatePlanForecast } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
+import { distributeChaptersOverReadingDays } from './utils/chapter-helpers.js';
 
 // Elementos do DOM para ações principais
 import {
@@ -37,7 +38,7 @@ import {
     createNewPlanButton,
     createFavoritePlanButton,
     reassessPlansButton,
-    syncRhythmButton,
+    syncRhythmButton, // NOVO
     planStructureFieldset
 } from './ui/dom-elements.js';
 
@@ -117,7 +118,7 @@ function renderAllPlanCards() {
     const forecastsMap = {};
 
     appState.userPlans.forEach(plan => {
-         effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
+        effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
 
         const forecastDateStr = calculatePlanForecast(plan);
         if (forecastDateStr) {
@@ -502,7 +503,7 @@ async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
     try {
         await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays: newAllowedDays });
         await loadInitialUserData(appState.currentUser);
-        planReassessmentUI.render(appState.userPlans);
+        handleReassessPlansRequest();
 
     } catch (error) {
         console.error("Erro ao atualizar plano por Drag & Drop:", error);
@@ -514,11 +515,8 @@ async function handleRecalculate(option, newPaceValue, planId) {
     const planToRecalculate = appState.userPlans.find(p => p.id === planId);
     if (!appState.currentUser || !planToRecalculate) {
         throw new Error("Plano não encontrado para recálculo.");
-    };
+    }
     
-    modalsUI.showLoading('recalculate-modal');
-    modalsUI.hideError('recalculate-modal');
-
     try {
         const plan = { ...planToRecalculate };
         const todayStr = getCurrentUTCDateString();
@@ -531,7 +529,9 @@ async function handleRecalculate(option, newPaceValue, planId) {
         plan.recalculationHistory.push({
             date: todayStr,
             recalculatedFromDay: plan.currentDay,
-            chaptersReadAtPoint: chaptersAlreadyReadCount
+            chaptersReadAtPoint: chaptersAlreadyReadCount,
+            previousPace: plan.pace, // Supondo que você armazene o ritmo no plano
+            newPace: newPaceValue
         });
 
         plan.recalculationBaseDay = plan.currentDay;
@@ -553,13 +553,12 @@ async function handleRecalculate(option, newPaceValue, planId) {
             }
             if(validDaysCount < 1) throw new Error("Nenhum dia de leitura válido encontrado até a data final.");
             totalReadingDaysForRemainder = validDaysCount;
-        } else {
+        } else { // 'extend_date'
             const originalTotalDays = Object.keys(plan.plan).length;
             const originalPace = plan.totalChapters / originalTotalDays;
             totalReadingDaysForRemainder = Math.ceil(remainingChapters.length / originalPace);
         }
 
-        const { distributeChaptersOverReadingDays } = await import('./utils/chapter-helpers.js');
         const remainingPlanMap = distributeChaptersOverReadingDays(remainingChapters, totalReadingDaysForRemainder);
         const newPlanMap = {};
         for (let i = 1; i < plan.currentDay; i++) { newPlanMap[i] = plan.plan[i]; }
@@ -577,14 +576,11 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
         await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
         
-        // Esta função não deve lidar diretamente com a UI, apenas retornar sucesso/erro.
-        return true;
+        return true; // Retorna sucesso para o chamador
 
     } catch (error) {
-        modalsUI.showError('recalculate-modal', `Erro: ${error.message}`);
-        throw error; // Lança o erro para que o chamador (handleConfirmSync) possa pegá-lo.
-    } finally {
-        modalsUI.hideLoading('recalculate-modal');
+        console.error("Erro no handleRecalculate:", error);
+        throw error; // Lança o erro para o chamador (handleConfirmSync) poder capturá-lo
     }
 }
 
@@ -679,8 +675,6 @@ function handleShowHistory(planId) {
 async function handleCreateFavoritePlanSet() {
     try {
         const { generateIntercalatedChapters, generateChaptersForBookList } = await import('./utils/chapter-helpers.js');
-        const { distributeChaptersOverReadingDays } = await import('./utils/chapter-helpers.js');
-
         for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
             const chaptersToRead = config.intercalate
                 ? generateIntercalatedChapters(config.bookBlocks)
@@ -702,6 +696,7 @@ async function handleCreateFavoritePlanSet() {
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, { onSwitchPlan: handleSwitchPlan });
         floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+        alert("Conjunto de planos favoritos criado com sucesso!");
     } catch (error) {
         alert(`Erro ao criar planos favoritos: ${error.message}`);
     }
@@ -727,7 +722,7 @@ function initApplication() {
     planCreationUI.init({
         onSubmit: handlePlanSubmit,
         onCancel: () => {
-            const isReassessing = !planStructureFieldset.disabled && document.getElementById('periodicity-options').disabled;
+            const isReassessing = !planStructureFieldset.disabled;
             planCreationUI.hide();
             if (isReassessing) {
                 handleReassessPlansRequest();
@@ -769,17 +764,17 @@ function initApplication() {
     modalsUI.init({
         onConfirmRecalculate: async (option, newPace, planId) => {
             if (planId) {
+                modalsUI.showLoading('recalculate-modal');
                 try {
                     await handleRecalculate(option, newPace, planId);
                     alert("Plano recalculado com sucesso!");
                     modalsUI.close('recalculate-modal');
                     await loadInitialUserData(appState.currentUser);
                     renderAllPlanCards();
-                    sidePanelsUI.render(appState.userPlans, { onSwitchPlan: handleSwitchPlan });
-                    floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
                 } catch (e) {
-                    // O erro já é mostrado na UI pelo handleRecalculate
-                    console.error("Falha no recálculo:", e);
+                    modalsUI.showError('recalculate-modal', `Erro: ${e.message}`);
+                } finally {
+                    modalsUI.hideLoading('recalculate-modal');
                 }
             }
         },
