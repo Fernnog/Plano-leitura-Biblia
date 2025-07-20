@@ -13,6 +13,10 @@ import {
     reassessmentLegendList,
 } from './dom-elements.js';
 
+// --- INÍCIO DA ALTERAÇÃO: Importação da função de formatação de data ---
+import { formatUTCDateStringToBrasilian } from '../utils/date-helpers.js';
+// --- FIM DA ALTERAÇÃO ---
+
 // --- Estado Interno e Callbacks ---
 let state = {
     callbacks: {
@@ -28,8 +32,9 @@ let state = {
  * Renderiza a grade de dias e a legenda com base nos planos do usuário.
  * @private
  * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
+ * @param {object} forecastsMap - Mapa com as previsões de término { planId: "YYYY-MM-DD" }.
  */
-function _renderGridAndLegend(allUserPlans) {
+function _renderGridAndLegend(allUserPlans, forecastsMap = {}) {
     reassessmentGrid.innerHTML = '';
     reassessmentLegendList.innerHTML = '';
 
@@ -102,19 +107,40 @@ function _renderGridAndLegend(allUserPlans) {
         reassessmentGrid.appendChild(dayColumn);
     });
 
-    // 3. Renderizar a legenda dos planos ativos
+    // --- INÍCIO DA ALTERAÇÃO: Renderizar a legenda com a data de previsão ---
     if (activePlansForLegend.size > 0) {
-        activePlansForLegend.forEach(planData => {
+        activePlansForLegend.forEach((planData, planId) => {
+            const forecastDateStr = forecastsMap[planId];
+            const formattedForecastDate = forecastDateStr ? formatUTCDateStringToBrasilian(forecastDateStr) : 'N/A';
+
+            let forecastHTML = `
+                <div class="reassessment-forecast-info">
+                    Previsão de Término: <span class="forecast-date">${formattedForecastDate}</span>
+                </div>
+            `;
+            
+            if (!forecastDateStr) {
+                 forecastHTML = `
+                    <div class="reassessment-forecast-info">
+                       Previsão de Término: <span class="forecast-date">Comece a ler para calcular</span>
+                    </div>
+                `;
+            }
+
             reassessmentLegendList.innerHTML += `
                 <div class="reassessment-legend-item">
-                    <span class="plan-icon">${planData.icon}</span>
-                    <span>${planData.name}</span>
+                    <div class="reassessment-legend-item-header">
+                        <span class="plan-icon">${planData.icon}</span>
+                        <span>${planData.name}</span>
+                    </div>
+                    ${forecastHTML}
                 </div>
             `;
         });
     } else {
         reassessmentLegendList.innerHTML = '<p>Nenhum plano com ícone e nome para exibir na legenda.</p>';
     }
+    // --- FIM DA ALTERAÇÃO ---
 }
 
 // --- Funções Públicas (API do Módulo) ---
@@ -254,9 +280,10 @@ export function init(callbacks) {
 /**
  * Renderiza o conteúdo do quadro de reavaliação com os dados mais recentes.
  * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
+ * @param {object} forecastsMap - Mapa com as previsões de término.
  */
-export function render(allUserPlans) {
-    _renderGridAndLegend(allUserPlans);
+export function render(allUserPlans, forecastsMap) {
+    _renderGridAndLegend(allUserPlans, forecastsMap);
 }
 
 /**
