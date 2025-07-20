@@ -32,31 +32,40 @@ jobs:
           # Usamos `cp --backup=numbered` para evitar que arquivos com o mesmo nome se sobrescrevam.
           find . -type f -not -path './.git/*' -not -path './.github/*' -exec cp --backup=numbered {} flat-files/ \;
 
-      # Passo 3: Compacta a pasta com os arquivos em um único arquivo .zip com o nome do repositório
-      - name: Compactar arquivos em um ZIP com o nome do repositório
-        id: get_repo_name # Adiciona um ID a este passo para referenciar seu output
+      # Passo 3: Compacta a pasta com um nome de arquivo personalizado (data + nome do repo)
+      - name: Compactar arquivos em um ZIP com nome personalizado
+        id: custom_zip_name # ID do passo para referenciar seu output
         run: |
+          # Pega a data atual no fuso horário UTC no formato AAAAMMDD
+          CURRENT_DATE=$(date +'%Y%m%d')
+          
+          # Extrai apenas o nome do repositório (ex: 'meu-projeto' de 'usuario/meu-projeto')
           REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-          echo "Nome do arquivo ZIP será: ${REPO_NAME}.zip"
-          zip -r "${REPO_NAME}.zip" ./flat-files
-          echo "zip_name=${REPO_NAME}.zip" >> $GITHUB_OUTPUT
+          
+          # Cria o nome final do arquivo ZIP
+          FINAL_ZIP_NAME="${CURRENT_DATE}_${REPO_NAME}.zip"
+          
+          echo "Nome do arquivo ZIP será: ${FINAL_ZIP_NAME}"
+          zip -r "${FINAL_ZIP_NAME}" ./flat-files
+          
+          # Define o nome do arquivo como um output para ser usado no próximo passo
+          echo "zip_name=${FINAL_ZIP_NAME}" >> $GITHUB_OUTPUT
 
       # Passo 4: Usa a action 'softprops/action-gh-release' para criar ou atualizar a release
       # Esta é a parte principal da lógica de atualização.
       - name: Criar ou Atualizar a Release e fazer upload do ZIP
         uses: softprops/action-gh-release@v2
         with:
-          # Lista de arquivos a serem anexados à release, usando o nome dinâmico.
-          files: ${{ steps.get_repo_name.outputs.zip_name }}
+          # Usa o nome do arquivo dinâmico gerado no passo anterior.
+          files: ${{ steps.custom_zip_name.outputs.zip_name }}
           
-          # IMPORTANTE: Usamos uma tag fixa. Se a tag já existir, a action
-          # irá atualizar a release existente em vez de criar uma nova.
+          # IMPORTANTE: A tag continua fixa para garantir que a release 'latest' seja sempre atualizada.
           tag_name: latest-flat-files
           
           # Nome que aparecerá na página de Releases.
           name: "Últimos Arquivos (Versão Achatada)"
           
-          # Texto do corpo da release. Útil para saber quando foi a última atualização.
+          # Texto do corpo da release.
           body: |
             Contém a versão mais recente de todos os arquivos do repositório, sem a estrutura de pastas.
             
