@@ -1,5 +1,3 @@
-// src/main.js
-
 /**
  * @file main.js
  * @description Ponto de entrada principal e orquestrador da aplicação.
@@ -27,20 +25,11 @@ import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
 
 
 // Helpers e Configurações
-import {
-    generateChaptersInRange,
-    parseChaptersInput,
-    generateChaptersForBookList,
-    generateIntercalatedChapters,
-    distributeChaptersOverReadingDays,
-    sortChaptersCanonically
-} from './utils/chapter-helpers.js';
-import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId } from './utils/date-helpers.js';
-// MODIFICAÇÃO: Importa a nova função de cálculo de previsão
+import { buildPlanFromFormData } from './utils/plan-builder.js';
+import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays } from './utils/date-helpers.js';
 import { getEffectiveDateForDay, calculatePlanForecast } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
-import { buildPlanFromFormData } from './utils/plan-builder.js';
 
 // Elementos do DOM para ações principais
 import {
@@ -48,9 +37,8 @@ import {
     createNewPlanButton,
     createFavoritePlanButton,
     reassessPlansButton,
-    planStructureFieldset,
-    // NOVO: Importação do botão de sincronização do HTML
-    syncRhythmButton
+    syncRhythmButton,
+    planStructureFieldset
 } from './ui/dom-elements.js';
 
 
@@ -126,31 +114,23 @@ async function handleAuthStateChange(user) {
 
 function renderAllPlanCards() {
     const effectiveDatesMap = {};
-    const forecastsMap = {}; 
+    const forecastsMap = {};
 
     appState.userPlans.forEach(plan => {
-        effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
+         effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
 
-        // --- INÍCIO DA LÓGICA REATORADA ---
         const forecastDateStr = calculatePlanForecast(plan);
         if (forecastDateStr) {
             let colorClass = 'forecast-neutral';
-            // A data final do plano pode não existir se ele for inválido
-            if (plan.endDate) {
-                 if (forecastDateStr < plan.endDate) {
-                    colorClass = 'forecast-ahead'; 
-                } else if (forecastDateStr > plan.endDate) {
-                    colorClass = 'forecast-behind';
-                }
-            }
+            if (forecastDateStr < plan.endDate) colorClass = 'forecast-ahead';
+            else if (forecastDateStr > plan.endDate) colorClass = 'forecast-behind';
+            
             forecastsMap[plan.id] = { forecastDateStr, colorClass };
         }
-        // --- FIM DA LÓGICA REATORADA ---
     });
     
     readingPlanUI.renderAllPlanCards(appState.userPlans, appState.activePlanId, effectiveDatesMap, forecastsMap);
 }
-
 
 async function loadInitialUserData(user) {
     try {
@@ -304,7 +284,7 @@ async function handlePlanSubmit(formData, planId, isReassessing) {
                 await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert('Dias de leitura atualizados com sucesso!');
 
-            } else { 
+            } else {
                 updatedData = { 
                     name: formData.name, 
                     icon: formData.icon, 
@@ -313,7 +293,7 @@ async function handlePlanSubmit(formData, planId, isReassessing) {
                 await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
                 alert(`Plano "${formData.name}" atualizado com sucesso!`);
             }
-        } else { 
+        } else {
             const newPlan = buildPlanFromFormData(formData);
             const newPlanId = await planService.saveNewPlan(appState.currentUser.uid, newPlan);
             if (appState.userPlans.length === 0) {
@@ -326,9 +306,9 @@ async function handlePlanSubmit(formData, planId, isReassessing) {
 
         planCreationUI.hide();
         if (isReassessing) {
-            handleReassessPlansRequest(); 
+            handleReassessPlansRequest();
         } else {
-            handleCancelPlanCreation(); 
+            handleCancelPlanCreation();
         }
 
     } catch (error) {
@@ -487,7 +467,6 @@ function handleReassessPlansRequest() {
     perseverancePanelUI.hide();
     weeklyTrackerUI.hide();
 
-    // --- LÓGICA REATORADA ---
     const forecastsMap = {};
     appState.userPlans.forEach(plan => {
         const forecastDateStr = calculatePlanForecast(plan);
@@ -495,54 +474,10 @@ function handleReassessPlansRequest() {
             forecastsMap[plan.id] = forecastDateStr;
         }
     });
-    // --- FIM DA LÓGICA REATORADA ---
 
     planReassessmentUI.render(appState.userPlans, forecastsMap);
     planReassessmentUI.show();
 }
-
-// NOVO: Abre o modal de sincronização.
-function handleSyncRhythmRequest() {
-    // Filtra apenas os planos que não estão concluídos
-    const activePlans = appState.userPlans.filter(plan => {
-        const totalDays = Object.keys(plan.plan || {}).length;
-        return plan.currentDay <= totalDays;
-    });
-
-    if (activePlans.length > 0) {
-        modalsUI.openSyncRhythm(activePlans);
-    } else {
-        alert("Não há planos ativos para sincronizar.");
-    }
-}
-
-// NOVO: Lida com a confirmação do modal de sincronização.
-async function handleConfirmSync(plansToUpdate) {
-    modalsUI.showLoading('sync-rhythm-modal');
-    modalsUI.hideError('sync-rhythm-modal');
-
-    try {
-        // Usa um loop for...of para garantir que as operações await sejam sequenciais
-        for (const planId in plansToUpdate) {
-            if (Object.hasOwnProperty.call(plansToUpdate, planId)) {
-                const newPace = plansToUpdate[planId];
-                console.log(`Recalculando plano ${planId} com o novo ritmo de ${newPace} caps/dia.`);
-                await handleRecalculate('new_pace', newPace, planId);
-            }
-        }
-        
-        alert("Planos sincronizados e recalculados com sucesso!");
-        modalsUI.close('sync-rhythm-modal');
-        // A tela de reavaliação será atualizada automaticamente pois o handleRecalculate já recarrega os dados.
-        handleReassessPlansRequest();
-
-    } catch (error) {
-        modalsUI.showError('sync-rhythm-modal', `Erro na sincronização: ${error.message}`);
-    } finally {
-        modalsUI.hideLoading('sync-rhythm-modal');
-    }
-}
-
 
 function handleReassessPlanEdit(planId) {
     const planToEdit = appState.userPlans.find(p => p.id === planId);
@@ -567,8 +502,7 @@ async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
     try {
         await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays: newAllowedDays });
         await loadInitialUserData(appState.currentUser);
-        planReassessmentUI.render(appState.userPlans, {}); // O forecastsMap será recalculado em handleReassessPlansRequest
-        handleReassessPlansRequest(); // Recarrega a tela de reavaliação com dados atualizados
+        planReassessmentUI.render(appState.userPlans);
 
     } catch (error) {
         console.error("Erro ao atualizar plano por Drag & Drop:", error);
@@ -576,10 +510,11 @@ async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
     }
 }
 
-
 async function handleRecalculate(option, newPaceValue, planId) {
     const planToRecalculate = appState.userPlans.find(p => p.id === planId);
-    if (!appState.currentUser || !planToRecalculate) return;
+    if (!appState.currentUser || !planToRecalculate) {
+        throw new Error("Plano não encontrado para recálculo.");
+    };
     
     modalsUI.showLoading('recalculate-modal');
     modalsUI.hideError('recalculate-modal');
@@ -592,9 +527,7 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
         if (remainingChapters.length === 0) throw new Error("Não há capítulos restantes para recalcular.");
 
-        if (!plan.recalculationHistory) {
-            plan.recalculationHistory = [];
-        }
+        if (!plan.recalculationHistory) plan.recalculationHistory = [];
         plan.recalculationHistory.push({
             date: todayStr,
             recalculatedFromDay: plan.currentDay,
@@ -626,6 +559,7 @@ async function handleRecalculate(option, newPaceValue, planId) {
             totalReadingDaysForRemainder = Math.ceil(remainingChapters.length / originalPace);
         }
 
+        const { distributeChaptersOverReadingDays } = await import('./utils/chapter-helpers.js');
         const remainingPlanMap = distributeChaptersOverReadingDays(remainingChapters, totalReadingDaysForRemainder);
         const newPlanMap = {};
         for (let i = 1; i < plan.currentDay; i++) { newPlanMap[i] = plan.plan[i]; }
@@ -643,30 +577,38 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
         await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
         
-        // Só exibe o alerta se não for parte da sincronização em massa
-        if (option !== 'new_pace' || !document.getElementById('sync-rhythm-modal').style.display.includes('flex')) {
-            alert("Plano recalculado com sucesso!");
-        }
-
-        modalsUI.close('recalculate-modal');
-        
-        await loadInitialUserData(appState.currentUser);
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+        // Esta função não deve lidar diretamente com a UI, apenas retornar sucesso/erro.
+        return true;
 
     } catch (error) {
         modalsUI.showError('recalculate-modal', `Erro: ${error.message}`);
+        throw error; // Lança o erro para que o chamador (handleConfirmSync) possa pegá-lo.
     } finally {
         modalsUI.hideLoading('recalculate-modal');
+    }
+}
+
+async function handleConfirmSync(plansToUpdate) {
+    modalsUI.showLoading('sync-rhythm-modal');
+    modalsUI.hideError('sync-rhythm-modal');
+    try {
+        const recalculatePromises = plansToUpdate.map(update => 
+            handleRecalculate('new_pace', update.newPace, update.planId)
+        );
+
+        await Promise.all(recalculatePromises);
+
+        alert("Planos sincronizados com sucesso!");
+        modalsUI.close('sync-rhythm-modal');
+        
+        await loadInitialUserData(appState.currentUser);
+        renderAllPlanCards();
+        handleReassessPlansRequest();
+
+    } catch (error) {
+        modalsUI.showError('sync-rhythm-modal', `Erro ao sincronizar: ${error.message}`);
+    } finally {
+        modalsUI.hideLoading('sync-rhythm-modal');
     }
 }
 
@@ -689,18 +631,21 @@ function handleShowStats(planId) {
     const recalculationsCount = plan.recalculationHistory?.length || 0;
     
     let forecastDateStr = '--';
-    if (!isCompleted && avgPace > 0) {
-        const forecastDate = calculatePlanForecast(plan);
-        if (forecastDate) {
-            const dateObj = new Date(forecastDate + 'T00:00:00Z');
-            forecastDateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-        }
+    const forecastDate = calculatePlanForecast(plan);
+    if (forecastDate) {
+        forecastDateStr = new Date(forecastDate + 'T00:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
     }
 
-    const chartData = { idealLine: [], actualProgress: [] };
+    const chartData = {
+        idealLine: [],
+        actualProgress: []
+    };
     const originalEndDate = getEffectiveDateForDay({ startDate: plan.startDate, allowedDays: plan.allowedDays }, Object.keys(plan.plan).length);
     chartData.idealLine.push({ x: plan.startDate, y: 0 });
-    if(originalEndDate) chartData.idealLine.push({ x: originalEndDate, y: plan.totalChapters });
+    if(originalEndDate) {
+        chartData.idealLine.push({ x: originalEndDate, y: plan.totalChapters });
+    }
+    
     chartData.actualProgress.push({ x: plan.startDate, y: 0 });
     const sortedLog = Object.entries(logEntries).sort((a, b) => a[0].localeCompare(b[0]));
     let cumulativeChapters = 0;
@@ -710,10 +655,14 @@ function handleShowStats(planId) {
     }
 
     const stats = {
-        activePlanName: plan.name || 'Plano sem nome', activePlanProgress: progressPercentage,
-        chaptersReadFromLog: chaptersReadFromLog, isCompleted: isCompleted,
-        avgPace: `${avgPace.toFixed(1)} caps/dia`, recalculationsCount: recalculationsCount,
-        forecastDate: forecastDateStr, chartData: chartData
+        activePlanName: plan.name || 'Plano sem nome',
+        activePlanProgress: progressPercentage,
+        chaptersReadFromLog: chaptersReadFromLog,
+        isCompleted: isCompleted,
+        avgPace: `${avgPace.toFixed(1)} caps/dia`,
+        recalculationsCount: recalculationsCount,
+        forecastDate: forecastDateStr,
+        chartData: chartData
     };
     
     modalsUI.displayStats(stats);
@@ -729,6 +678,9 @@ function handleShowHistory(planId) {
 
 async function handleCreateFavoritePlanSet() {
     try {
+        const { generateIntercalatedChapters, generateChaptersForBookList } = await import('./utils/chapter-helpers.js');
+        const { distributeChaptersOverReadingDays } = await import('./utils/chapter-helpers.js');
+
         for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
             const chaptersToRead = config.intercalate
                 ? generateIntercalatedChapters(config.bookBlocks)
@@ -746,22 +698,9 @@ async function handleCreateFavoritePlanSet() {
             };
             await planService.saveNewPlan(appState.currentUser.uid, planData);
         }
-        const updatedPlans = await planService.fetchUserPlans(appState.currentUser.uid);
-        if (updatedPlans.length > 0) {
-            await planService.setActivePlan(appState.currentUser.uid, updatedPlans[0].id);
-        }
-        alert("Conjunto de planos favoritos criado com sucesso!");
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
+        sidePanelsUI.render(appState.userPlans, { onSwitchPlan: handleSwitchPlan });
         floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
     } catch (error) {
         alert(`Erro ao criar planos favoritos: ${error.message}`);
@@ -780,32 +719,37 @@ function initApplication() {
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
     reassessPlansButton.addEventListener('click', handleReassessPlansRequest);
-    // NOVO: Listener para o botão de sincronização
-    syncRhythmButton.addEventListener('click', handleSyncRhythmRequest);
+    syncRhythmButton.addEventListener('click', () => {
+        modalsUI.displaySyncPlans(appState.userPlans);
+        modalsUI.open('sync-rhythm-modal');
+    });
 
     planCreationUI.init({
         onSubmit: handlePlanSubmit,
         onCancel: () => {
-            const isReassessing = !planStructureFieldset.disabled;
+            const isReassessing = !planStructureFieldset.disabled && document.getElementById('periodicity-options').disabled;
             planCreationUI.hide();
             if (isReassessing) {
-                handleReassessPlansRequest(); 
+                handleReassessPlansRequest();
             } else {
-                handleCancelPlanCreation(); 
+                handleCancelPlanCreation();
             }
         }
     });
     
     readingPlanUI.init({
-        onCompleteDay: handleCompleteDay, onChapterToggle: handleChapterToggle,
-        onDeletePlan: handleDeletePlan, onEditPlan: handleEditPlanRequest,
+        onCompleteDay: handleCompleteDay,
+        onChapterToggle: handleChapterToggle,
+        onDeletePlan: handleDeletePlan,
+        onEditPlan: handleEditPlanRequest,
         onRecalculate: (planId) => { 
             modalsUI.resetRecalculateForm();
             const confirmBtn = document.getElementById('confirm-recalculate');
             confirmBtn.dataset.planId = planId;
             modalsUI.open('recalculate-modal'); 
         },
-        onShowStats: handleShowStats, onShowHistory: handleShowHistory,
+        onShowStats: handleShowStats,
+        onShowHistory: handleShowHistory,
     });
     
     perseverancePanelUI.init();
@@ -813,9 +757,9 @@ function initApplication() {
     sidePanelsUI.init();
     
     planReassessmentUI.init({
-        onClose: handleCancelPlanCreation, 
-        onPlanSelect: handleReassessPlanEdit, 
-        onUpdatePlanDays: handlePlanUpdateDaysByDrag, 
+        onClose: handleCancelPlanCreation,
+        onPlanSelect: handleReassessPlanEdit,
+        onUpdatePlanDays: handlePlanUpdateDaysByDrag,
     });
 
     floatingNavigatorUI.init({
@@ -823,17 +767,23 @@ function initApplication() {
     });
     
     modalsUI.init({
-        onConfirmRecalculate: (option, newPace) => {
-            const confirmBtn = document.getElementById('confirm-recalculate');
-            const planId = confirmBtn.dataset.planId;
+        onConfirmRecalculate: async (option, newPace, planId) => {
             if (planId) {
-                handleRecalculate(option, newPace, planId);
+                try {
+                    await handleRecalculate(option, newPace, planId);
+                    alert("Plano recalculado com sucesso!");
+                    modalsUI.close('recalculate-modal');
+                    await loadInitialUserData(appState.currentUser);
+                    renderAllPlanCards();
+                    sidePanelsUI.render(appState.userPlans, { onSwitchPlan: handleSwitchPlan });
+                    floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+                } catch (e) {
+                    // O erro já é mostrado na UI pelo handleRecalculate
+                    console.error("Falha no recálculo:", e);
+                }
             }
         },
-        // NOVO: Callback para a confirmação da sincronização
-        onConfirmSync: (plansToUpdate) => {
-            handleConfirmSync(plansToUpdate);
-        },
+        onConfirmSync: handleConfirmSync,
     });
     
     console.log("Aplicação modular inicializada com nova arquitetura de UI.");
