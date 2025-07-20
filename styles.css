@@ -321,9 +321,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .plan-card .drive-link-icon:hover { transform: scale(1.5); background-color: var(--background-light); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12); }
 .plan-card .drive-link-icon img.drive-png-icon { display: block; width: 100%; height: auto; }
 
-/* ########## INÍCIO DAS ALTERAÇÕES SOLICITADAS ########## */
-
-/* NOVO: Estilo para a moldura do ícone */
 .shield-wrapper {
     display: inline-flex;
     align-items: center;
@@ -333,7 +330,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border-radius: 50%;
     border: 2px solid var(--border-color);
     background-color: var(--background-light);
-    flex-shrink: 0; /* Impede que o ícone seja esmagado em layouts flex */
+    flex-shrink: 0; 
     transition: border-color var(--transition-fast);
 }
 
@@ -344,14 +341,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border-color: var(--primary-action);
 }
 
-/* Ajustes nos seletores de ícones existentes para se adaptarem ao wrapper */
 .plan-card .plan-card-icon {
-    font-size: 1.5em; /* Tamanho do emoji */
-    margin-right: 0; /* Remove a margem antiga que não é mais necessária */
+    font-size: 1.5em; 
+    margin-right: 0; 
     line-height: 1;
 }
 
-/* Os ícones dos painéis laterais usam a classe .plan-icon, então criamos um seletor para eles */
 .overdue-plan-name .plan-icon,
 .upcoming-plan-name .plan-icon,
 .recalc-plan-name .plan-icon {
@@ -359,15 +354,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     line-height: 1;
 }
 
-/* Ajuste de tamanho para as molduras dos painéis laterais (para serem menores) */
 .overdue-plan-name .shield-wrapper,
 .upcoming-plan-name .shield-wrapper,
 .recalc-plan-name .shield-wrapper {
     width: 36px;
     height: 36px;
 }
-
-/* ########## FIM DAS ALTERAÇÕES SOLICITADAS ########## */
 
 
 /* Barra de Progresso (dentro de .plan-card) */
@@ -388,7 +380,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .plan-card .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .plan-card .plan-actions button { flex-grow: 1; min-width: 150px; }
 
-/* --- ESTILOS PARA FEEDBACK "SALVO!" (Prioridade 2) --- */
 .save-feedback {
     position: absolute;
     right: 15px;
@@ -401,7 +392,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     font-size: 0.8em;
     font-weight: 600;
     animation: fade-out-up 1.5s ease-out forwards;
-    pointer-events: none; /* Garante que o feedback não interfira com cliques */
+    pointer-events: none;
 }
 
 @keyframes fade-out-up {
@@ -440,7 +431,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .modal fieldset legend { font-size: 1.1em; }
 .modal fieldset label { display: block; margin-bottom: 15px; margin-right: 0; }
 .modal fieldset label:has(#new-pace-input) { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-.modal button#confirm-recalculate { margin-top: 25px; float: right; width: auto; }
+.modal button#confirm-recalculate, .modal button#confirm-sync-button { margin-top: 25px; float: right; width: auto; }
 .modal .modal-content::after { content: ""; display: table; clear: both; }
 
 #stats-content p, #history-list p { text-align: left; color: var(--text-color-dark); margin-bottom: 10px; }
@@ -453,12 +444,11 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .history-date { font-weight: bold; color: var(--primary-action); display: block; margin-bottom: 5px; }
 .history-chapters { font-size: 0.95em; color: var(--text-color-muted); word-wrap: break-word; line-height: 1.5; }
 
-/* NOVO: Estilos para o container do gráfico de estatísticas */
 .stats-chart-container {
     position: relative;
     width: 100%;
     max-width: 100%;
-    height: 280px; /* Altura inicial, pode ser ajustada */
+    height: 280px;
     margin: 25px 0;
     padding: 15px;
     background-color: var(--background-light);
@@ -466,8 +456,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border: 1px solid var(--border-color);
 }
 
-/* --- INÍCIO: ALTERAÇÕES PARA A PRIORIDADE 1 --- */
-/* --- Estilos Seção Leituras Atrasadas e Próximas --- */
 #overdue-readings h2 { color: var(--warning-text-dark); border-bottom: 2px solid var(--warning-border-strong); font-size: 1.4em; margin-bottom: 15px; padding-bottom: 10px; }
 .enhanced-panel#overdue-readings h2 { color: var(--warning-text-dark) !important; border-bottom-color: var(--warning-border-strong) !important; }
 .overdue-readings-container { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 15px; }
@@ -477,7 +465,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .overdue-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
 .overdue-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
 
-/* ESTILOS PARA SUGESTÃO DE RECÁLCULO */
 .recalc-suggestion-item {
     background-color: var(--warning-bg-light);
     padding: 18px;
@@ -531,12 +518,11 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .upcoming-date { font-weight: 700; font-size: 1.1em; color: var(--primary-action); margin-bottom: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
 .upcoming-plan-name { font-weight: 600; font-size: 0.95em; color: var(--text-color-dark); margin-bottom: 0; display: flex; align-items: center; gap: 8px; }
 .upcoming-chapters { font-size: 0.9em; color: var(--text-color-muted); line-height: 1.5; word-break: break-word; }
-/* --- FIM: ALTERAÇÕES PARA A PRIORIDADE 1 --- */
 
 /* --- Painel de Perseverança Aprimorado --- */
 .perseverance-header h2 { text-align: center; color: var(--primary-action); margin-top: 0; font-size: 1.4em; font-weight: 700; }
 .milestone-icons-area { display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; min-height: 45px; }
-.milestone-icon { font-size: 2.2em; display: inline-block; /* Ícone da coroa precisa ser inline-block */ transition: transform 0.3s ease-out, text-shadow 0.3s ease-out; cursor: default; }
+.milestone-icon { font-size: 2.2em; display: inline-block; transition: transform 0.3s ease-out, text-shadow 0.3s ease-out; cursor: default; }
 .milestone-icon.achieved { transform: scale(1.1); -webkit-animation: icon-pop 0.4s; animation: icon-pop 0.4s; text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35); }
 @keyframes icon-pop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1.1); } }
 .perseverance-bar-container { width: 100%; margin-bottom: 12px; }
@@ -548,32 +534,26 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .milestone-legend { text-align: center; font-size: 0.85em; color: var(--text-color-muted); transition: color var(--transition-fast); }
 .milestone-legend span { white-space: nowrap; }
 
-/* INÍCIO DAS MODIFICAÇÕES NO CSS */
-/* Container para os novos marcos cumulativos */
 #cumulative-milestones-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 8px; /* Espaçamento entre os itens de marco */
-    flex-wrap: wrap; /* Permite que os ícones quebrem a linha em telas menores */
+    gap: 8px; 
+    flex-wrap: wrap; 
 }
 
-/* Item individual de marco (contém o ícone e o contador) */
 .milestone-item {
     display: inline-flex;
-    align-items: baseline; /* Alinha o ícone e o texto do contador na base */
+    align-items: baseline; 
     line-height: 1;
 }
 
-/* Estilo para o ícone dentro do item de marco */
 .milestone-item .icon {
-    font-size: 2.2em; /* Mantém o tamanho original do .milestone-icon */
+    font-size: 2.2em; 
     display: inline-block;
-    /* Animação que será adicionada via JS */
     transition: transform 0.3s ease-out, text-shadow 0.3s ease-out;
 }
 
-/* Estilo para o contador (ex: x2, x3) */
 .milestone-item .counter {
     font-size: 1.1em;
     font-weight: 700;
@@ -582,14 +562,12 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
-/* Animação de 'pop' para ser aplicada via JS */
 .milestone-item .icon.achieved {
     transform: scale(1.1);
     -webkit-animation: icon-pop 0.4s;
     animation: icon-pop 0.4s;
     text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35);
 }
-/* FIM DAS MODIFICAÇÕES NO CSS */
 
 /* Painel de Progresso Semanal */
 #global-weekly-tracker-section h3 { margin-top: 0; margin-bottom: 20px; text-align: center; color: var(--primary-action); font-size: 1.2em; font-weight: 700; transition: color var(--transition-fast); }
@@ -678,7 +656,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     background-color: var(--success-color-dark);
 }
 
-/* --- ADICIONADO: Estilo para o botão ativo no paginador --- */
 #floating-navigator .nav-button.active-nav {
     border-color: var(--primary-action);
     transform: scale(1.1);
@@ -691,7 +668,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 ================================================================================
 */
 
-/* --- Estilos da Seção de Reavaliação de Planos --- */
 #plan-reassessment-section {
     border-top: 5px solid var(--primary-action);
 }
@@ -745,9 +721,8 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border-bottom: 1px solid var(--border-color);
 }
 
-/* NOVO: Div que agrupa os cards para melhor controle */
 .day-entries {
-    flex-grow: 1; /* Faz com que ocupe o espaço disponível */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -764,7 +739,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     cursor: pointer;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
     border-left: 4px solid var(--accent-color);
-    -webkit-user-select: none; /* Impede seleção de texto ao arrastar */
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -811,13 +786,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     font-size: 0.9em;
 }
 
-/* 
-================================================================================
-  ESTILOS ADICIONAIS PARA DRAG & DROP E MELHORIAS DE UX
-================================================================================
-*/
-
-/* NOVO: Estilo para o contador de carga total no cabeçalho do dia */
 .reassessment-day-header .total-load {
     display: block;
     font-size: 0.8em;
@@ -826,7 +794,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-top: 4px;
 }
 
-/* NOVO: Estilo para a coluna com sobrecarga */
 .reassessment-day-column.overload {
     background-color: var(--warning-bg-light);
     border-color: var(--warning-item-border);
@@ -836,28 +803,24 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     color: var(--warning-item-text);
 }
 
-/* Estilo para o item que está sendo arrastado (desktop) ou tocado (mobile) */
 .reassessment-plan-entry.dragging {
     opacity: 0.4;
     transform: scale(0.95);
     box-shadow: 0 8px 25px rgba(var(--primary-action-rgb), 0.2);
 }
 
-/* Estilo para a coluna do dia que é um alvo válido para soltar o item */
 .reassessment-day-column.over {
     background-color: rgba(var(--primary-action-rgb), 0.1);
     border-style: dashed;
     border-color: var(--primary-action);
 }
 
-/* NOVO: Estilo para o elemento "fantasma" que segue o toque no mobile */
 .touch-ghost {
-    position: absolute; /* Posição absoluta para seguir o dedo */
-    pointer-events: none; /* Não deve interferir com outros eventos de toque */
-    z-index: 1100; /* Deve ficar acima de outros elementos */
+    position: absolute; 
+    pointer-events: none; 
+    z-index: 1100; 
     opacity: 0.8;
-    transform: translate(-50%, -50%) scale(1.05); /* Centraliza e aumenta um pouco */
-    /* Garante que o estilo seja o mesmo do item original */
+    transform: translate(-50%, -50%) scale(1.05); 
     display: flex;
     align-items: center;
     gap: 8px;
@@ -957,56 +920,157 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     }
 }
 
-/* --- INÍCIO: NOVAS REGRAS DE CSS PARA A ETIQUETA DE PREVISÃO --- */
-
-/* Contêiner para alinhar as duas etiquetas de texto */
 .plan-card .progress-labels {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap; /* Permite quebrar a linha em telas pequenas */
+    flex-wrap: wrap; 
     gap: 5px 10px;
     width: 100%;
     margin-bottom: 8px;
 }
 
-/* Ajusta o texto de progresso existente para ocupar o espaço disponível */
 .plan-card .progress-text {
     text-align: left;
     margin-bottom: 0;
-    flex-grow: 1; /* Faz com que ele tente ocupar o máximo de espaço */
+    flex-grow: 1; 
 }
 
-/* Estilo base para a nova etiqueta de previsão */
 .plan-card .forecast-date {
     font-size: 0.8em;
     font-weight: 700;
     padding: 3px 8px;
     border-radius: 12px;
-    white-space: nowrap; /* Impede que o texto quebre */
-    flex-shrink: 0; /* Impede que a etiqueta seja esmagada */
-    border: 1px solid transparent; /* Adiciona uma borda base */
+    white-space: nowrap; 
+    flex-shrink: 0; 
+    border: 1px solid transparent; 
 }
 
-/* Cor VERDE para quando o usuário está ADIANTADO */
 .plan-card .forecast-ahead {
     background-color: rgba(var(--success-color-rgb), 0.1);
     color: var(--success-color-dark);
     border-color: rgba(var(--success-color-rgb), 0.2);
 }
 
-/* Cor VERMELHA para quando o usuário está ATRASADO */
 .plan-card .forecast-behind {
     background-color: rgba(var(--danger-color-rgb), 0.1);
     color: var(--danger-color);
     border-color: rgba(var(--danger-color-rgb), 0.2);
 }
 
-/* Cor LARANJA para quando a previsão e a meta são as mesmas */
 .plan-card .forecast-neutral {
     background-color: rgba(var(--accent-color-rgb), 0.1);
     color: var(--accent-color-dark);
     border-color: rgba(var(--accent-color-rgb), 0.2);
 }
 
-/* --- FIM: NOVAS REGRAS DE CSS --- */
+
+/* --- INÍCIO DAS NOVAS REGRAS DE CSS --- */
+
+/* Estilos para a legenda aprimorada */
+.reassessment-legend-item {
+    width: 100%;
+    max-width: 350px;
+    background-color: var(--background-light);
+    padding: 10px 15px;
+    border-radius: var(--base-border-radius);
+    border: 1px solid var(--border-color);
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 5px;
+}
+
+.reassessment-legend-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    width: 100%;
+}
+
+.reassessment-legend-item-header .plan-icon {
+    font-size: 1.2em;
+}
+
+.reassessment-forecast-info {
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-color-muted);
+    padding-left: 38px;
+    width: 100%;
+}
+
+.reassessment-forecast-info .forecast-date {
+    color: var(--primary-action);
+}
+
+/* Estilos para o novo modal Sincronizador de Ritmo */
+#sync-rhythm-button {
+    background-color: var(--success-color);
+}
+#sync-rhythm-button:hover:not(:disabled) {
+    background-color: var(--success-color-dark);
+}
+
+.sync-plan-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.sync-plan-item {
+    background-color: var(--background-light);
+    padding: 15px;
+    border-radius: var(--base-border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.sync-plan-item-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.sync-plan-item-header .plan-icon {
+    font-size: 1.5em;
+}
+
+.sync-plan-item-header span {
+    font-weight: 700;
+    color: var(--primary-action);
+    font-size: 1.1em;
+}
+
+.sync-plan-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.sync-plan-controls label {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.sync-plan-controls input[type="number"] {
+    width: 80px;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.sync-plan-forecast {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-color-muted);
+    text-align: right;
+}
+
+.sync-plan-forecast .date-value {
+    color: var(--text-color-dark);
+}
+/* --- FIM DAS NOVAS REGRAS DE CSS --- */
