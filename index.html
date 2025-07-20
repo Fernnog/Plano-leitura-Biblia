@@ -67,9 +67,7 @@
         <!-- Container para botões de criação de plano, visível após login -->
         <section id="plan-creation-actions" class="plan-creation-actions-container" style="display: none;">
             <button id="create-new-plan-button" class="button-primary">Criar Novo Plano (Genérico)</button>
-            <!-- INÍCIO DA ALTERAÇÃO: Adicionado o novo botão de reavaliação -->
             <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
-            <!-- FIM DA ALTERAÇÃO -->
             <button id="create-favorite-plan-button" class="button-special">Criar Plano Favorito Anual</button>
         </section>
 
@@ -162,10 +160,13 @@
             <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
         </section>
 
-        <!-- INÍCIO DA ALTERAÇÃO: Adicionada a nova seção de reavaliação -->
+        <!-- Seção de reavaliação -->
         <section id="plan-reassessment-section" style="display: none;">
             <div class="reassessment-header">
                 <h2>Quadro de Carga Semanal</h2>
+                <!-- INÍCIO DA ALTERAÇÃO: Adicionado o novo botão de sincronização -->
+                <button id="sync-rhythm-button" class="button-primary">Sincronizar Ritmos</button>
+                <!-- FIM DA ALTERAÇÃO -->
                 <button id="close-reassessment-button" class="button-secondary">Voltar ao Painel</button>
             </div>
             <p class="reassessment-description">
@@ -181,18 +182,14 @@
                 </div>
             </div>
         </section>
-        <!-- FIM DA ALTERAÇÃO -->
 
-        <!-- Painel de Perseverança Aprimorado (MODIFICADO) -->
+        <!-- Painel de Perseverança Aprimorado -->
         <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
             <div class="perseverance-header">
                 <h2>Sua Perseverança</h2>
             </div>
-            <!-- ÁREA DE ÍCONES MODIFICADA -->
             <div class="milestone-icons-area">
-                <!-- O ícone da coroa permanece, pois sua lógica é separada -->
                 <span class="milestone-icon record-crown">👑</span>
-                <!-- Este container será preenchido dinamicamente pelo JavaScript -->
                 <div id="cumulative-milestones-container"></div>
             </div>
             <div class="perseverance-bar-container">
@@ -205,13 +202,12 @@
                     </div>
                 </div>
             </div>
-            <!-- LEGENDA ATUALIZADA -->
             <div class="milestone-legend">
                 <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 300d</span> | <span>☀️ 1000d</span>
             </div>
         </section>
 
-        <!-- Painel de Progresso Semanal Global (INALTERADO) -->
+        <!-- Painel de Progresso Semanal Global -->
         <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
              <h3>Suas Interações na Semana</h3>
              <div class="week-days" id="global-week-days-indicators">
@@ -225,14 +221,14 @@
              </div>
         </section>
         
-         <!-- Seção Leituras Atrasadas (INALTERADO) -->
+         <!-- Seção Leituras Atrasadas -->
          <section id="overdue-readings" class="enhanced-panel" style="display: none;">
               <h2>⚠️ Leituras Atrasadas</h2>
               <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
               <div id="overdue-readings-list" class="overdue-readings-container"></div>
          </section>
 
-         <!-- Seção Próximas Leituras (INALTERADO) -->
+         <!-- Seção Próximas Leituras -->
          <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
               <h2>Próximas Leituras</h2>
               <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
@@ -261,7 +257,7 @@
             </div>
         </div>
 
-         <!-- Modal Estatísticas (INALTERADO) -->
+         <!-- Modal Estatísticas -->
          <div id="stats-modal" class="modal" style="display: none;">
              <div class="modal-content modal-content-scrollable">
                  <span class="close-button">×</span>
@@ -273,7 +269,6 @@
                      <p><strong>Progresso (Dias):</strong> <span id="stats-active-plan-progress">--</span>%</p>
                      <hr>
                      
-                     <!-- NOVO: Container para o gráfico de progresso -->
                      <div class="stats-chart-container">
                          <canvas id="progress-chart"></canvas>
                      </div>
@@ -300,6 +295,24 @@
              </div>
          </div>
 
+         <!-- INÍCIO DA ALTERAÇÃO: Adicionado o novo modal de sincronização -->
+         <div id="sync-rhythm-modal" class="modal" style="display: none;">
+            <div class="modal-content modal-content-scrollable">
+                <span class="close-button">×</span>
+                <h2>Sincronizador de Ritmo</h2>
+                <p>Ajuste o ritmo (capítulos por dia de leitura) de cada plano. A previsão de término será atualizada em tempo real.</p>
+                <div id="sync-rhythm-loading" class="loading-indicator" style="display: none;">Calculando...</div>
+                <div id="sync-rhythm-error" class="error-message" style="display: none;"></div>
+                
+                <div id="sync-plan-list" class="sync-plan-list-container">
+                    <!-- Lista de planos será gerada dinamicamente via JS -->
+                </div>
+                
+                <button id="confirm-sync-button" class="button-primary" style="margin-top: 25px; float: right;">Confirmar e Recalcular Planos</button>
+            </div>
+        </div>
+        <!-- FIM DA ALTERAÇÃO -->
+
     </main>
 
     <footer>
@@ -309,11 +322,10 @@
     <!-- Inclusão da biblioteca Chart.js via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- NOVO E ESSENCIAL: Inclusão do Date-FNS e seu Adaptador para o Chart.js -->
+    <!-- Inclusão do Date-FNS e seu Adaptador para o Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <!-- FIM DA ADIÇÃO -->
-
+    
     <!-- Ponto de entrada para o JavaScript modular -->
     <script type="module" src="./src/main.js"></script>
     
