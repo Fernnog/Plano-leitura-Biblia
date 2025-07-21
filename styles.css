@@ -973,6 +973,86 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-top: 20px;
 }
 
+/* --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) --- */
+/* --- Estilos para o Explorador de Livros da Bíblia --- */
+.explorer-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.explorer-book-card {
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 600;
+    background-color: var(--background-light);
+    border: 2px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 0.9em;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.explorer-book-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--box-shadow);
+}
+
+.explorer-book-card.in-plan {
+    border-color: var(--primary-action);
+    background-color: rgba(var(--primary-action-rgb), 0.08);
+    color: var(--primary-action);
+}
+
+.explorer-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#explorer-back-button {
+    padding: 8px 16px;
+    margin: 0;
+    min-height: auto;
+    flex-shrink: 0;
+}
+
+#explorer-detail-title {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.explorer-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--background-light);
+    border-radius: var(--base-border-radius);
+}
+
+.explorer-chapter-item {
+    padding: 10px;
+    text-align: center;
+    background-color: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--base-border-radius) / 1.5);
+}
+
+.explorer-chapter-item.in-plan {
+    font-weight: bold;
+    color: var(--primary-action);
+    border-color: var(--primary-action);
+    background-color: rgba(var(--primary-action-rgb), 0.08);
+}
+/* --- FIM DA ALTERAÇÃO (PRIORIDADE 1) --- */
+
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; }
