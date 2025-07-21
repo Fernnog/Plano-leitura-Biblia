@@ -306,7 +306,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 
 /* --- Estilos para o container de botões de criação --- */
 .plan-creation-actions-container { display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; padding: 10px 0; background-color: transparent; box-shadow: none; border: none; }
-#create-new-plan-button, #create-favorite-plan-button { flex-grow: 1; max-width: 350px; }
+#create-new-plan-button, #create-favorite-plan-button, #explore-bible-button { flex-grow: 1; max-width: 350px; }
 
 /* --- Estilos para a exibição de múltiplos planos --- */
 .plans-display-container { display: grid; grid-template-columns: 1fr; gap: 30px; background-color: transparent; padding: 0; box-shadow: none; border: none; margin-bottom: 25px; }
@@ -973,86 +973,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-top: 20px;
 }
 
-/* --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) --- */
-/* --- Estilos para o Explorador de Livros da Bíblia --- */
-.explorer-grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.explorer-book-card {
-    padding: 15px 10px;
-    text-align: center;
-    font-weight: 600;
-    background-color: var(--background-light);
-    border: 2px solid var(--border-color);
-    border-radius: var(--base-border-radius);
-    cursor: pointer;
-    transition: var(--transition-fast);
-    font-size: 0.9em;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.explorer-book-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--box-shadow);
-}
-
-.explorer-book-card.in-plan {
-    border-color: var(--primary-action);
-    background-color: rgba(var(--primary-action-rgb), 0.08);
-    color: var(--primary-action);
-}
-
-.explorer-detail-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 15px;
-}
-
-#explorer-back-button {
-    padding: 8px 16px;
-    margin: 0;
-    min-height: auto;
-    flex-shrink: 0;
-}
-
-#explorer-detail-title {
-    margin: 0;
-    font-size: 1.5em;
-}
-
-.explorer-list-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 10px;
-    max-height: 60vh;
-    overflow-y: auto;
-    padding: 10px;
-    background-color: var(--background-light);
-    border-radius: var(--base-border-radius);
-}
-
-.explorer-chapter-item {
-    padding: 10px;
-    text-align: center;
-    background-color: var(--background-card);
-    border: 1px solid var(--border-color);
-    border-radius: calc(var(--base-border-radius) / 1.5);
-}
-
-.explorer-chapter-item.in-plan {
-    font-weight: bold;
-    color: var(--primary-action);
-    border-color: var(--primary-action);
-    background-color: rgba(var(--primary-action-rgb), 0.08);
-}
-/* --- FIM DA ALTERAÇÃO (PRIORIDADE 1) --- */
-
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; }
@@ -1159,3 +1079,112 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         margin: 0;
     }
 }
+/* --- START OF ADDITION: Estilos para o Explorador de Livros da Bíblia --- */
+.explorer-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.explorer-book-card {
+    padding: 15px 10px;
+    text-align: center;
+    font-weight: 600;
+    background-color: var(--background-light);
+    border: 2px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-size: 0.9em;
+    -webkit-user-select: none;
+    user-select: none;
+    /* --- MODIFICAÇÕES --- */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 80px;
+}
+
+.explorer-book-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--box-shadow);
+}
+
+.explorer-book-card.in-plan {
+    border-color: var(--primary-action);
+    background-color: rgba(var(--primary-action-rgb), 0.08);
+    color: var(--primary-action);
+}
+
+.explorer-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#explorer-back-button {
+    padding: 8px 16px;
+    margin: 0;
+    min-height: auto;
+    flex-shrink: 0;
+}
+
+#explorer-detail-title {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.explorer-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--background-light);
+    border-radius: var(--base-border-radius);
+}
+
+.explorer-chapter-item {
+    padding: 10px;
+    text-align: center;
+    background-color: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: calc(var(--base-border-radius) / 1.5);
+}
+
+.explorer-chapter-item.in-plan {
+    font-weight: bold;
+    color: var(--primary-action);
+    border-color: var(--primary-action);
+    background-color: rgba(var(--primary-action-rgb), 0.08);
+}
+
+/* NOVO: Contêiner para os ícones dentro do card */
+.book-card-icons-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 8px; /* Espaçamento do nome do livro */
+    min-height: 20px; /* Garante espaço mesmo que vazio */
+}
+
+/* NOVO: Estilo para cada ícone de plano marcador */
+.plan-marker-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    border-radius: 50%;
+    background-color: var(--background-card);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-color);
+    /* Permite tooltips (ver melhoria de UX) */
+    cursor: help;
+}
+/* --- END OF ADDITION --- */
