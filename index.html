@@ -67,6 +67,9 @@
         <!-- Container para botões de criação de plano, visível após login -->
         <section id="plan-creation-actions" class="plan-creation-actions-container" style="display: none;">
             <button id="create-new-plan-button" class="button-primary">Criar Novo Plano (Genérico)</button>
+            <!-- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) -->
+            <button id="explore-bible-button" class="button-secondary">Explorar a Bíblia</button>
+            <!-- FIM DA ALTERAÇÃO (PRIORIDADE 1) -->
             <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
             <button id="create-favorite-plan-button" class="button-special">Criar Plano Favorito Anual</button>
         </section>
@@ -164,12 +167,10 @@
         <section id="plan-reassessment-section" style="display: none;">
             <div class="reassessment-header">
                 <h2>Quadro de Carga Semanal</h2>
-                <!-- INÍCIO DA ALTERAÇÃO: Adicionados os novos botões -->
                 <div class="reassessment-actions">
                     <button id="sync-plans-button" class="button-primary">Sincronizar Datas de Término</button>
                     <button id="close-reassessment-button" class="button-secondary">Voltar ao Painel</button>
                 </div>
-                <!-- FIM DA ALTERAÇÃO -->
             </div>
             <p class="reassessment-description">
                 Visualize a distribuição dos seus planos ao longo da semana. Clique em um item para ajustar seus dias ou arraste e solte para remanejar.
@@ -304,7 +305,7 @@
              </div>
          </div>
 
-        <!-- INÍCIO DA ALTERAÇÃO: Novo Modal de Sincronização -->
+        <!-- Modal de Sincronização -->
         <div id="sync-plans-modal" class="modal" style="display: none;">
             <div class="modal-content modal-content-scrollable">
                 <span class="close-button">×</span>
@@ -330,7 +331,36 @@
                 <button id="confirm-sync-button" class="button-primary" disabled>Confirmar Sincronização</button>
             </div>
         </div>
-        <!-- FIM DA ALTERAÇÃO -->
+
+        <!-- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) -->
+        <!-- Modal do Explorador de Livros -->
+        <div id="bible-explorer-modal" class="modal" style="display: none;">
+            <div class="modal-content modal-content-scrollable">
+                <span class="close-button">×</span>
+                <div id="explorer-view-container">
+                    <!-- Visualização da Grade de Livros (inicial) -->
+                    <div id="explorer-grid-view">
+                        <h2>Explorador de Livros da Bíblia</h2>
+                        <p>Clique em um livro para ver os detalhes dos capítulos.</p>
+                        <div id="explorer-book-grid" class="explorer-grid-container">
+                            <!-- Os cards dos livros serão gerados pelo JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Visualização de Detalhes do Livro (escondida inicialmente) -->
+                    <div id="explorer-detail-view" style="display: none;">
+                        <div class="explorer-detail-header">
+                            <button id="explorer-back-button" class="button-secondary">← Voltar</button>
+                            <h2 id="explorer-detail-title"></h2>
+                        </div>
+                        <div id="explorer-chapter-list" class="explorer-list-container">
+                            <!-- A lista de capítulos será gerada pelo JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- FIM DA ALTERAÇÃO (PRIORIDADE 1) -->
 
     </main>
 
