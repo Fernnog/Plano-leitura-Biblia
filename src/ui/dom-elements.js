@@ -131,6 +131,21 @@ export const syncPlansToAdjustList = document.getElementById('sync-plans-to-adju
 export const confirmSyncButton = document.getElementById('confirm-sync-button');
 // FIM DA ALTERAÇÃO
 
+// --- INÍCIO DA ALTERAÇÃO: Adicionados os novos elementos da Prioridade 1 ---
+// Botão para abrir o explorador
+export const exploreBibleButton = document.getElementById('explore-bible-button');
+
+// Elementos do Modal do Explorador
+export const bibleExplorerModal = document.getElementById('bible-explorer-modal');
+export const explorerGridView = document.getElementById('explorer-grid-view');
+export const explorerBookGrid = document.getElementById('explorer-book-grid');
+export const explorerDetailView = document.getElementById('explorer-detail-view');
+export const explorerBackButton = document.getElementById('explorer-back-button');
+export const explorerDetailTitle = document.getElementById('explorer-detail-title');
+export const explorerChapterList = document.getElementById('explorer-chapter-list');
+// --- FIM DA ALTERAÇÃO ---
+
+
 // --- Seção de Reavaliação de Planos ---
 export const reassessPlansButton = document.getElementById('reassess-plans-button');
 // INÍCIO DA ALTERAÇÃO: Adicionado o novo botão de Sincronização
