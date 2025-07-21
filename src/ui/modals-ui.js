@@ -4,6 +4,7 @@
  * Controla a abertura, fechamento, e população de conteúdo dos modais.
  */
 
+// --- INÍCIO DA ALTERAÇÃO ---
 // Importa todos os elementos do DOM relacionados aos modais
 import {
     // Recálculo
@@ -24,7 +25,7 @@ import {
     explorerChapterList,
 } from './dom-elements.js';
 
-// Importa funções e dados auxiliares
+// Importa funções auxiliares e dados
 import { 
     formatUTCDateStringToBrasilian, 
     getCurrentUTCDateString, 
@@ -40,7 +41,9 @@ let state = {
     },
 };
 
+// Adiciona o novo modal à lista para gerenciamento automático
 const allModals = [recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal];
+// --- FIM DA ALTERAÇÃO ---
 
 // --- Variável para armazenar a instância do gráfico e evitar duplicatas ---
 let progressChartInstance = null;
@@ -154,6 +157,10 @@ export function hideError(modalId) {
 
 // --- Funções Específicas de População de Conteúdo ---
 
+/**
+ * Exibe os dados de histórico de leitura no modal correspondente.
+ * @param {object} readLog - O objeto de log de leitura do plano ativo.
+ */
 export function displayHistory(readLog) {
     historyListDiv.innerHTML = '';
     hideError('history-modal');
@@ -181,6 +188,10 @@ export function displayHistory(readLog) {
     });
 }
 
+/**
+ * Exibe as estatísticas calculadas e renderiza o gráfico de progresso no modal.
+ * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData` e `planSummary`.
+ */
 export function displayStats(statsData) {
     const statsForecastDate = document.getElementById('stats-forecast-date');
     const statsRecalculationsCount = document.getElementById('stats-recalculations-count');
@@ -199,7 +210,7 @@ export function displayStats(statsData) {
     const summaryListDiv = document.getElementById('stats-plan-summary-list');
     
     if (summaryContainer && summaryListDiv && statsData.planSummary && statsData.planSummary.size > 0) {
-        summaryListDiv.innerHTML = ''; 
+        summaryListDiv.innerHTML = ''; // Limpa conteúdo anterior
         let summaryHTML = '<ul style="list-style-type: none; padding-left: 0; margin: 0;">';
         statsData.planSummary.forEach((chapters, book) => {
             summaryHTML += `<li style="margin-bottom: 8px;"><strong>${book}:</strong> ${chapters}</li>`;
@@ -208,7 +219,7 @@ export function displayStats(statsData) {
         summaryListDiv.innerHTML = summaryHTML;
         summaryContainer.style.display = 'block';
     } else if (summaryContainer) {
-        summaryContainer.style.display = 'none'; 
+        summaryContainer.style.display = 'none'; // Esconde se não houver resumo
     }
 
     if (statsData.chartData) {
@@ -218,8 +229,14 @@ export function displayStats(statsData) {
     statsContentDiv.style.display = 'block';
 }
 
+/**
+ * Popula e prepara o modal de sincronização de planos.
+ * @param {Array<object>} plans - Lista de planos elegíveis para sincronização.
+ * @param {Function} onConfirm - Callback a ser chamado na confirmação.
+ */
 export function displaySyncOptions(plans, onConfirm) {
     const todayStr = getCurrentUTCDateString();
+
     syncBasePlanSelect.innerHTML = '<option value="">-- Selecione uma Referência --</option>';
     syncPlansToAdjustList.innerHTML = '';
     confirmSyncButton.disabled = true;
@@ -262,7 +279,7 @@ export function displaySyncOptions(plans, onConfirm) {
                      const paceWarningClass = newPace > 10 ? 'pace-warning' : ''; 
                      paceInfoHTML = `<small class="${paceWarningClass}">Novo ritmo: ~${newPace} caps/dia</small>`;
                  } else {
-                     paceInfoHTML = `<small class="pace-warning">⚠️ Impossível sincronizar. Não há dias de leitura disponíveis até a data alvo.</small>`;
+                     paceInfoHTML = `<small class="pace-warning">⚠️ Impossível sincronizar.</small>`;
                  }
             } else {
                  paceInfoHTML = `<small>Plano já concluído.</small>`;
@@ -291,6 +308,7 @@ export function displaySyncOptions(plans, onConfirm) {
         const basePlanId = syncBasePlanSelect.value;
         const targetDate = syncBasePlanSelect.options[syncBasePlanSelect.selectedIndex].dataset.endDate;
         const plansToSyncIds = Array.from(syncPlansToAdjustList.querySelectorAll('input:checked')).map(cb => cb.value);
+        
         onConfirm(basePlanId, targetDate, plansToSyncIds);
     };
     
@@ -298,74 +316,8 @@ export function displaySyncOptions(plans, onConfirm) {
 }
 
 /**
- * ---- INÍCIO DA MODIFICAÇÃO ----
- * Função 'showChapterDetails' foi movida para dentro de 'displayBibleExplorer'
- * para criar um closure e evitar a necessidade de passar parâmetros extras.
+ * Reseta o formulário do modal de recálculo para o estado padrão.
  */
-
-/**
- * Exibe o explorador da Bíblia com dados agregados de todos os planos.
- * @param {Map<string, Array<{icon: string, name: string}>>} booksToIconsMap - Mapa de nomes de livros para arrays de objetos de plano.
- * @param {Set<string>} allChaptersInPlans - Um Set com todos os capítulos de todos os planos.
- */
-export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
-    explorerBookGrid.innerHTML = '';
-    explorerGridView.style.display = 'block';
-    explorerDetailView.style.display = 'none';
-
-    // Função interna para mostrar detalhes, com acesso a 'allChaptersInPlans' via closure.
-    const showChapterDetails = (bookName) => {
-        explorerDetailTitle.textContent = bookName;
-        explorerChapterList.innerHTML = '';
-        const totalChapters = BIBLE_BOOKS_CHAPTERS[bookName];
-
-        for (let i = 1; i <= totalChapters; i++) {
-            const chapterItem = document.createElement('div');
-            chapterItem.className = 'explorer-chapter-item';
-            chapterItem.textContent = i;
-            const chapterId = `${bookName} ${i}`;
-            if (allChaptersInPlans.has(chapterId)) {
-                chapterItem.classList.add('in-plan');
-            }
-            explorerChapterList.appendChild(chapterItem);
-        }
-
-        explorerGridView.style.display = 'none';
-        explorerDetailView.style.display = 'block';
-    };
-
-    CANONICAL_BOOK_ORDER.forEach(bookName => {
-        const card = document.createElement('div');
-        card.className = 'explorer-book-card';
-        card.dataset.book = bookName;
-
-        const planDetails = booksToIconsMap.get(bookName) || [];
-
-        if (planDetails.length > 0) {
-            card.classList.add('in-plan');
-        }
-
-        // Gera os ícones, cada um com um tooltip contendo o nome do plano.
-        const iconsHTML = planDetails.map(detail => 
-            `<span class="plan-marker-icon" title="${detail.name}">${detail.icon}</span>`
-        ).join('');
-
-        card.innerHTML = `
-            <span>${bookName}</span>
-            <div class="book-card-icons-container">
-                ${iconsHTML}
-            </div>
-        `;
-        
-        card.addEventListener('click', () => showChapterDetails(bookName));
-        explorerBookGrid.appendChild(card);
-    });
-
-    open('bible-explorer-modal');
-}
-// ---- FIM DA MODIFICAÇÃO ----
-
-
 export function resetRecalculateForm() {
     const extendOption = recalculateModal.querySelector('input[name="recalc-option"][value="extend_date"]');
     if (extendOption) extendOption.checked = true;
@@ -374,8 +326,83 @@ export function resetRecalculateForm() {
 }
 
 
+// --- INÍCIO: NOVAS FUNÇÕES PARA O EXPLORADOR DA BÍBLIA ---
+
+/**
+ * Exibe o explorador da Bíblia com dados agregados de todos os planos.
+ * @param {Map<string, {icons: string[], name: string}[]>} booksToPlansMap - Mapa de nomes de livros para arrays de objetos de plano {icon, name}.
+ * @param {Set<string>} allChaptersInPlans - Um Set com todos os capítulos de todos os planos ("Gênesis 1").
+ */
+export function displayBibleExplorer(booksToPlansMap, allChaptersInPlans) {
+    explorerBookGrid.innerHTML = '';
+    explorerGridView.style.display = 'block';
+    explorerDetailView.style.display = 'none';
+
+    CANONICAL_BOOK_ORDER.forEach(bookName => {
+        const card = document.createElement('div');
+        card.className = 'explorer-book-card';
+        card.dataset.book = bookName;
+
+        const plansContainingBook = booksToPlansMap.get(bookName) || [];
+
+        if (plansContainingBook.length > 0) {
+            card.classList.add('in-plan');
+        }
+
+        // Gera os ícones marcadores, cada um com um tooltip (title) contendo o nome do plano
+        const iconsHTML = plansContainingBook
+            .map(plan => `<span class="plan-marker-icon" title="${plan.name}">${plan.icon}</span>`)
+            .join('');
+
+        card.innerHTML = `
+            <span>${bookName}</span>
+            <div class="book-card-icons-container">
+                ${iconsHTML}
+            </div>
+        `;
+        
+        card.addEventListener('click', () => showChapterDetails(bookName, allChaptersInPlans));
+        explorerBookGrid.appendChild(card);
+    });
+
+    open('bible-explorer-modal');
+}
+
+/**
+ * Função interna para mostrar os detalhes dos capítulos de um livro.
+ * @private
+ * @param {string} bookName - O nome do livro a ser detalhado.
+ * @param {Set<string>} allChaptersInPlans - O set agregado de todos os capítulos em planos.
+ */
+function showChapterDetails(bookName, allChaptersInPlans) {
+    explorerDetailTitle.textContent = bookName;
+    explorerChapterList.innerHTML = '';
+    const totalChapters = BIBLE_BOOKS_CHAPTERS[bookName];
+
+    for (let i = 1; i <= totalChapters; i++) {
+        const chapterItem = document.createElement('div');
+        chapterItem.className = 'explorer-chapter-item';
+        chapterItem.textContent = i;
+        const chapterId = `${bookName} ${i}`;
+        if (allChaptersInPlans.has(chapterId)) {
+            chapterItem.classList.add('in-plan');
+        }
+        explorerChapterList.appendChild(chapterItem);
+    }
+
+    explorerGridView.style.display = 'none';
+    explorerDetailView.style.display = 'block';
+}
+
+// --- FIM: NOVAS FUNÇÕES PARA O EXPLORADOR DA BÍBLIA ---
+
+
 // --- Inicialização ---
 
+/**
+ * Inicializa o módulo de modais, configurando listeners de eventos genéricos.
+ * @param {object} callbacks - Objeto com os callbacks para as ações dos modais.
+ */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
@@ -392,19 +419,18 @@ export function init(callbacks) {
         }
     });
 
+    // --- INÍCIO DA ALTERAÇÃO: Adiciona listener para o botão de voltar do explorador ---
+    if (explorerBackButton) {
+        explorerBackButton.addEventListener('click', () => {
+            explorerGridView.style.display = 'block';
+            explorerDetailView.style.display = 'none';
+        });
+    }
+    // --- FIM DA ALTERAÇÃO ---
+
     confirmRecalculateButton.addEventListener('click', () => {
         const option = document.querySelector('input[name="recalc-option"]:checked').value;
         const newPace = parseInt(newPaceInput.value, 10);
         state.callbacks.onConfirmRecalculate?.(option, newPace);
     });
-
-    // Adiciona listener para o botão de voltar do explorador
-    if (explorerBackButton) {
-        explorerBackButton.addEventListener('click', () => {
-            if(explorerGridView && explorerDetailView) {
-                explorerGridView.style.display = 'block';
-                explorerDetailView.style.display = 'none';
-            }
-        });
-    }
 }
