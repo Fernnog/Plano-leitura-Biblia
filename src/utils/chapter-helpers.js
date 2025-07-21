@@ -213,3 +213,73 @@ export function sortChaptersCanonically(chaptersArray) {
         return chapA - chapB; // Se os livros são os mesmos, ordena pelo capítulo
     });
 }
+
+/**
+ * Analisa uma lista de capítulos e a resume, agrupando por livro e compactando os números.
+ * @param {Array<string>} chaptersList - A lista de capítulos (ex: ["Gênesis 1", "Gênesis 2", "Êxodo 5"]).
+ * @returns {Map<string, string>} Um mapa com o nome do livro como chave e o resumo dos capítulos como valor.
+ */
+export function summarizeChaptersByBook(chaptersList) {
+    const bookSummary = new Map();
+    if (!chaptersList || chaptersList.length === 0) return bookSummary;
+
+    const sortedChapters = sortChaptersCanonically([...chaptersList]);
+    
+    let currentBook = null;
+    let chapterNumbers = [];
+
+    function flushCurrentBook() {
+        if (currentBook && chapterNumbers.length > 0) {
+            bookSummary.set(currentBook, _compactChapterNumbers(chapterNumbers));
+        }
+        chapterNumbers = [];
+    }
+
+    sortedChapters.forEach(chapterString => {
+        const match = chapterString.match(/^(.*)\s+(\d+)$/);
+        if (!match) return;
+
+        const bookName = match[1];
+        const chapNum = parseInt(match[2], 10);
+
+        if (bookName !== currentBook) {
+            flushCurrentBook();
+            currentBook = bookName;
+        }
+        chapterNumbers.push(chapNum);
+    });
+
+    flushCurrentBook(); // Garante que o último livro seja processado
+
+    return bookSummary;
+}
+
+/**
+ * Função interna para compactar um array de números em uma string (ex: [1,2,3,5] => "1-3, 5").
+ * @private
+ * @param {Array<number>} numbers - Array de números de capítulo.
+ * @returns {string} A string compactada.
+ */
+function _compactChapterNumbers(numbers) {
+    if (numbers.length === 0) return '';
+    
+    numbers.sort((a, b) => a - b); // Garante que os números estejam ordenados
+    let result = '';
+    let rangeStart = numbers[0];
+
+    for (let i = 0; i < numbers.length; i++) {
+        const current = numbers[i];
+        const next = numbers[i + 1];
+
+        if (next !== current + 1) {
+            if (result) result += ', ';
+            if (rangeStart === current) {
+                result += `${current}`;
+            } else {
+                result += `${rangeStart}-${current}`;
+            }
+            if (next) rangeStart = next;
+        }
+    }
+    return result;
+}
