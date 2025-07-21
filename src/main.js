@@ -33,7 +33,7 @@ import {
     generateIntercalatedChapters,
     distributeChaptersOverReadingDays,
     sortChaptersCanonically,
-    summarizeChaptersByBook 
+    summarizeChaptersByBook
 } from './utils/chapter-helpers.js';
 import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays, formatUTCDateStringToBrasilian } from './utils/date-helpers.js';
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
@@ -41,6 +41,9 @@ import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
 import * as planCalculator from './utils/plan-calculator.js';
+// INÍCIO DA ALTERAÇÃO: Importação do novo módulo de agregação
+import * as planAggregator from './utils/plan-aggregator.js';
+// FIM DA ALTERAÇÃO
 
 // Elementos do DOM para ações principais
 import {
@@ -49,9 +52,8 @@ import {
     createFavoritePlanButton,
     reassessPlansButton,
     planStructureFieldset,
-    exploreBibleButton // INÍCIO DA ALTERAÇÃO: Adicionado o novo seletor
+    exploreBibleButton // Botão do explorador adicionado na etapa anterior
 } from './ui/dom-elements.js';
-// FIM DA ALTERAÇÃO
 
 
 // --- 2. ESTADO DA APLICAÇÃO ---
@@ -486,31 +488,6 @@ function handleEditPlanRequest(planId) {
     }
 }
 
-// INÍCIO DA ALTERAÇÃO: Nova função handler para o explorador
-/**
- * Prepara os dados e abre o modal do Explorador da Bíblia.
- */
-function handleShowBibleExplorer() {
-    const activePlan = appState.userPlans.find(p => p.id === appState.activePlanId);
-    
-    const booksInPlan = new Set();
-    const chaptersInPlan = new Set(activePlan ? activePlan.chaptersList : []);
-
-    if (activePlan && activePlan.chaptersList) {
-        activePlan.chaptersList.forEach(chapterString => {
-            // Extrai o nome do livro (ex: "1 Coríntios" de "1 Coríntios 13")
-            const bookNameMatch = chapterString.match(/^(.*)\s+\d+$/);
-            if (bookNameMatch && bookNameMatch[1]) {
-                const bookName = bookNameMatch[1];
-                booksInPlan.add(bookName);
-            }
-        });
-    }
-    
-    modalsUI.displayBibleExplorer(booksInPlan, chaptersInPlan);
-}
-// FIM DA ALTERAÇÃO
-
 
 // --- 4. FUNÇÕES DE RECÁLCULO, SINCRONIZAÇÃO E REAVALIAÇÃO ---
 
@@ -693,6 +670,21 @@ async function handleRecalculate(option, newPaceValue, planId) {
 
 // --- 5. FUNÇÕES DE MODAIS E OUTRAS AÇÕES ---
 
+// INÍCIO DA ALTERAÇÃO: Lógica movida para o novo módulo de agregação
+/**
+ * Prepara os dados agregados e abre o modal do Explorador da Bíblia.
+ */
+function handleShowBibleExplorer() {
+    // 1. Chama o novo módulo para fazer o trabalho pesado de agregação.
+    const { booksInPlans, allChaptersInPlans } = planAggregator.aggregateAllPlansScope(appState.userPlans);
+    
+    // 2. Passa os dados já processados para o módulo de UI.
+    // A melhoria de UX para adicionar tooltips com os nomes dos planos será implementada
+    // dentro da função `displayBibleExplorer` no `modals-ui.js`.
+    modalsUI.displayBibleExplorer(booksInPlans, allChaptersInPlans);
+}
+// FIM DA ALTERAÇÃO
+
 function handleShowStats(planId) {
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
@@ -810,7 +802,7 @@ function initApplication() {
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
     reassessPlansButton.addEventListener('click', handleReassessPlansRequest);
-    // INÍCIO DA ALTERAÇÃO: Adicionado o novo listener
+    // INÍCIO DA ALTERAÇÃO: Adiciona o listener para o novo botão
     exploreBibleButton.addEventListener('click', handleShowBibleExplorer);
     // FIM DA ALTERAÇÃO
 
