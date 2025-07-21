@@ -26,7 +26,6 @@ import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
 import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
 
 // Helpers e Configurações
-// --- INÍCIO DA MODIFICAÇÃO ---
 import {
     generateChaptersInRange,
     parseChaptersInput,
@@ -34,15 +33,13 @@ import {
     generateIntercalatedChapters,
     distributeChaptersOverReadingDays,
     sortChaptersCanonically,
-    summarizeChaptersByBook // Adiciona a nova função à importação
+    summarizeChaptersByBook 
 } from './utils/chapter-helpers.js';
-// --- FIM DA MODIFICAÇÃO ---
 import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays, formatUTCDateStringToBrasilian } from './utils/date-helpers.js';
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
-// NOVO: Importação do módulo de cálculo
 import * as planCalculator from './utils/plan-calculator.js';
 
 // Elementos do DOM para ações principais
@@ -51,8 +48,10 @@ import {
     createNewPlanButton,
     createFavoritePlanButton,
     reassessPlansButton,
-    planStructureFieldset
+    planStructureFieldset,
+    exploreBibleButton // INÍCIO DA ALTERAÇÃO: Adicionado o novo seletor
 } from './ui/dom-elements.js';
+// FIM DA ALTERAÇÃO
 
 
 // --- 2. ESTADO DA APLICAÇÃO ---
@@ -487,6 +486,31 @@ function handleEditPlanRequest(planId) {
     }
 }
 
+// INÍCIO DA ALTERAÇÃO: Nova função handler para o explorador
+/**
+ * Prepara os dados e abre o modal do Explorador da Bíblia.
+ */
+function handleShowBibleExplorer() {
+    const activePlan = appState.userPlans.find(p => p.id === appState.activePlanId);
+    
+    const booksInPlan = new Set();
+    const chaptersInPlan = new Set(activePlan ? activePlan.chaptersList : []);
+
+    if (activePlan && activePlan.chaptersList) {
+        activePlan.chaptersList.forEach(chapterString => {
+            // Extrai o nome do livro (ex: "1 Coríntios" de "1 Coríntios 13")
+            const bookNameMatch = chapterString.match(/^(.*)\s+\d+$/);
+            if (bookNameMatch && bookNameMatch[1]) {
+                const bookName = bookNameMatch[1];
+                booksInPlan.add(bookName);
+            }
+        });
+    }
+    
+    modalsUI.displayBibleExplorer(booksInPlan, chaptersInPlan);
+}
+// FIM DA ALTERAÇÃO
+
 
 // --- 4. FUNÇÕES DE RECÁLCULO, SINCRONIZAÇÃO E REAVALIAÇÃO ---
 
@@ -533,33 +557,15 @@ async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
     }
 }
 
-/**
- * // NOVO
- * Lida com a requisição para abrir o modal de sincronização.
- */
 function handleSyncPlansRequest() {
     const eligiblePlans = appState.userPlans.filter(p => {
         const totalDays = Object.keys(p.plan || {}).length;
         return totalDays > 0 && p.currentDay <= totalDays;
     });
 
-    /**
-     * NOTA DE IMPLEMENTAÇÃO (Prioridade 2 - UX):
-     * A função `displaySyncOptions` em `modals-ui.js` seria aprimorada.
-     * Ao selecionar um plano de referência, ela iteraria sobre os outros planos. Para cada um,
-     * chamaria `planCalculator.recalculatePlanToTargetDate` para obter uma prévia do `newPace`.
-     * Este ritmo seria exibido na UI (ex: "Novo ritmo: 3.5 caps/dia"), com um alerta visual
-     * se o valor for muito alto, permitindo ao usuário tomar uma decisão informada.
-     */
     modalsUI.displaySyncOptions(eligiblePlans, handleConfirmSync);
 }
 
-/**
- * // NOVO: Lida com a confirmação da sincronização de planos.
- * @param {string} basePlanId - ID do plano usado como referência.
- * @param {string} targetDate - Data de término alvo.
- * @param {Array<string>} plansToSyncIds - IDs dos planos a serem ajustados.
- */
 async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
     modalsUI.showLoading('sync-modal');
     modalsUI.hideError('sync-modal');
@@ -573,7 +579,6 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
         for (const planId of plansToSyncIds) {
             const originalPlan = appState.userPlans.find(p => p.id === planId);
             
-            // Usa o novo módulo de cálculo centralizado
             const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetDate, todayStr);
 
             if (!result) {
@@ -582,7 +587,6 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
             }
             let { recalculatedPlan } = result;
             
-            // Adiciona informações específicas da sincronização ao histórico
             if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
             recalculatedPlan.recalculationHistory.push({
                 date: todayStr,
@@ -602,7 +606,7 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
         modalsUI.close('sync-plans-modal');
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
-        handleReassessPlansRequest(); // Volta para a tela de reavaliação
+        handleReassessPlansRequest();
 
     } catch (error) {
         modalsUI.showError('sync-modal', `Erro: ${error.message}`);
@@ -611,12 +615,6 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
     }
 }
 
-/**
- * // REATORADO: Lida com o recálculo de um único plano, usando o novo módulo de cálculo.
- * @param {string} option - A opção de recálculo ('extend_date', 'increase_pace', 'new_pace').
- * @param {number} newPaceValue - O novo ritmo, se aplicável.
- * @param {string} planId - O ID do plano a ser recalculado.
- */
 async function handleRecalculate(option, newPaceValue, planId) {
     const planToRecalculate = appState.userPlans.find(p => p.id === planId);
     if (!appState.currentUser || !planToRecalculate) return;
@@ -629,7 +627,6 @@ async function handleRecalculate(option, newPaceValue, planId) {
         const originalPlan = { ...planToRecalculate };
         let targetEndDate = null;
 
-        // 1. Determina a data final alvo com base na opção do usuário
         switch(option) {
             case 'new_pace':
                 if (!newPaceValue || newPaceValue < 1) throw new Error("O novo ritmo deve ser de pelo menos 1.");
@@ -650,7 +647,6 @@ async function handleRecalculate(option, newPaceValue, planId) {
             throw new Error("Não foi possível calcular uma nova data final para a opção selecionada.");
         }
 
-        // 2. Chama o módulo de cálculo central com a data alvo
         const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, todayStr);
 
         if (!result) {
@@ -659,7 +655,6 @@ async function handleRecalculate(option, newPaceValue, planId) {
         }
         let { recalculatedPlan } = result;
 
-        // 3. Atualiza o histórico e salva o plano
         if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
         recalculatedPlan.recalculationHistory.push({
             date: todayStr,
@@ -737,8 +732,6 @@ function handleShowStats(planId) {
         chartData.actualProgress.push({ x: date, y: cumulativeChapters });
     }
 
-    // --- INÍCIO DA MODIFICAÇÃO ---
-    // Gera o resumo dos capítulos do plano usando a nova função
     const planSummary = summarizeChaptersByBook(plan.chaptersList);
 
     const stats = {
@@ -749,10 +742,9 @@ function handleShowStats(planId) {
         avgPace: `${avgPace.toFixed(1)} caps/dia`,
         recalculationsCount: recalculationsCount,
         forecastDate: forecastDateStr,
-        planSummary: planSummary, // Adiciona a nova propriedade com os dados do resumo
+        planSummary: planSummary,
         chartData: chartData
     };
-    // --- FIM DA MODIFICAÇÃO ---
     
     modalsUI.displayStats(stats);
     modalsUI.open('stats-modal');
@@ -818,6 +810,9 @@ function initApplication() {
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
     reassessPlansButton.addEventListener('click', handleReassessPlansRequest);
+    // INÍCIO DA ALTERAÇÃO: Adicionado o novo listener
+    exploreBibleButton.addEventListener('click', handleShowBibleExplorer);
+    // FIM DA ALTERAÇÃO
 
     planCreationUI.init({
         onSubmit: handlePlanSubmit,
@@ -851,12 +846,11 @@ function initApplication() {
     weeklyTrackerUI.init();
     sidePanelsUI.init();
     
-    // ATUALIZADO: Inicialização do módulo de reavaliação com o novo callback
     planReassessmentUI.init({
         onClose: handleCancelPlanCreation,
         onPlanSelect: handleReassessPlanEdit,
         onUpdatePlanDays: handlePlanUpdateDaysByDrag,
-        onSyncRequest: handleSyncPlansRequest, // Novo callback para a sincronização
+        onSyncRequest: handleSyncPlansRequest,
     });
 
     floatingNavigatorUI.init({
