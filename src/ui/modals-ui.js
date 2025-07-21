@@ -4,7 +4,7 @@
  * Controla a abertura, fechamento, e população de conteúdo dos modais.
  */
 
-// --- INÍCIO DA ALTERAÇÃO ---
+// --- INÍCIO DA ALTERAÇÃO (Prioridade 1) ---
 // Importa todos os elementos do DOM relacionados aos modais
 import {
     // Recálculo
@@ -16,18 +16,24 @@ import {
     statsPlansCompleted, statsAvgPace,
     // Histórico
     historyModal, historyLoadingDiv, historyErrorDiv, historyListDiv,
-    // NOVO: Sincronização
-    syncModal, syncErrorDiv, syncLoadingDiv, syncBasePlanSelect, 
+    // Sincronização
+    syncModal, syncErrorDiv, syncLoadingDiv, syncBasePlanSelect,
     syncTargetDateDisplay, syncPlansToAdjustList, confirmSyncButton,
+    // NOVO: Explorador da Bíblia
+    bibleExplorerModal, explorerGridView, explorerBookGrid,
+    explorerDetailView, explorerBackButton, explorerDetailTitle,
+    explorerChapterList
 } from './dom-elements.js';
 
-// Importa funções auxiliares
-import { 
-    formatUTCDateStringToBrasilian, 
-    getCurrentUTCDateString, 
-    countReadingDaysBetween 
+// Importa funções e dados auxiliares
+import {
+    formatUTCDateStringToBrasilian,
+    getCurrentUTCDateString,
+    countReadingDaysBetween
 } from '../utils/date-helpers.js';
 import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
+import { CANONICAL_BOOK_ORDER, BIBLE_BOOKS_CHAPTERS } from '../config/bible-data.js';
+// --- FIM DA ALTERAÇÃO (Prioridade 1) ---
 
 // --- Estado Interno e Callbacks ---
 let state = {
@@ -37,8 +43,8 @@ let state = {
 };
 
 // Adiciona o novo modal à lista
-const allModals = [recalculateModal, statsModal, historyModal, syncModal];
-// --- FIM DA ALTERAÇÃO ---
+const allModals = [recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal];
+
 
 // --- NOVO: Variável para armazenar a instância do gráfico e evitar duplicatas ---
 let progressChartInstance = null;
@@ -201,7 +207,6 @@ export function displayStats(statsData) {
     if (statsForecastDate) statsForecastDate.textContent = statsData.forecastDate || '--';
     if (statsRecalculationsCount) statsRecalculationsCount.textContent = statsData.recalculationsCount ?? 0;
     
-    // --- INÍCIO DA MODIFICAÇÃO: Popula o resumo do plano ---
     const summaryContainer = document.getElementById('stats-plan-summary-container');
     const summaryListDiv = document.getElementById('stats-plan-summary-list');
     
@@ -217,7 +222,6 @@ export function displayStats(statsData) {
     } else if (summaryContainer) {
         summaryContainer.style.display = 'none'; // Esconde se não houver resumo
     }
-    // --- FIM DA MODIFICAÇÃO ---
 
     if (statsData.chartData) {
         _renderStatsChart(statsData.chartData);
@@ -226,7 +230,6 @@ export function displayStats(statsData) {
     statsContentDiv.style.display = 'block';
 }
 
-// --- INÍCIO DA ALTERAÇÃO: Nova função para o modal de sincronização ---
 /**
  * Popula e prepara o modal de sincronização de planos, incluindo a previsão de ritmo (Prioridade 2).
  * @param {Array<object>} plans - Lista de planos elegíveis para sincronização.
@@ -235,7 +238,6 @@ export function displayStats(statsData) {
 export function displaySyncOptions(plans, onConfirm) {
     const todayStr = getCurrentUTCDateString();
 
-    // Reseta a UI do modal
     syncBasePlanSelect.innerHTML = '<option value="">-- Selecione uma Referência --</option>';
     syncPlansToAdjustList.innerHTML = '';
     confirmSyncButton.disabled = true;
@@ -247,14 +249,12 @@ export function displaySyncOptions(plans, onConfirm) {
         return;
     }
 
-    // Popula o seletor de plano de referência
     plans.forEach(plan => {
         const endDate = getEffectiveDateForDay(plan, Object.keys(plan.plan).length);
         const optionHTML = `<option value="${plan.id}" data-end-date="${endDate}">${plan.name}</option>`;
         syncBasePlanSelect.insertAdjacentHTML('beforeend', optionHTML);
     });
 
-    // Evento para quando um plano de referência é selecionado
     syncBasePlanSelect.onchange = () => {
         const selectedOption = syncBasePlanSelect.options[syncBasePlanSelect.selectedIndex];
         const basePlanId = selectedOption.value;
@@ -266,11 +266,9 @@ export function displaySyncOptions(plans, onConfirm) {
 
         if (!basePlanId) return;
 
-        // Popula a lista de planos que podem ser ajustados
         plans.filter(p => p.id !== basePlanId).forEach(plan => {
             const currentEndDate = getEffectiveDateForDay(plan, Object.keys(plan.plan).length);
             
-            // Lógica para calcular e exibir o novo ritmo (Melhoria de UX - Prioridade 2)
             const chaptersAlreadyReadCount = Object.values(plan.readLog || {}).reduce((sum, chapters) => sum + chapters.length, 0);
             const remainingChaptersCount = plan.totalChapters - chaptersAlreadyReadCount;
             
@@ -282,7 +280,6 @@ export function displaySyncOptions(plans, onConfirm) {
 
                  if (availableReadingDays > 0) {
                      const newPace = (remainingChaptersCount / availableReadingDays).toFixed(1);
-                     // Adiciona uma classe para estilização condicional no CSS.
                      const paceWarningClass = newPace > 10 ? 'pace-warning' : ''; 
                      paceInfoHTML = `<small class="${paceWarningClass}">Novo ritmo: ~${newPace} caps/dia</small>`;
                  } else {
@@ -306,13 +303,11 @@ export function displaySyncOptions(plans, onConfirm) {
         });
     };
     
-    // Habilita/desabilita o botão de confirmação
     syncPlansToAdjustList.onchange = () => {
          const anyChecked = syncPlansToAdjustList.querySelector('input:checked');
          confirmSyncButton.disabled = !anyChecked;
     };
     
-    // Define a ação do botão de confirmação
     confirmSyncButton.onclick = () => {
         const basePlanId = syncBasePlanSelect.value;
         const targetDate = syncBasePlanSelect.options[syncBasePlanSelect.selectedIndex].dataset.endDate;
@@ -323,7 +318,6 @@ export function displaySyncOptions(plans, onConfirm) {
     
     open('sync-plans-modal');
 }
-// --- FIM DA ALTERAÇÃO ---
 
 /**
  * Reseta o formulário do modal de recálculo para o estado padrão.
@@ -335,6 +329,56 @@ export function resetRecalculateForm() {
     hideError('recalculate-modal');
 }
 
+/**
+ * Função interna para mostrar os detalhes dos capítulos de um livro no explorador.
+ * @private
+ * @param {string} bookName - O nome do livro clicado.
+ * @param {Set<string>} chaptersInPlan - O Set com todos os capítulos do plano ativo.
+ */
+function showChapterDetails(bookName, chaptersInPlan) {
+    explorerDetailTitle.textContent = bookName;
+    explorerChapterList.innerHTML = '';
+    const totalChapters = BIBLE_BOOKS_CHAPTERS[bookName];
+
+    for (let i = 1; i <= totalChapters; i++) {
+        const chapterItem = document.createElement('div');
+        chapterItem.className = 'explorer-chapter-item';
+        chapterItem.textContent = i;
+        const chapterId = `${bookName} ${i}`;
+        if (chaptersInPlan.has(chapterId)) {
+            chapterItem.classList.add('in-plan');
+        }
+        explorerChapterList.appendChild(chapterItem);
+    }
+
+    explorerGridView.style.display = 'none';
+    explorerDetailView.style.display = 'block';
+}
+
+/**
+ * Exibe o explorador da Bíblia, destacando livros e capítulos do plano ativo.
+ * @param {Set<string>} booksInPlan - Um Set com os nomes dos livros no plano.
+ * @param {Set<string>} chaptersInPlan - Um Set com os capítulos no plano (ex: "Gênesis 1").
+ */
+export function displayBibleExplorer(booksInPlan, chaptersInPlan) {
+    explorerBookGrid.innerHTML = '';
+    explorerGridView.style.display = 'block';
+    explorerDetailView.style.display = 'none';
+
+    CANONICAL_BOOK_ORDER.forEach(bookName => {
+        const card = document.createElement('div');
+        card.className = 'explorer-book-card';
+        card.textContent = bookName;
+        card.dataset.book = bookName;
+        if (booksInPlan.has(bookName)) {
+            card.classList.add('in-plan');
+        }
+        card.addEventListener('click', () => showChapterDetails(bookName, chaptersInPlan));
+        explorerBookGrid.appendChild(card);
+    });
+
+    open('bible-explorer-modal');
+}
 
 // --- Inicialização ---
 
@@ -363,4 +407,11 @@ export function init(callbacks) {
         const newPace = parseInt(newPaceInput.value, 10);
         state.callbacks.onConfirmRecalculate?.(option, newPace);
     });
+
+     // Adiciona o listener para o botão de voltar do explorador
+    explorerBackButton.addEventListener('click', () => {
+        explorerGridView.style.display = 'block';
+        explorerDetailView.style.display = 'none';
+    });
+ 
 }
