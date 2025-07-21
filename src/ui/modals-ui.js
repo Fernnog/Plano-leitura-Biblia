@@ -185,7 +185,7 @@ export function displayHistory(readLog) {
 
 /**
  * Exibe as estatísticas calculadas e renderiza o gráfico de progresso no modal.
- * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData`.
+ * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData` e `planSummary`.
  */
 export function displayStats(statsData) {
     const statsForecastDate = document.getElementById('stats-forecast-date');
@@ -200,6 +200,24 @@ export function displayStats(statsData) {
     
     if (statsForecastDate) statsForecastDate.textContent = statsData.forecastDate || '--';
     if (statsRecalculationsCount) statsRecalculationsCount.textContent = statsData.recalculationsCount ?? 0;
+    
+    // --- INÍCIO DA MODIFICAÇÃO: Popula o resumo do plano ---
+    const summaryContainer = document.getElementById('stats-plan-summary-container');
+    const summaryListDiv = document.getElementById('stats-plan-summary-list');
+    
+    if (summaryContainer && summaryListDiv && statsData.planSummary && statsData.planSummary.size > 0) {
+        summaryListDiv.innerHTML = ''; // Limpa conteúdo anterior
+        let summaryHTML = '<ul style="list-style-type: none; padding-left: 0; margin: 0;">';
+        statsData.planSummary.forEach((chapters, book) => {
+            summaryHTML += `<li style="margin-bottom: 8px;"><strong>${book}:</strong> ${chapters}</li>`;
+        });
+        summaryHTML += '</ul>';
+        summaryListDiv.innerHTML = summaryHTML;
+        summaryContainer.style.display = 'block';
+    } else if (summaryContainer) {
+        summaryContainer.style.display = 'none'; // Esconde se não houver resumo
+    }
+    // --- FIM DA MODIFICAÇÃO ---
 
     if (statsData.chartData) {
         _renderStatsChart(statsData.chartData);
