@@ -26,14 +26,17 @@ import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
 import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
 
 // Helpers e Configurações
+// --- INÍCIO DA MODIFICAÇÃO ---
 import {
     generateChaptersInRange,
     parseChaptersInput,
     generateChaptersForBookList,
     generateIntercalatedChapters,
     distributeChaptersOverReadingDays,
-    sortChaptersCanonically
+    sortChaptersCanonically,
+    summarizeChaptersByBook // Adiciona a nova função à importação
 } from './utils/chapter-helpers.js';
+// --- FIM DA MODIFICAÇÃO ---
 import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays, formatUTCDateStringToBrasilian } from './utils/date-helpers.js';
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
@@ -734,6 +737,10 @@ function handleShowStats(planId) {
         chartData.actualProgress.push({ x: date, y: cumulativeChapters });
     }
 
+    // --- INÍCIO DA MODIFICAÇÃO ---
+    // Gera o resumo dos capítulos do plano usando a nova função
+    const planSummary = summarizeChaptersByBook(plan.chaptersList);
+
     const stats = {
         activePlanName: plan.name || 'Plano sem nome',
         activePlanProgress: progressPercentage,
@@ -742,8 +749,10 @@ function handleShowStats(planId) {
         avgPace: `${avgPace.toFixed(1)} caps/dia`,
         recalculationsCount: recalculationsCount,
         forecastDate: forecastDateStr,
+        planSummary: planSummary, // Adiciona a nova propriedade com os dados do resumo
         chartData: chartData
     };
+    // --- FIM DA MODIFICAÇÃO ---
     
     modalsUI.displayStats(stats);
     modalsUI.open('stats-modal');
