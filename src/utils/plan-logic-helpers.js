@@ -78,3 +78,40 @@ export function getEffectiveDateForDay(planData, targetDayNumber) {
         return calculateDateForDay(planData.startDate, targetDayNumber, planData.allowedDays);
     }
 }
+
+/**
+ * Encontra a próxima data de leitura válida a partir de uma data base,
+ * respeitando os dias da semana permitidos.
+ * @param {string} baseDateStr - A data de início da busca (YYYY-MM-DD UTC).
+ * @param {Array<number>} allowedDaysOfWeek - Array de dias permitidos (0=Dom, 6=Sáb).
+ * @returns {string|null} A próxima data de leitura no formato YYYY-MM-DD, ou null se houver erro.
+ */
+export function findNextReadingDate(baseDateStr, allowedDaysOfWeek) {
+    if (!baseDateStr || !Array.isArray(allowedDaysOfWeek)) {
+        console.error("Input inválido para findNextReadingDate", { baseDateStr, allowedDaysOfWeek });
+        return null;
+    }
+    const baseDate = new Date(baseDateStr + 'T00:00:00Z');
+    if (isNaN(baseDate.getTime())) {
+        console.error("Data base inválida fornecida para findNextReadingDate:", baseDateStr);
+        return null;
+    }
+
+    const validAllowedDays = allowedDaysOfWeek.length > 0 ? allowedDaysOfWeek : [0, 1, 2, 3, 4, 5, 6];
+    let currentDate = new Date(baseDate);
+    let daysElapsed = 0;
+
+    // Incrementa a data para começar a busca a partir do dia *seguinte*
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+
+    while (daysElapsed < 365 * 2) { // Loop de segurança
+        if (validAllowedDays.includes(currentDate.getUTCDay())) {
+            return currentDate.toISOString().split('T')[0];
+        }
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        daysElapsed++;
+    }
+
+    console.error("Loop de segurança ativado em findNextReadingDate. Não foi possível encontrar um dia de leitura válido.");
+    return null; // Retorna null se não encontrar um dia válido em 2 anos
+}
