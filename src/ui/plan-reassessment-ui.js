@@ -2,7 +2,7 @@
  * @file plan-reassessment-ui.js
  * @description Módulo de UI para gerenciar o Quadro de Carga Semanal, permitindo
  * que o usuário visualize a distribuição de seus planos e inicie a reavaliação.
- * INCLUI FUNCIONALIDADE DE DRAG & DROP PARA DESKTOP E TOUCH E VISUALIZAÇÃO DE CARGA.
+ * INCLUI FUNCIONALIDADE DE DRAG & DROP PARA DESKTOP E INTERAÇÃO DE TOQUE SEGURA PARA MOBILE.
  */
 
 // --- Importações de Elementos do DOM ---
@@ -11,9 +11,7 @@ import {
     closeReassessmentButton,
     reassessmentGrid,
     reassessmentLegendList,
-    // INÍCIO DA ALTERAÇÃO: Importado o novo botão
     syncPlansButton,
-    // FIM DA ALTERAÇÃO
 } from './dom-elements.js';
 
 // --- Estado Interno e Callbacks ---
@@ -22,9 +20,7 @@ let state = {
         onClose: null,
         onPlanSelect: null,
         onUpdatePlanDays: null,
-        // INÍCIO DA ALTERAÇÃO: Adicionado o novo callback
         onSyncRequest: null,
-        // FIM DA ALTERAÇÃO
     },
 };
 
@@ -79,7 +75,7 @@ function _renderGridAndLegend(allUserPlans) {
     daysOfWeek.forEach((dayName, index) => {
         const dayColumn = document.createElement('div');
         dayColumn.className = 'reassessment-day-column';
-        dayColumn.dataset.day = index; // Adiciona o data-day para identificação fácil
+        dayColumn.dataset.day = index;
         
         let entriesHTML = '';
         let totalChaptersThisDay = 0;
@@ -90,7 +86,7 @@ function _renderGridAndLegend(allUserPlans) {
             weeklyLoad[index].forEach(entry => {
                 totalChaptersThisDay += entry.chapters;
                 entriesHTML += `
-                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" draggable="true" title="Arraste para remanejar o plano">
+                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" draggable="true" title="Arraste para remanejar (desktop) ou toque para mover (mobile)">
                         <span class="plan-icon">${entry.icon}</span>
                         <span class="chapter-count">${entry.chapters} cap.</span>
                     </div>
@@ -98,7 +94,6 @@ function _renderGridAndLegend(allUserPlans) {
             });
         }
         
-        // Verifica se há sobrecarga e adiciona a classe correspondente
         if (totalChaptersThisDay > CHAPTER_OVERLOAD_THRESHOLD) {
             dayColumn.classList.add('overload');
         }
@@ -133,131 +128,120 @@ export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
     closeReassessmentButton.addEventListener('click', () => state.callbacks.onClose?.());
-    // INÍCIO DA ALTERAÇÃO: Adicionado o listener para o botão de sincronização
     syncPlansButton.addEventListener('click', () => state.callbacks.onSyncRequest?.());
-    // FIM DA ALTERAÇÃO
 
-    reassessmentGrid.addEventListener('click', (event) => {
-        const planEntry = event.target.closest('.reassessment-plan-entry');
-        if (planEntry && planEntry.dataset.planId) {
-            state.callbacks.onPlanSelect?.(planEntry.dataset.planId);
-        }
-    });
+    // --- INÍCIO DA ALTERAÇÃO: Lógica de interação dual (Desktop vs. Mobile) ---
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // --- LÓGICA DE DRAG & DROP (DESKTOP) ---
-    let draggedItem = null;
+    if (isTouchDevice) {
+        // --- LÓGICA DE TOQUE (MOBILE) ---
+        let selectedPlanForMove = null;
 
-    reassessmentGrid.addEventListener('dragstart', (e) => {
-        const target = e.target.closest('.reassessment-plan-entry');
-        if (target) {
-            draggedItem = target;
-            setTimeout(() => target.classList.add('dragging'), 0);
-            e.dataTransfer.setData('text/plain', target.dataset.planId);
-            e.dataTransfer.effectAllowed = 'move';
-        }
-    });
-    
-    reassessmentGrid.addEventListener('dragend', () => {
-        draggedItem?.classList.remove('dragging');
-        draggedItem = null;
-    });
-    
-    reassessmentGrid.addEventListener('dragover', (e) => e.preventDefault());
+        reassessmentGrid.addEventListener('click', (event) => {
+            const planEntry = event.target.closest('.reassessment-plan-entry');
+            const dayColumn = event.target.closest('.reassessment-day-column');
 
-    reassessmentGrid.addEventListener('dragenter', (e) => {
-        const targetColumn = e.target.closest('.reassessment-day-column');
-        if (targetColumn) {
+            // Função para resetar a seleção
+            const resetSelection = () => {
+                if (selectedPlanForMove) {
+                    selectedPlanForMove.classList.remove('selected-for-move');
+                }
+                document.querySelectorAll('.reassessment-day-column.drop-target').forEach(col => col.classList.remove('drop-target'));
+                selectedPlanForMove = null;
+            };
+
+            if (planEntry && !selectedPlanForMove) {
+                // PRIMEIRO TOQUE: Seleciona um plano para mover
+                selectedPlanForMove = planEntry;
+                planEntry.classList.add('selected-for-move');
+                document.querySelectorAll('.reassessment-day-column').forEach(col => col.classList.add('drop-target'));
+                // Impede que o clique no mesmo item acione o onPlanSelect de edição
+                event.stopPropagation();
+            } else if (dayColumn && selectedPlanForMove) {
+                // SEGUNDO TOQUE: Toca em uma coluna de destino para mover o plano
+                const planId = selectedPlanForMove.dataset.planId;
+                const sourceColumn = selectedPlanForMove.closest('.reassessment-day-column');
+                const sourceDay = parseInt(sourceColumn.dataset.day, 10);
+                const targetDay = parseInt(dayColumn.dataset.day, 10);
+
+                if (sourceDay !== targetDay) {
+                     // Adiciona uma confirmação para evitar toques acidentais
+                     const dayName = dayColumn.querySelector('.reassessment-day-header').firstChild.textContent;
+                     if (window.confirm(`Tem certeza que deseja mover este plano para ${dayName}?`)) {
+                        state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
+                    }
+                }
+                resetSelection();
+
+            } else if (planEntry && selectedPlanForMove && planEntry === selectedPlanForMove) {
+                // Tocar novamente no mesmo plano cancela a seleção
+                 resetSelection();
+            } else if (planEntry) {
+                 // Tocar em um plano enquanto outro está selecionado para mover, edita o plano tocado
+                 state.callbacks.onPlanSelect?.(planEntry.dataset.planId);
+            } else {
+                 // Tocar fora de qualquer área válida cancela a seleção
+                 resetSelection();
+            }
+        });
+
+    } else {
+        // --- LÓGICA DE DRAG & DROP (DESKTOP) ---
+        reassessmentGrid.addEventListener('click', (event) => {
+            const planEntry = event.target.closest('.reassessment-plan-entry');
+            if (planEntry && planEntry.dataset.planId) {
+                state.callbacks.onPlanSelect?.(planEntry.dataset.planId);
+            }
+        });
+
+        let draggedItem = null;
+        reassessmentGrid.addEventListener('dragstart', (e) => {
+            const target = e.target.closest('.reassessment-plan-entry');
+            if (target) {
+                draggedItem = target;
+                setTimeout(() => target.classList.add('dragging'), 0);
+                e.dataTransfer.setData('text/plain', target.dataset.planId);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+        
+        reassessmentGrid.addEventListener('dragend', () => {
+            draggedItem?.classList.remove('dragging');
+            draggedItem = null;
+        });
+        
+        reassessmentGrid.addEventListener('dragover', (e) => e.preventDefault());
+
+        reassessmentGrid.addEventListener('dragenter', (e) => {
+            const targetColumn = e.target.closest('.reassessment-day-column');
+            if (targetColumn) {
+                e.preventDefault();
+                targetColumn.classList.add('over');
+            }
+        });
+
+        reassessmentGrid.addEventListener('dragleave', (e) => {
+            e.target.closest('.reassessment-day-column')?.classList.remove('over');
+        });
+
+        reassessmentGrid.addEventListener('drop', (e) => {
             e.preventDefault();
-            targetColumn.classList.add('over');
-        }
-    });
+            const targetColumn = e.target.closest('.reassessment-day-column');
+            document.querySelectorAll('.reassessment-day-column.over').forEach(col => col.classList.remove('over'));
 
-    reassessmentGrid.addEventListener('dragleave', (e) => {
-        e.target.closest('.reassessment-day-column')?.classList.remove('over');
-    });
+            if (targetColumn && draggedItem) {
+                const planId = draggedItem.dataset.planId;
+                const sourceColumn = draggedItem.closest('.reassessment-day-column');
+                const sourceDay = parseInt(sourceColumn.dataset.day, 10);
+                const targetDay = parseInt(targetColumn.dataset.day, 10);
 
-    reassessmentGrid.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const targetColumn = e.target.closest('.reassessment-day-column');
-        document.querySelectorAll('.reassessment-day-column.over').forEach(col => col.classList.remove('over'));
-
-        if (targetColumn && draggedItem) {
-            const planId = draggedItem.dataset.planId;
-            const sourceColumn = draggedItem.closest('.reassessment-day-column');
-            const sourceDay = parseInt(sourceColumn.dataset.day, 10);
-            const targetDay = parseInt(targetColumn.dataset.day, 10);
-
-            if (sourceDay !== targetDay) {
-                state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
+                if (sourceDay !== targetDay) {
+                    state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
+                }
             }
-        }
-    });
-    
-    // --- LÓGICA DE DRAG & DROP (TOUCH) ---
-    let touchDraggedItem = null;
-    let ghostElement = null;
-    let lastTouchTargetColumn = null;
-    
-    reassessmentGrid.addEventListener('touchstart', (e) => {
-        const target = e.target.closest('.reassessment-plan-entry');
-        if (target) {
-            touchDraggedItem = target;
-            touchDraggedItem.classList.add('dragging');
-            
-            ghostElement = touchDraggedItem.cloneNode(true);
-            ghostElement.classList.add('touch-ghost');
-            document.body.appendChild(ghostElement);
-            
-            const touch = e.touches[0];
-            ghostElement.style.left = `${touch.clientX}px`;
-            ghostElement.style.top = `${touch.clientY}px`;
-        }
-    }, { passive: true });
-    
-    reassessmentGrid.addEventListener('touchmove', (e) => {
-        if (!touchDraggedItem || !ghostElement) return;
-        
-        e.preventDefault();
-        
-        const touch = e.touches[0];
-        ghostElement.style.left = `${touch.clientX}px`;
-        ghostElement.style.top = `${touch.clientY}px`;
-        
-        ghostElement.style.display = 'none';
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        ghostElement.style.display = '';
-
-        const currentTargetColumn = elementBelow ? elementBelow.closest('.reassessment-day-column') : null;
-
-        if (lastTouchTargetColumn !== currentTargetColumn) {
-            lastTouchTargetColumn?.classList.remove('over');
-            currentTargetColumn?.classList.add('over');
-            lastTouchTargetColumn = currentTargetColumn;
-        }
-    }, { passive: false });
-    
-    reassessmentGrid.addEventListener('touchend', () => {
-        if (!touchDraggedItem) return;
-        
-        if (lastTouchTargetColumn) {
-            const planId = touchDraggedItem.dataset.planId;
-            const sourceColumn = touchDraggedItem.closest('.reassessment-day-column');
-            const sourceDay = parseInt(sourceColumn.dataset.day, 10);
-            const targetDay = parseInt(lastTouchTargetColumn.dataset.day, 10);
-            
-            if (sourceDay !== targetDay) {
-                state.callbacks.onUpdatePlanDays?.(planId, sourceDay, targetDay);
-            }
-        }
-        
-        touchDraggedItem.classList.remove('dragging');
-        ghostElement?.remove();
-        lastTouchTargetColumn?.classList.remove('over');
-        
-        touchDraggedItem = null;
-        ghostElement = null;
-        lastTouchTargetColumn = null;
-    });
+        });
+    }
+    // --- FIM DA ALTERAÇÃO ---
 }
 
 /**
