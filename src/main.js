@@ -555,7 +555,7 @@ function handleSyncPlansRequest() {
     modalsUI.displaySyncOptions(eligiblePlans, handleConfirmSync);
 }
 
-// INÍCIO DA ALTERAÇÃO: Função refatorada para usar o módulo de cálculo
+// INÍCIO DA ALTERAÇÃO: Função refatorada para usar o módulo de cálculo e adicionar histórico
 async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
     modalsUI.showLoading('sync-modal');
     modalsUI.hideError('sync-modal');
@@ -608,7 +608,7 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
 }
 // FIM DA ALTERAÇÃO
 
-// INÍCIO DA ALTERAÇÃO: Função refatorada para usar o módulo de cálculo
+// INÍCIO DA ALTERAÇÃO: Função refatorada para usar o módulo de cálculo e adicionar histórico
 async function handleRecalculate(option, newPaceValue, planId) {
     const planToRecalculate = appState.userPlans.find(p => p.id === planId);
     if (!appState.currentUser || !planToRecalculate) return;
