@@ -1,12 +1,16 @@
 /**
  * @file reading-plan-ui.js
- * @description Módulo de UI para renderizar e gerenciar os cards de todos os planos de leitura.
- * Utiliza event delegation para lidar com as ações do usuário de forma eficiente.
+ * @description Módulo de UI para renderizar os cards dos planos de leitura,
+ * lidar com as interações do usuário (marcar capítulos, etc.) e exibir feedback.
  */
 
-// --- Importações ---
-import { plansDisplaySection } from './dom-elements.js';
-import { formatUTCDateStringToBrasilian } from '../utils/date-helpers.js';
+// --- Importações de Elementos do DOM ---
+import {
+    plansDisplaySection
+} from './dom-elements.js';
+import {
+    summarizeChaptersByBook
+} from '../utils/chapter-helpers.js';
 
 // --- Estado Interno e Callbacks ---
 let state = {
@@ -21,80 +25,82 @@ let state = {
     },
 };
 
+// --- Funções Privadas ---
+
 /**
  * Cria o HTML para um único card de plano de leitura.
  * @private
- * @param {object} plan - O objeto do plano.
- * @param {boolean} isActive - Se o plano é o ativo no momento.
- * @param {string} effectiveDateStr - A data efetiva da leitura atual.
- * @param {object} forecast - Objeto com a previsão de término.
- * @returns {string} O HTML do card do plano.
+ * @param {object} plan - O objeto do plano de leitura.
+ * @param {boolean} isActive - Se este é o plano ativo.
+ * @param {string} effectiveDateStr - A data de leitura efetiva de hoje para este plano.
+ * @param {object} forecastData - Objeto com a previsão de término.
+ * @returns {string} O HTML completo do card.
  */
-function _createPlanCardHTML(plan, isActive, effectiveDateStr, forecast) {
+function _createPlanCardHTML(plan, isActive, effectiveDateStr, forecastData) {
     const totalReadingDays = Object.keys(plan.plan || {}).length;
     const isCompleted = plan.currentDay > totalReadingDays;
     const progressPercentage = totalReadingDays > 0 ? Math.min(100, ((plan.currentDay - 1) / totalReadingDays) * 100) : (isCompleted ? 100 : 0);
-    const formattedDate = effectiveDateStr ? formatUTCDateStringToBrasilian(effectiveDateStr) : 'Data indefinida';
+    const chaptersForToday = !isCompleted ? (plan.plan[plan.currentDay.toString()] || []) : [];
+    const bookSummary = summarizeChaptersByBook(chaptersForToday);
 
-    let dailyReadingHTML = '';
-    if (isCompleted) {
-        dailyReadingHTML = `<div class="daily-reading-header-display"><p>🎉 Plano Concluído!</p></div>`;
-    } else if (plan.plan && plan.plan[plan.currentDay]) {
-        const chaptersForToday = plan.plan[plan.currentDay];
-        const chaptersListHTML = chaptersForToday.map(chapter => `
-            <div class="daily-chapter-item">
-                <input type="checkbox" id="chap-${plan.id}-${chapter.replace(/\s/g, '-')}" 
-                       data-chapter-name="${chapter}" ${plan.dailyChapterReadStatus?.[chapter] ? 'checked' : ''}>
-                <label for="chap-${plan.id}-${chapter.replace(/\s/g, '-')}">${chapter}</label>
-            </div>
-        `).join('');
+    const driveLinkHTML = plan.googleDriveLink ?
+        `<a href="${plan.googleDriveLink}" target="_blank" class="drive-link-icon" title="Abrir material de apoio no Google Drive">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/22px-Google_Drive_icon_%282020%29.svg.png" alt="Google Drive" class="drive-png-icon">
+        </a>` : '';
 
-        dailyReadingHTML = `
-            <div class="daily-reading-header-display">
-                <p><strong>Hoje (${formattedDate}):</strong> Dia ${plan.currentDay} de ${totalReadingDays}</p>
-            </div>
-            <div class="daily-reading-chapters-list-display">
-                ${chaptersListHTML}
-            </div>
-        `;
-    } else {
-        dailyReadingHTML = `<div class="daily-reading-header-display"><p>Nenhuma leitura programada para hoje.</p></div>`;
-    }
+    const forecastHTML = forecastData.forecastDateStr ? `
+        <span class="forecast-date ${forecastData.colorClass}" title="Previsão de término com seu ritmo atual.">
+            🎯 ${forecastData.forecastDateStr}
+        </span>
+    ` : '';
 
     return `
         <div class="plan-card ${isActive ? 'active-plan' : ''}" id="plan-card-${plan.id}" data-plan-id="${plan.id}">
-            <div class="plan-header-info">
-                <div class="shield-wrapper"><span class="plan-card-icon">${plan.icon || '📖'}</span></div>
-                <h3 class="plan-card-title">${plan.name}</h3>
-                ${plan.googleDriveLink ? `
-                    <a href="${plan.googleDriveLink}" target="_blank" class="drive-link-icon" title="Abrir no Google Drive">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Google_Drive_icon_%282020%29.svg/24px-Google_Drive_icon_%282020%29.svg.png" alt="Google Drive" class="drive-png-icon">
-                    </a>
-                ` : ''}
+            <div class="plan-header">
+                <div class="plan-header-info">
+                    <div class="shield-wrapper"><span class="plan-card-icon">${plan.icon || '📖'}</span></div>
+                    <h2 class="plan-card-title">${plan.name}</h2>
+                    ${driveLinkHTML}
+                </div>
             </div>
 
             <div class="progress-container">
-                 <div class="progress-labels">
-                    <span class="progress-text">${plan.currentDay - 1} de ${totalReadingDays} dias concluídos</span>
-                    ${forecast ? `
-                        <span class="forecast-date ${forecast.colorClass}" title="Previsão de término com seu ritmo atual">
-                            Prev. ${formatUTCDateStringToBrasilian(forecast.forecastDateStr)}
-                        </span>
-                    ` : ''}
+                <div class="progress-labels">
+                    <span class="progress-text">Progresso: Dia ${plan.currentDay-1} de ${totalReadingDays}</span>
+                    ${forecastHTML}
                 </div>
                 <div class="progress-bar-track">
                     <div class="progress-bar-fill" style="width: ${progressPercentage}%;"></div>
                 </div>
             </div>
 
-            ${dailyReadingHTML}
+            ${isCompleted ? `
+                <div class="daily-reading-header-display">
+                    <p>🎉 <strong>Parabéns!</strong> Você concluiu este plano de leitura.</p>
+                </div>
+            ` : `
+                <div class="daily-reading-header-display">
+                    <p><strong>Leituras para o dia ${plan.currentDay} (${effectiveDateStr || 'Data inválida'}):</strong> ${bookSummary}</p>
+                </div>
+                <div class="daily-reading-chapters-list-display">
+                    ${chaptersForToday.length > 0 ? chaptersForToday.map(chapter => {
+                        const isChecked = plan.dailyChapterReadStatus && plan.dailyChapterReadStatus[chapter];
+                        return `
+                            <div class="daily-chapter-item">
+                                <input type="checkbox" id="chap-${plan.id}-${chapter.replace(/\s/g, '-')}" data-chapter="${chapter}" ${isChecked ? 'checked' : ''}>
+                                <label for="chap-${plan.id}-${chapter.replace(/\s/g, '-')}">${chapter}</label>
+                            </div>
+                        `;
+                    }).join('') : '<p>Nenhuma leitura para hoje.</p>'}
+                </div>
+                <button class="button-primary complete-day-button">Concluir Leituras e Avançar</button>
+            `}
 
             <div class="plan-actions">
-                <button class="button-primary complete-day-button" ${isCompleted ? 'disabled' : ''}>Concluir & Avançar</button>
                 <button class="button-secondary edit-plan-button">Editar</button>
                 <button class="button-secondary recalc-plan-button">Recalcular</button>
-                <button class="button-edit stats-plan-button">Stats</button>
-                <button class="button-edit history-plan-button">Histórico</button>
+                <button class="button-secondary stats-plan-button">Estatísticas</button>
+                <button class="button-secondary history-plan-button">Histórico</button>
                 <button class="button-danger delete-plan-button">Excluir</button>
             </div>
         </div>
@@ -102,75 +108,29 @@ function _createPlanCardHTML(plan, isActive, effectiveDateStr, forecast) {
 }
 
 /**
- * Renderiza todos os cards de planos de leitura no container principal.
- * @param {Array<object>} userPlans - A lista de planos do usuário.
- * @param {string} activePlanId - O ID do plano atualmente ativo.
- * @param {object} effectiveDatesMap - Mapa de IDs de plano para a data de leitura efetiva.
- * @param {object} forecastsMap - Mapa de IDs de plano para a previsão de término.
+ * Adiciona os listeners de eventos a um card de plano recém-criado.
+ * @private
+ * @param {HTMLElement} cardElement - O elemento do card no DOM.
  */
-export function renderAllPlanCards(userPlans, activePlanId, effectiveDatesMap, forecastsMap) {
-    plansDisplaySection.innerHTML = ''; // Limpa a área antes de renderizar
+function _addEventListenersToCard(cardElement) {
+    const planId = cardElement.dataset.planId;
 
-    if (!userPlans || userPlans.length === 0) {
-        plansDisplaySection.innerHTML = '<p style="text-align: center; color: var(--text-color-muted);">Você ainda não tem planos de leitura. Que tal criar um?</p>';
-        return;
-    }
-
-    let cardsHTML = '';
-    userPlans.forEach(plan => {
-        cardsHTML += _createPlanCardHTML(
-            plan,
-            plan.id === activePlanId,
-            effectiveDatesMap[plan.id],
-            forecastsMap[plan.id]
-        );
-    });
-
-    plansDisplaySection.innerHTML = cardsHTML;
-}
-
-/**
- * Mostra uma notificação toast na tela.
- * @param {string} message - A mensagem a ser exibida.
- * @param {string} type - O tipo de toast ('success' ou 'error').
- * @param {number} duration - A duração em milissegundos.
- */
-export function showToast(message, type = 'success', duration = 3000) {
-    const toast = document.createElement('div');
-    toast.className = `toast-notification ${type}`;
-    toast.textContent = message;
-
-    document.body.appendChild(toast);
-
-    // Força um reflow para a transição funcionar na adição
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
-    });
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        // Remove o elemento após a transição de saída
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, duration);
-}
-
-
-/**
- * Inicializa o módulo, configurando o event listener principal para os cards de plano.
- * @param {object} callbacks - Objeto contendo as funções de callback para as ações.
- */
-export function init(callbacks) {
-    state.callbacks = { ...state.callbacks, ...callbacks };
-
-    plansDisplaySection.addEventListener('click', (event) => {
+    cardElement.addEventListener('click', (event) => {
         const target = event.target;
-        const planCard = target.closest('.plan-card');
-        if (!planCard) return;
-
-        const planId = planCard.dataset.planId;
-
         if (target.classList.contains('complete-day-button')) {
             state.callbacks.onCompleteDay?.(planId);
+        } else if (target.matches('input[type="checkbox"][data-chapter]')) {
+            const chapterName = target.dataset.chapter;
+            const isRead = target.checked;
+            
+            // Adiciona o feedback visual de salvamento
+            const feedback = document.createElement('span');
+            feedback.className = 'save-feedback';
+            feedback.textContent = 'Salvo!';
+            target.parentElement.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 1500);
+
+            state.callbacks.onChapterToggle?.(planId, chapterName, isRead);
         } else if (target.classList.contains('delete-plan-button')) {
             state.callbacks.onDeletePlan?.(planId);
         } else if (target.classList.contains('edit-plan-button')) {
@@ -183,28 +143,80 @@ export function init(callbacks) {
             state.callbacks.onShowHistory?.(planId);
         }
     });
+}
 
-    plansDisplaySection.addEventListener('change', (event) => {
-        const target = event.target;
-        if (target.matches('input[type="checkbox"]')) {
-            const planId = target.closest('.plan-card').dataset.planId;
-            const chapterName = target.dataset.chapterName;
-            const isRead = target.checked;
-            state.callbacks.onChapterToggle?.(planId, chapterName, isRead);
-        }
-    });
+// --- Funções Públicas (API do Módulo) ---
+
+/**
+ * Inicializa o módulo de UI dos planos de leitura.
+ * @param {object} callbacks - Objeto contendo os callbacks para as ações do usuário.
+ */
+export function init(callbacks) {
+    state.callbacks = { ...state.callbacks, ...callbacks };
 }
 
 /**
- * Mostra o container dos planos.
+ * Renderiza todos os cards de planos de leitura no container principal.
+ * @param {Array<object>} userPlans - A lista de planos do usuário.
+ * @param {string} activePlanId - O ID do plano ativo.
+ * @param {object} effectiveDatesMap - Mapa de IDs de plano para suas datas de leitura efetivas.
+ * @param {object} forecastsMap - Mapa de IDs de plano para suas previsões de término.
+ */
+export function renderAllPlanCards(userPlans, activePlanId, effectiveDatesMap, forecastsMap) {
+    plansDisplaySection.innerHTML = '';
+
+    if (!userPlans || userPlans.length === 0) {
+        plansDisplaySection.innerHTML = '<p style="text-align: center; color: var(--text-color-muted);">Você ainda não tem planos de leitura. Que tal criar um?</p>';
+        show();
+        return;
+    }
+
+    userPlans.forEach(plan => {
+        const isActive = plan.id === activePlanId;
+        const effectiveDateStr = effectiveDatesMap[plan.id] || 'Calculando...';
+        const forecastData = forecastsMap[plan.id] || {};
+        const cardHTML = _createPlanCardHTML(plan, isActive, effectiveDateStr, forecastData);
+        plansDisplaySection.insertAdjacentHTML('beforeend', cardHTML);
+    });
+
+    plansDisplaySection.querySelectorAll('.plan-card').forEach(_addEventListenersToCard);
+    show();
+}
+
+/**
+ * Mostra a seção de exibição de planos.
  */
 export function show() {
     plansDisplaySection.style.display = 'grid';
 }
 
 /**
- * Esconde o container dos planos.
+ * Esconde a seção de exibição de planos.
  */
 export function hide() {
     plansDisplaySection.style.display = 'none';
+}
+
+/**
+ * Exibe uma notificação flutuante (toast) na tela.
+ * @param {string} message - A mensagem a ser exibida.
+ * @param {string} type - O tipo de notificação ('success' ou 'error').
+ */
+export function showToastNotification(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    // Adiciona a classe 'show' após um pequeno atraso para permitir a transição do CSS
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    // Remove a notificação após um tempo
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 4000);
 }
