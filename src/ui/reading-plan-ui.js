@@ -47,31 +47,31 @@ function _createPlanCardHTML(plan, isActive, effectiveDateStr, forecast) {
            </a>`
         : '';
         
-    const forecastHTML = forecast
+    const forecastHTML = (forecast && forecast.forecastDateStr)
         ? `<span class="forecast-date ${forecast.colorClass}">
                Previsão: ${formatUTCDateStringToBrasilian(forecast.forecastDateStr)}
            </span>`
         : '';
 
+    // CORREÇÃO: A estrutura HTML foi simplificada e corrigida para garantir validade.
+    // A div .plan-header foi removida para evitar o erro de aninhamento.
     return `
         <div class="plan-card ${isActive ? 'active-plan' : ''}" id="plan-card-${plan.id}" data-plan-id="${plan.id}">
-            <div class="plan-header">
-                <div class="plan-header-info">
-                    <div class="shield-wrapper">
-                        <span class="plan-card-icon">${plan.icon || '📖'}</span>
-                    </div>
-                    <h3 class="plan-card-title">${plan.name || 'Plano Sem Nome'}</h3>
-                    ${driveLinkHTML}
+            <div class="plan-header-info">
+                <div class="shield-wrapper">
+                    <span class="plan-card-icon">${plan.icon || '📖'}</span>
                 </div>
+                <h3 class="plan-card-title">${plan.name || 'Plano Sem Nome'}</h3>
+                ${driveLinkHTML}
+            </div>
 
-                <div class="progress-container">
-                    <div class="progress-labels">
-                        <span class="progress-text">Dia ${plan.currentDay - 1} de ${totalReadingDays} (${progress.toFixed(0)}%)</span>
-                        ${forecastHTML}
-                    </div>
-                    <div class="progress-bar-track">
-                        <div class="progress-bar-fill" style="width: ${progress}%;"></div>
-                    </div>
+            <div class="progress-container">
+                <div class="progress-labels">
+                    <span class="progress-text">Dia ${plan.currentDay - 1} de ${totalReadingDays} (${progress.toFixed(0)}%)</span>
+                    ${forecastHTML}
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" style="width: ${progress}%;"></div>
                 </div>
             </div>
 
@@ -213,7 +213,7 @@ export function hide() {
 }
 
 /**
- * **[NOVO]** Exibe uma notificação "toast" na tela.
+ * [NOVO] Exibe uma notificação "toast" na tela.
  * @param {string} message - A mensagem a ser exibida.
  * @param {string} type - O tipo de notificação ('success' ou 'error').
  * @param {number} duration - A duração em milissegundos.
