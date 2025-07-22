@@ -30,18 +30,19 @@ function _getChaptersFromLog(plan) {
 }
 
 /**
- * Recalcula um plano para terminar em uma data final específica, a partir de uma data de início.
+ * Recalcula um plano para terminar em uma data final específica.
+ * Esta é a função central do módulo.
  * @param {object} plan - O objeto do plano original.
  * @param {string} targetEndDate - A data final desejada no formato "YYYY-MM-DD".
- * @param {string} startDateStr - A data de início para o recálculo no formato "YYYY-MM-DD".
+ * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
  * @returns {{recalculatedPlan: object, newPace: number}|null} Um objeto com o plano recalculado
  * e o novo ritmo (caps/dia), ou null se o recálculo for impossível.
  */
-export function recalculatePlanToTargetDate(plan, targetEndDate, startDateStr) {
-    // 1. Obtém um Set com os capítulos exatos que foram lidos a partir do log.
+export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
+    // 1. CORREÇÃO: Obtém um Set com os capítulos exatos que foram lidos a partir do log.
     const chaptersReadSet = _getChaptersFromLog(plan);
     
-    // 2. Filtra a lista de capítulos original para obter apenas os que realmente faltam.
+    // 2. CORREÇÃO: Filtra a lista de capítulos original para obter apenas os que realmente faltam.
     const remainingChapters = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter));
 
     if (remainingChapters.length === 0) {
@@ -49,7 +50,7 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, startDateStr) {
         return { recalculatedPlan: { ...plan }, newPace: 0 };
     }
 
-    const availableReadingDays = countReadingDaysBetween(startDateStr, targetEndDate, plan.allowedDays);
+    const availableReadingDays = countReadingDaysBetween(todayStr, targetEndDate, plan.allowedDays);
 
     if (availableReadingDays < 1) {
         // É impossível terminar a tempo com os dias de leitura disponíveis.
@@ -81,23 +82,23 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, startDateStr) {
         plan: newPlanMap,
         endDate: targetEndDate, // A nova data final é a data alvo
         recalculationBaseDay: plan.currentDay,
-        recalculationBaseDate: startDateStr, // A base do recálculo é a data de início fornecida
+        recalculationBaseDate: todayStr,
     };
 
     return { recalculatedPlan: updatedPlan, newPace };
 }
 
 /**
- * Calcula a data de término de um plano com base em um ritmo específico (caps/dia) a partir de uma data de início.
+ * Calcula a data de término de um plano com base em um ritmo específico (caps/dia).
  * @param {object} plan - O objeto do plano original.
  * @param {number} pace - O ritmo desejado (capítulos por dia de leitura).
- * @param {string} startDateStr - A data de início para o cálculo no formato "YYYY-MM-DD".
+ * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
  * @returns {string|null} A nova data de término calculada, ou null se o ritmo for inválido.
  */
-export function calculateEndDateFromPace(plan, pace, startDateStr) {
+export function calculateEndDateFromPace(plan, pace, todayStr) {
     if (!pace || pace < 0) return null;
 
-    // Usa o mesmo método robusto para encontrar os capítulos restantes.
+    // CORREÇÃO: Usa o mesmo método robusto para encontrar os capítulos restantes.
     const chaptersReadSet = _getChaptersFromLog(plan);
     const remainingChaptersCount = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter)).length;
     
@@ -105,9 +106,9 @@ export function calculateEndDateFromPace(plan, pace, startDateStr) {
 
     const requiredReadingDays = pace > 0 ? Math.ceil(remainingChaptersCount / pace) : 0;
     
-    // Usa a data de início fornecida como base para calcular a data futura
+    // Usa a data de hoje como base para calcular a data futura
     const planDataForEndDateCalc = {
-        startDate: startDateStr,
+        startDate: todayStr,
         allowedDays: plan.allowedDays,
     };
 
