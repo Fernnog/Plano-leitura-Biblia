@@ -481,14 +481,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .modal button#confirm-recalculate { margin-top: 25px; float: right; width: auto; }
 .modal .modal-content::after { content: ""; display: table; clear: both; }
 
-/* Estilos para o novo seletor de data de recálculo no modal */
-.recalc-specific-date-wrapper {
-    margin-top: 10px;
-}
-#recalc-specific-date-input {
-    vertical-align: middle;
-}
-
 #stats-content p, #history-list p { text-align: left; color: var(--text-color-dark); margin-bottom: 10px; }
 #stats-content strong { color: var(--primary-action); }
 #stats-content hr { margin: 15px 0; }
@@ -897,31 +889,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     border-left: 4px solid var(--accent-color);
 }
 
-/* Estilos para a nova interação de reavaliação em dispositivos móveis */
-.reassessment-plan-entry.selected-for-move {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 3px var(--primary-action);
-    border-color: var(--primary-action);
-}
-
-.reassessment-day-column.drop-target::after {
-    content: 'Mover aqui';
-    display: block;
-    text-align: center;
-    margin-top: 15px;
-    padding: 8px;
-    background-color: rgba(var(--success-color-rgb), 0.1);
-    color: var(--success-color);
-    border-radius: var(--base-border-radius);
-    font-weight: 600;
-    animation: fadeIn 0.3s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
 /* 
 ================================================================================
   INÍCIO: NOVOS ESTILOS PARA O MODAL DE SINCRONIZAÇÃO
@@ -1220,4 +1187,41 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     /* Permite tooltips (ver melhoria de UX) */
     cursor: help;
 }
-/* --- END OF ADDITION --- */
+
+/* --- INÍCIO DA ALTERAÇÃO (Prioridade 2): Estilos para a notificação "Toast" --- */
+.app-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translate(-50%, 100px);
+    background-color: var(--text-color-dark);
+    color: var(--text-color-light);
+    padding: 14px 22px;
+    border-radius: 50px;
+    box-shadow: var(--box-shadow-lg);
+    z-index: 1100;
+    font-weight: 600;
+    font-size: 0.95em;
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                opacity 0.4s ease, 
+                visibility 0.4s ease;
+    pointer-events: none;
+    text-align: center;
+}
+
+.app-toast--visible {
+    transform: translate(-50%, 0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.app-toast--success {
+    background-color: var(--success-color);
+}
+
+.app-toast--error {
+    background-color: var(--danger-color);
+}
+/* --- FIM DA ALTERAÇÃO --- */
