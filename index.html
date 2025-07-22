@@ -255,7 +255,18 @@
                      <label><input type="radio" name="recalc-option" value="extend_date" checked> Manter ritmo original (adiar data final).</label><br>
                      <label><input type="radio" name="recalc-option" value="increase_pace"> Manter data final original (aumentar ritmo).</label><br>
                      <label><input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3"> caps/dia de leitura.</label>
-                 </fieldset>
+                </fieldset>
+                <fieldset>
+                    <legend>Data de Início do Recálculo</legend>
+                    <label><input type="radio" name="recalc-start-option" value="today" checked> A partir de hoje</label>
+                    <label><input type="radio" name="recalc-start-option" value="next_reading_day"> A partir do próximo dia de leitura</label>
+                    <div class="recalc-specific-date-wrapper">
+                         <label style="display: inline-block; margin-right: 10px;">
+                            <input type="radio" name="recalc-start-option" value="specific_date"> A partir de:
+                        </label>
+                        <input type="date" id="recalc-specific-date-input" style="display: none;">
+                    </div>
+                </fieldset>
                 <button id="confirm-recalculate" class="button-primary">Confirmar Recálculo</button>
             </div>
         </div>
