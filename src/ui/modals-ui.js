@@ -60,6 +60,7 @@ function _renderStatsChart(chartData) {
 
     const ctx = canvas.getContext('2d');
 
+    // Destrói a instância anterior do gráfico se ela existir.
     if (progressChartInstance) {
         progressChartInstance.destroy();
     }
@@ -156,6 +157,10 @@ export function hideError(modalId) {
 
 // --- Funções Específicas de População de Conteúdo ---
 
+/**
+ * Exibe os dados de histórico de leitura no modal correspondente.
+ * @param {object} readLog - O objeto de log de leitura do plano ativo.
+ */
 export function displayHistory(readLog) {
     historyListDiv.innerHTML = '';
     hideError('history-modal');
@@ -183,6 +188,10 @@ export function displayHistory(readLog) {
     });
 }
 
+/**
+ * Exibe as estatísticas calculadas e renderiza o gráfico de progresso no modal.
+ * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData` e `planSummary`.
+ */
 export function displayStats(statsData) {
     const statsForecastDate = document.getElementById('stats-forecast-date');
     const statsRecalculationsCount = document.getElementById('stats-recalculations-count');
@@ -220,6 +229,11 @@ export function displayStats(statsData) {
     statsContentDiv.style.display = 'block';
 }
 
+/**
+ * Exibe o explorador da Bíblia com dados agregados de todos os planos.
+ * @param {Map<string, {icon: string, name: string}[]>} booksToIconsMap - Mapa de nomes de livros para arrays de objetos {ícone, nome}.
+ * @param {Set<string>} allChaptersInPlans - Um Set com todos os capítulos de todos os planos.
+ */
 export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     explorerBookGrid.innerHTML = '';
     explorerGridView.style.display = 'block';
@@ -252,6 +266,10 @@ export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     open('bible-explorer-modal');
 }
 
+/**
+ * Função interna para mostrar os detalhes dos capítulos de um livro.
+ * @private
+ */
 function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailTitle.textContent = bookName;
     explorerChapterList.innerHTML = '';
@@ -272,6 +290,11 @@ function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailView.style.display = 'block';
 }
 
+/**
+ * Popula e prepara o modal de sincronização de planos.
+ * @param {Array<object>} plans - Lista de planos elegíveis para sincronização.
+ * @param {Function} onConfirm - Callback a ser chamado na confirmação.
+ */
 export function displaySyncOptions(plans, onConfirm) {
     const todayStr = getCurrentUTCDateString();
 
@@ -356,23 +379,27 @@ export function displaySyncOptions(plans, onConfirm) {
     open('sync-plans-modal');
 }
 
+/**
+ * Reseta o formulário do modal de recálculo para o estado padrão.
+ */
 export function resetRecalculateForm() {
-    // Reseta opções de procedimento
+    // Reseta a opção de como proceder
     const extendOption = recalculateModal.querySelector('input[name="recalc-option"][value="extend_date"]');
     if (extendOption) extendOption.checked = true;
     newPaceInput.value = '3';
-    
-    // --- INÍCIO DA ALTERAÇÃO: Reseta as novas opções de data de início ---
+
+    // Reseta a opção de data de início (nova funcionalidade)
     const todayOption = recalculateModal.querySelector('input[name="recalc-start-option"][value="today"]');
     if (todayOption) todayOption.checked = true;
-
+    
     const specificDateInput = document.getElementById('recalc-specific-date-input');
-    if(specificDateInput) {
+    if (specificDateInput) {
         specificDateInput.style.display = 'none';
         specificDateInput.value = '';
+        // Prioridade 2: Impede a seleção de datas passadas
+        specificDateInput.min = getCurrentUTCDateString();
     }
-    // --- FIM DA ALTERAÇÃO ---
-
+    
     hideError('recalculate-modal');
 }
 
@@ -408,7 +435,8 @@ export function init(callbacks) {
         });
     }
 
-    // --- INÍCIO DA ALTERAÇÃO: Lógica para o modal de recálculo atualizado ---
+    // --- INÍCIO DAS ALTERAÇÕES NO MODAL DE RECÁLCULO ---
+    
     const recalcStartOptions = document.querySelectorAll('input[name="recalc-start-option"]');
     const specificDateInput = document.getElementById('recalc-specific-date-input');
 
@@ -417,30 +445,24 @@ export function init(callbacks) {
             radio.addEventListener('change', () => {
                 const isSpecificDate = radio.value === 'specific_date';
                 specificDateInput.style.display = isSpecificDate ? 'inline-block' : 'none';
-                if (isSpecificDate) {
-                    // UX Improvement: Previne a seleção de datas passadas
-                    const today = new Date();
-                    today.setUTCHours(0, 0, 0, 0);
-                    specificDateInput.min = today.toISOString().split('T')[0];
+                if(isSpecificDate) {
+                    specificDateInput.focus();
                 }
             });
         });
     }
-    
+
     confirmRecalculateButton.addEventListener('click', () => {
         const option = document.querySelector('input[name="recalc-option"]:checked').value;
         const newPace = parseInt(newPaceInput.value, 10);
         
-        const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked')?.value;
+        // Coleta dos novos dados de data de início
+        const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
         const specificDate = specificDateInput.value;
-
-        // Validação básica
-        if(startDateOption === 'specific_date' && !specificDate) {
-            showError('recalculate-modal', 'Por favor, selecione uma data para iniciar o recálculo.');
-            return;
-        }
-
+        
+        // Chamada do callback com a nova assinatura
         state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate);
     });
-    // --- FIM DA ALTERAÇÃO ---
+
+    // --- FIM DAS ALTERAÇÕES ---
 }
