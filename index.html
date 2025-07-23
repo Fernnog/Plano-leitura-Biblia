@@ -1,271 +1,233 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu plano pessoal de leitura da Bíblia</title>
-    
-    <!-- CSS e Fontes -->
+    <title>Plano de Leitura da Bíblia</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="imagens/logo_192.png">
-    
-    <!-- Biblioteca de Gráficos (Chart.js) para o Modal de Estatísticas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
-    <!-- Script Principal da Aplicação -->
-    <script type="module" src="src/main.js" defer></script>
 </head>
 <body>
 
     <!-- Cabeçalho Principal -->
     <header>
-        <img src="imagens/logo.png" alt="Logotipo do Plano de Leitura" id="header-logo">
+        <img id="header-logo" src="imagens/logo.png" alt="Logotipo do App">
         <div class="header-content">
-            <h1>Plano de Leitura</h1>
-            <div class="user-status-container">
-                <span id="header-loading" style="display: none;">Carregando...</span>
-                <span id="user-info" style="display: none;">
-                    <span id="user-email"></span>
-                    <button id="logout-button">Sair</button>
-                </span>
+            <h1>Meu Plano de Leitura</h1>
+            <div id="user-status-container" class="user-status-container" style="display: none;">
+                <span id="user-email"></span>
+                <div id="header-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+                <button id="logout-button">Sair</button>
             </div>
         </div>
     </header>
 
     <main>
         <!-- Seção de Autenticação -->
-        <section id="auth-section" style="display: none;">
-            <h2>Bem-vindo!</h2>
-            <div id="auth-loading" class="loading-indicator" style="display: none;">Verificando...</div>
-            
-            <!-- Formulário de Login -->
-            <form id="login-form">
-                <h3>Login</h3>
-                <div id="auth-error" class="error-message" style="display: none;"></div>
-                <label for="login-email">Email:</label>
-                <input type="email" id="login-email" required>
-                <label for="login-password">Senha:</label>
-                <input type="password" id="login-password" required>
-                <button type="submit" id="login-button" class="button-primary">Entrar</button>
-                <p>Não tem uma conta? <a href="#" id="show-signup-link">Cadastre-se</a></p>
-            </form>
+        <section id="auth-section">
+            <div id="auth-forms-container">
+                <!-- Formulário de Login -->
+                <form id="login-form">
+                    <h2>Login</h2>
+                    <div id="auth-error" class="error-message" style="display: none;"></div>
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                    <label for="login-password">Senha</label>
+                    <input type="password" id="login-password" required>
+                    <button type="submit" id="login-button" class="button-primary">Entrar</button>
+                    <p>Não tem uma conta? <a href="#" id="show-signup-link">Cadastre-se</a></p>
+                </form>
 
-            <!-- Formulário de Cadastro -->
-            <form id="signup-form" style="display: none;">
-                <h3>Cadastro</h3>
-                <div id="signup-error" class="error-message" style="display: none;"></div>
-                <label for="signup-email">Email:</label>
-                <input type="email" id="signup-email" required>
-                <label for="signup-password">Senha:</label>
-                <input type="password" id="signup-password" required>
-                <button type="submit" id="signup-button" class="button-primary">Criar Conta</button>
-                <p>Já tem uma conta? <a href="#" id="show-login-link">Faça login</a></p>
-            </form>
+                <!-- Formulário de Cadastro -->
+                <form id="signup-form" style="display: none;">
+                    <h2>Cadastro</h2>
+                    <div id="signup-error" class="error-message" style="display: none;"></div>
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" required>
+                    <label for="signup-password">Senha</label>
+                    <input type="password" id="signup-password" required>
+                    <button type="submit" id="signup-button" class="button-primary">Cadastrar</button>
+                    <p>Já tem uma conta? <a href="#" id="show-login-link">Faça login</a></p>
+                </form>
+            </div>
+            <div id="auth-loading" class="loading-indicator" style="display: none;">Processando...</div>
         </section>
 
-        <!-- Seções Principais (visíveis após o login) -->
-        <div id="app-content" style="display: block;">
-            
-            <!-- Painel de Perseverança e Progresso Semanal -->
-            <section id="perseverance-panel" class="enhanced-panel" style="display: none;">
-                <div class="perseverance-header">
-                    <h2>Painel de Perseverança</h2>
-                </div>
-                <div id="cumulative-milestones-container">
-                    <!-- Milestones serão inseridos aqui pelo JS -->
-                </div>
-            </section>
-            
-            <section id="global-weekly-tracker-section" class="enhanced-panel" style="display: none;">
-                <h3>Sua Atividade na Semana</h3>
-                <div class="weekly-tracker-container">
-                    <div id="week-days-container" class="week-days">
-                        <!-- Indicadores de dia serão inseridos aqui -->
-                    </div>
-                </div>
-            </section>
+        <!-- Ações de Criação de Plano -->
+        <section id="plan-creation-actions-section" class="plan-creation-actions-container" style="display: none;">
+            <button id="create-new-plan-button" class="button-primary">Criar Novo Plano</button>
+            <button id="create-favorite-plan-button" class="button-secondary">Criar Planos Favoritos</button>
+            <button id="reassess-plans-button" class="button-special">Reavaliar Planos</button>
+            <button id="explore-bible-button" class="button-edit">Explorar Bíblia</button>
+        </section>
 
-            <!-- Painéis Laterais (Leituras Atrasadas e Próximas) -->
-            <div id="side-panels-container">
-                <section id="overdue-readings" class="enhanced-panel" style="display: none;">
-                    <h2>Leituras Atrasadas</h2>
-                    <div id="overdue-readings-list" class="overdue-readings-container"></div>
-                </section>
-                <section id="upcoming-readings" style="display: none;">
-                    <h2>Próximas Leituras</h2>
-                    <div id="upcoming-readings-list" class="upcoming-readings-container"></div>
-                </section>
-            </div>
+        <!-- Painéis de Perseverança e Atividade -->
+        <section id="perseverance-panel-section" class="enhanced-panel" style="display: none;">
+            <!-- Conteúdo será preenchido por perseverance-panel-ui.js -->
+        </section>
+        <section id="global-weekly-tracker-section" class="enhanced-panel" style="display: none;">
+            <!-- Conteúdo será preenchido por weekly-tracker-ui.js -->
+        </section>
+        
+        <!-- Painéis Laterais (Atrasos e Próximos) -->
+        <section id="side-panels-section" style="display: none; background: none; box-shadow: none; padding: 0;">
+            <!-- Conteúdo de overdue-readings e upcoming-readings será inserido aqui por side-panels-ui.js -->
+        </section>
 
-            <!-- Botões de Ação para Criar Planos -->
-            <section id="plan-creation-actions-section" class="plan-creation-actions-container" style="display: none;">
-                <button id="create-new-plan-button" class="button-primary">Criar Novo Plano</button>
-                <button id="create-favorite-plan-button" class="button-special">Criar Planos Favoritos</button>
-                <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
-                <button id="explore-bible-button" class="button-secondary">Explorar a Bíblia</button>
-            </section>
+        <!-- Container para os Cards de Planos de Leitura -->
+        <section id="plans-display-section" class="plans-display-container" style="display: none;">
+            <!-- Cards dos planos serão renderizados aqui por reading-plan-ui.js -->
+        </section>
 
-            <!-- Container para os Cards de Planos de Leitura -->
-            <section id="plans-display-section" class="plans-display-container" style="display: none;">
-                <!-- Cards de planos serão renderizados aqui pelo JS -->
-            </section>
-            
-            <!-- Seção para Criação/Edição de Planos -->
-            <section id="plan-creation-section" style="display: none;">
-                <h2 id="plan-creation-title">Criar Novo Plano</h2>
-                <div id="plan-error" class="error-message" style="display: none;"></div>
-                <div id="plan-loading-create" class="loading-indicator" style="display: none;">Salvando...</div>
+        <!-- Seção de Criação/Edição de Plano -->
+        <section id="plan-creation-section" style="display: none;">
+            <h2 id="plan-creation-title">Criar Novo Plano</h2>
+            <div id="plan-error" class="error-message" style="display: none;"></div>
+            <input type="hidden" id="editing-plan-id">
+
+            <fieldset>
+                <legend>Informações Básicas</legend>
+                <label for="plan-name">Nome do Plano</label>
+                <input type="text" id="plan-name" placeholder="Ex: Jornada pelo Pentateuco">
+                <label for="google-drive-link">Link do Google Drive (Opcional)</label>
+                <input type="url" id="google-drive-link" placeholder="https://docs.google.com/document/d/...">
+            </fieldset>
+
+            <fieldset class="icon-selector-fieldset">
+                <legend>Ícone do Plano</legend>
+                <div id="icon-selector-container" class="icon-selector-container">
+                    <!-- Ícones serão populados por plan-creation-ui.js -->
+                </div>
+            </fieldset>
+
+            <fieldset id="plan-structure-fieldset">
+                <legend>Estrutura do Plano</legend>
                 
-                <input type="hidden" id="editing-plan-id">
-
                 <fieldset>
-                    <legend>Informações Básicas</legend>
-                    <label for="plan-name">Nome do Plano:</label>
-                    <input type="text" id="plan-name" placeholder="Ex: Jornada pelo Pentateuco" required>
-                    
-                    <label for="google-drive-link">Link do Google Drive (Opcional):</label>
-                    <input type="url" id="google-drive-link" placeholder="https://docs.google.com/document/...">
+                    <legend>Método de Criação</legend>
+                    <label><input type="radio" name="creation-method" value="interval" checked> Por Intervalo</label>
+                    <label><input type="radio" name="creation-method" value="selection"> Por Seleção</label>
+                    <label><input type="radio" name="creation-method" value="chapters-per-day"> Por Ritmo</label>
                 </fieldset>
+
+                <div id="interval-options">
+                    <label for="start-book">De:</label>
+                    <select id="start-book"></select>
+                    <input type="number" id="start-chapter" placeholder="Cap.">
+                    <label for="end-book">Até:</label>
+                    <select id="end-book"></select>
+                    <input type="number" id="end-chapter" placeholder="Cap.">
+                </div>
+
+                <div id="selection-options" style="display: none;">
+                    <label for="books-select">Selecionar Livros Inteiros:</label>
+                    <select id="books-select" multiple></select>
+                    <label for="chapters-input">Ou Adicionar Capítulos Avulsos:</label>
+                    <textarea id="chapters-input" rows="3" placeholder="Ex: Gn 1-3; Ex 20; Sl 23, 91, 119; Jo 3:16"></textarea>
+                </div>
                 
-                <fieldset class="icon-selector-fieldset">
-                    <legend>Escolha um Ícone</legend>
-                    <div id="icon-selector-container" class="icon-selector-container">
-                        <!-- Opções de ícone serão inseridas aqui pelo JS -->
+                <hr>
+
+                <fieldset id="duration-options">
+                    <legend>Duração</legend>
+                    <label><input type="radio" name="duration-method" value="days" checked> Total de Dias</label>
+                    <label><input type="radio" name="duration-method" value="end-date"> Data Final</label>
+                </fieldset>
+
+                <div id="chapters-per-day-option" style="display: none;">
+                    <label for="chapters-per-day">Capítulos por dia de leitura:</label>
+                    <input type="number" id="chapters-per-day" value="3" min="1">
+                </div>
+                
+                <div id="days-option">
+                    <label for="days-input">Total de dias de calendário para concluir:</label>
+                    <input type="number" id="days-input" value="30" min="1">
+                </div>
+
+                <div id="end-date-option" style="display: none;">
+                    <label for="start-date-input">Data de Início:</label>
+                    <input type="date" id="start-date-input">
+                    <label for="end-date-input">Data Final:</label>
+                    <input type="date" id="end-date-input">
+                </div>
+                
+                <hr>
+
+                <fieldset id="periodicity-options">
+                    <legend>Periodicidade (Dias da Semana)</legend>
+                    <div id="periodicity-checkbox-group" class="checkbox-group">
+                        <label><input type="checkbox" name="periodicity" value="0"> Dom</label>
+                        <label><input type="checkbox" name="periodicity" value="1" checked> Seg</label>
+                        <label><input type="checkbox" name="periodicity" value="2" checked> Ter</label>
+                        <label><input type="checkbox" name="periodicity" value="3" checked> Qua</label>
+                        <label><input type="checkbox" name="periodicity" value="4" checked> Qui</label>
+                        <label><input type="checkbox" name="periodicity" value="5" checked> Sex</label>
+                        <label><input type="checkbox" name="periodicity" value="6"> Sáb</label>
                     </div>
                 </fieldset>
-                
-                <fieldset id="plan-structure-fieldset">
-                    <legend>Estrutura do Plano</legend>
+            </fieldset>
 
-                    <fieldset>
-                        <legend>Método de Criação</legend>
-                        <label><input type="radio" name="creation-method" value="interval" checked> Por Intervalo de Livros</label>
-                        <label><input type="radio" name="creation-method" value="selection"> Por Seleção</label>
-                        <label><input type="radio" name="creation-method" value="chapters-per-day"> Por Capítulos/Dia</label>
-                    </fieldset>
-                    
-                    <!-- Opções para criação por intervalo -->
-                    <div id="interval-options">
-                        <label for="start-book">De:</label>
-                        <select id="start-book"></select>
-                        <input type="number" id="start-chapter" placeholder="Cap. Início" min="1">
-                        
-                        <label for="end-book">Até:</label>
-                        <select id="end-book"></select>
-                        <input type="number" id="end-chapter" placeholder="Cap. Fim" min="1">
-                    </div>
-                    
-                    <!-- Opções para criação por seleção -->
-                    <div id="selection-options" style="display: none;">
-                        <label for="books-select">Selecione os Livros (Ctrl+Clique para múltiplos):</label>
-                        <select id="books-select" multiple></select>
-                        
-                        <label for="chapters-input">Ou digite capítulos/intervalos avulsos:</label>
-                        <input type="text" id="chapters-input" placeholder="Ex: Gn 1-3; Sl 23; Jo 3:16">
-                    </div>
-                    
-                    <hr>
-                    
-                    <fieldset>
-                        <legend>Duração</legend>
-                        <label><input type="radio" name="duration-method" value="days" checked> Em X dias</label>
-                        <label><input type="radio" name="duration-method" value="end-date"> Até uma data específica</label>
-                    </fieldset>
+            <div id="plan-loading-create" class="loading-indicator" style="display: none;">Salvando plano...</div>
+            <button id="create-plan-button" class="button-primary">Criar Plano</button>
+            <button id="cancel-creation-button" class="button-secondary">Cancelar</button>
+        </section>
 
-                     <!-- Opções para capítulos por dia -->
-                    <div id="chapters-per-day-option" style="display: none;">
-                        <label for="chapters-per-day-input">Capítulos por dia de leitura:</label>
-                        <input type="number" id="chapters-per-day-input" value="3" min="1">
-                    </div>
+        <!-- Seção de Reavaliação de Planos (Quadro de Carga) -->
+        <section id="plan-reassessment-section" style="display: none;">
+            <div class="reassessment-header">
+                <h2>Quadro de Carga Semanal</h2>
+                <div class="reassessment-actions">
+                    <button id="sync-plans-button" class="button-primary">Sincronizar Planos</button>
+                    <button id="close-reassessment-button" class="button-secondary">Voltar</button>
+                </div>
+            </div>
+            <p class="reassessment-description">
+                Visualize a carga de leitura de cada plano por dia da semana. Clique em um plano para editar seus dias ou arraste-o para remanejar a carga.
+            </p>
+            <div id="reassessment-grid" class="reassessment-grid-container">
+                <!-- Conteúdo da grade será renderizado por plan-reassessment-ui.js -->
+            </div>
+            <div class="reassessment-legend-container">
+                <h3>Legenda dos Planos</h3>
+                <div id="reassessment-legend-list">
+                    <!-- Legenda será renderizada por plan-reassessment-ui.js -->
+                </div>
+            </div>
+        </section>
 
-                    <!-- Opções para duração em dias -->
-                    <div id="days-option">
-                        <label for="days-input">Total de dias de calendário:</label>
-                        <input type="number" id="days-input" value="30" min="1">
-                    </div>
-                    
-                    <!-- Opções para duração por data final -->
-                    <div id="end-date-option" style="display: none;">
-                        <label for="start-date-input">Data de Início:</label>
-                        <input type="date" id="start-date-input">
-                        <label for="end-date-input">Data Final:</label>
-                        <input type="date" id="end-date-input">
-                    </div>
-                    
-                    <hr>
-                    
-                    <fieldset id="periodicity-options">
-                        <legend>Periodicidade (Dias da Semana para Leitura)</legend>
-                        <div id="periodicity-checkboxes" class="checkbox-group">
-                            <label><input type="checkbox" name="dayOfWeek" value="0"> Dom</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="1" checked> Seg</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="2" checked> Ter</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="3" checked> Qua</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="4" checked> Qui</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="5" checked> Sex</label>
-                            <label><input type="checkbox" name="dayOfWeek" value="6"> Sáb</label>
-                        </div>
-                    </fieldset>
-                </fieldset>
-                
-                <button type="button" id="create-plan-button" class="button-primary">Criar Plano</button>
-                <button type="button" id="cancel-creation-button" class="button-edit">Cancelar</button>
-            </section>
-            
-            <!-- Seção para Reavaliação de Planos (Quadro de Carga) -->
-            <section id="plan-reassessment-section" style="display: none;">
-                <div class="reassessment-header">
-                    <h2>Quadro de Carga Semanal</h2>
-                    <div class="reassessment-actions">
-                         <button id="sync-plans-button" class="button-special">Sincronizar Planos</button>
-                         <button id="close-reassessment-button" class="button-danger">Fechar</button>
-                    </div>
-                </div>
-                <p class="reassessment-description">
-                    Visualize a carga de leitura de cada plano por dia da semana. Clique em um plano para editar seus dias ou arraste-o para remanejar a carga.
-                </p>
-                <div id="reassessment-grid" class="reassessment-grid-container">
-                    <!-- Colunas de dias serão inseridas aqui pelo JS -->
-                </div>
-                <div class="reassessment-legend-container">
-                    <h3>Legenda dos Planos</h3>
-                    <div id="reassessment-legend-list">
-                        <!-- Legenda será inserida aqui -->
-                    </div>
-                </div>
-            </section>
-        </div>
     </main>
 
-    <!-- Paginador/Dock Flutuante -->
-    <nav id="floating-navigator" class="hidden-at-bottom">
-        <!-- Botões de navegação serão inseridos aqui pelo JS -->
-    </nav>
-    
-    <!-- Modais de Sobreposição -->
+    <!-- Navegador Flutuante (Dock) -->
+    <div id="floating-navigator" class="hidden-at-bottom">
+        <!-- Botões de navegação serão inseridos aqui por floating-navigator-ui.js -->
+    </div>
 
-    <!-- Modal de Recálculo -->
+
+    <!-- === MODAIS === -->
+
+    <!-- Modal de Recálculo de Plano -->
     <div id="recalculate-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">×</span>
             <h2>Recalcular Plano</h2>
-            <div id="recalculate-loading" class="loading-indicator" style="display: none;">Calculando...</div>
             <div id="recalculate-error" class="error-message" style="display: none;"></div>
             
             <fieldset>
                 <legend>Como proceder?</legend>
-                <label><input type="radio" name="recalc-option" value="extend_date" checked> Manter ritmo, estender data final.</label>
-                <label><input type="radio" name="recalc-option" value="increase_pace"> Manter data final, aumentar ritmo.</label>
-                <label><input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo <input type="number" id="new-pace-input" value="3" min="1"></label>
+                <label><input type="radio" name="recalc-option" value="extend_date" checked> Manter o ritmo atual (estender data final)</label>
+                <label><input type="radio" name="recalc-option" value="increase_pace"> Manter a data final original (aumentar ritmo)</label>
+                <label>
+                    <input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo de
+                    <input type="number" id="new-pace-input" value="3" min="1">
+                    capítulos/dia.
+                </label>
             </fieldset>
-
+            
             <!-- INÍCIO DA INSERÇÃO DO NOVO ELEMENTO -->
             <div id="recalc-preview-info" class="recalc-preview-container">
                 <!-- O conteúdo aqui será preenchido dinamicamente pelo JavaScript -->
@@ -275,17 +237,18 @@
             <fieldset>
                 <legend>Quando iniciar o recálculo?</legend>
                 <label><input type="radio" name="recalc-start-option" value="today" checked> A partir de hoje</label>
-                <label><input type="radio" name="recalc-start-option" value="next_reading_day"> No próximo dia de leitura agendado</label>
+                <label><input type="radio" name="recalc-start-option" value="next_reading_day"> A partir do próximo dia de leitura agendado</label>
                 <label>
                     <input type="radio" name="recalc-start-option" value="specific_date"> Em uma data específica:
                     <input type="date" id="recalc-specific-date-input" style="display: none;">
                 </label>
             </fieldset>
-            
+
+            <div id="recalculate-loading" class="loading-indicator" style="display: none;">Recalculando...</div>
             <button id="confirm-recalculate" class="button-primary">Confirmar Recálculo</button>
         </div>
     </div>
-
+    
     <!-- Modal de Estatísticas -->
     <div id="stats-modal" class="modal">
         <div class="modal-content modal-content-scrollable">
@@ -296,24 +259,25 @@
             <div id="stats-content">
                 <p><strong>Plano:</strong> <span id="stats-active-plan-name">--</span></p>
                 <p><strong>Progresso:</strong> <span id="stats-active-plan-progress">--</span></p>
-                <p><strong>Total de Capítulos Lidos:</strong> <span id="stats-total-chapters">--</span></p>
-                <p><strong>Plano Concluído:</strong> <span id="stats-plans-completed">--</span></p>
-                <p><strong>Ritmo Médio de Leitura:</strong> <span id="stats-avg-pace">--</span></p>
-                <p><strong>Recálculos Realizados:</strong> <span id="stats-recalculations-count">--</span></p>
+                <p><strong>Capítulos Lidos (do Log):</strong> <span id="stats-total-chapters">--</span></p>
+                <p><strong>Ritmo Médio:</strong> <span id="stats-avg-pace">--</span></p>
                 <p><strong>Previsão de Término:</strong> <span id="stats-forecast-date">--</span></p>
-                <hr>
+                <p><strong>Recálculos:</strong> <span id="stats-recalculations-count">--</span></p>
+                <p><strong>Concluído:</strong> <span id="stats-plans-completed">--</span></p>
+                
                 <div class="stats-chart-container">
                     <canvas id="progress-chart"></canvas>
                 </div>
-                <hr>
+
                 <div id="stats-plan-summary-container" style="display: none;">
-                    <h3>Resumo do Plano (Livros e Capítulos)</h3>
+                    <hr>
+                    <h3>Resumo do Conteúdo</h3>
                     <div id="stats-plan-summary-list"></div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Modal de Histórico -->
     <div id="history-modal" class="modal">
         <div class="modal-content modal-content-scrollable">
@@ -322,29 +286,34 @@
             <div id="history-loading" style="display: none;">Carregando...</div>
             <div id="history-error" class="error-message" style="display: none;"></div>
             <div id="history-list" class="history-list-container">
-                <!-- Entradas do histórico serão inseridas aqui -->
+                <!-- Conteúdo do histórico será renderizado aqui por modals-ui.js -->
             </div>
         </div>
     </div>
-    
+
     <!-- Modal de Sincronização de Planos -->
     <div id="sync-plans-modal" class="modal">
         <div class="modal-content">
             <span class="close-button">×</span>
-            <h2>Sincronizar Datas de Término</h2>
-            <div id="sync-loading" class="loading-indicator" style="display: none;">Sincronizando...</div>
+            <h2>Sincronizar Término dos Planos</h2>
+            <p>Ajuste múltiplos planos para terminarem na mesma data de um plano de referência.</p>
             <div id="sync-error" class="error-message" style="display: none;"></div>
             
-            <label for="sync-base-plan-select">1. Usar a data final do plano:</label>
-            <select id="sync-base-plan-select"></select>
-            <p style="text-align: left; margin-top: 5px;">Data de término alvo: <strong id="sync-target-date-display">--/--/----</strong></p>
-            
-            <label>2. Ajustar estes planos para terminar na mesma data:</label>
-            <div id="sync-plans-to-adjust-list" class="sync-plans-list">
-                <!-- Opções de planos para ajustar serão inseridas aqui -->
-            </div>
-            
-            <button id="confirm-sync-button" class="button-primary" style="float: right;" disabled>Confirmar Sincronização</button>
+            <fieldset>
+                <label for="sync-base-plan-select">1. Escolha o plano de referência:</label>
+                <select id="sync-base-plan-select"></select>
+                <p>Data alvo de término: <strong id="sync-target-date-display">--/--/----</strong></p>
+            </fieldset>
+
+            <fieldset>
+                <label>2. Selecione os planos para ajustar:</label>
+                <div id="sync-plans-to-adjust-list" class="sync-plans-list">
+                    <!-- Opções de planos serão renderizadas aqui -->
+                </div>
+            </fieldset>
+
+            <div id="sync-loading" class="loading-indicator" style="display: none;">Sincronizando...</div>
+            <button id="confirm-sync-button" class="button-primary">Sincronizar Planos</button>
         </div>
     </div>
 
@@ -352,28 +321,27 @@
     <div id="bible-explorer-modal" class="modal">
         <div class="modal-content modal-content-scrollable">
             <span class="close-button">×</span>
-
-            <!-- Visão de Grade de Livros -->
+            
             <div id="explorer-grid-view">
-                <h2>Explorar a Bíblia</h2>
-                <p>Veja os livros que fazem parte dos seus planos e explore os capítulos.</p>
+                <h2>Explorar Livros da Bíblia</h2>
+                <p>Visualize todos os livros. Os que fazem parte de algum de seus planos são destacados.</p>
                 <div id="explorer-book-grid" class="explorer-grid-container">
-                    <!-- Cards dos livros serão inseridos aqui -->
+                    <!-- Cards dos livros serão renderizados aqui -->
                 </div>
             </div>
 
-            <!-- Visão de Detalhe de Capítulos -->
             <div id="explorer-detail-view" style="display: none;">
                 <div class="explorer-detail-header">
-                    <button id="explorer-back-button" class="button-edit">← Voltar</e-button>
+                    <button id="explorer-back-button" class="button-secondary">← Voltar</button>
                     <h2 id="explorer-detail-title"></h2>
                 </div>
                 <div id="explorer-chapter-list" class="explorer-list-container">
-                    <!-- Itens dos capítulos serão inseridos aqui -->
+                    <!-- Capítulos serão renderizados aqui -->
                 </div>
             </div>
         </div>
     </div>
 
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>
