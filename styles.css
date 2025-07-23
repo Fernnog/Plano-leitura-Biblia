@@ -481,6 +481,31 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .modal button#confirm-recalculate { margin-top: 25px; float: right; width: auto; }
 .modal .modal-content::after { content: ""; display: table; clear: both; }
 
+/* INÍCIO DA INSERÇÃO: Estilos para a Prévia de Recálculo */
+.recalc-preview-container {
+    display: none; /* Começa escondido */
+    padding: 12px 15px;
+    margin: 20px 0;
+    background-color: var(--background-light);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--base-border-radius);
+    text-align: center;
+    font-size: 0.95em;
+    color: var(--text-color-muted);
+    transition: all 0.3s ease;
+    line-height: 1.5;
+}
+
+.recalc-preview-container.visible {
+    display: block; /* Classe para torná-lo visível */
+}
+
+.recalc-preview-container strong {
+    color: var(--primary-action);
+    font-weight: 700;
+}
+/* FIM DA INSERÇÃO */
+
 #stats-content p, #history-list p { text-align: left; color: var(--text-color-dark); margin-bottom: 10px; }
 #stats-content strong { color: var(--primary-action); }
 #stats-content hr { margin: 15px 0; }
