@@ -6,9 +6,12 @@
 
 // Importa os elementos do DOM necessários
 import {
-    headerLogo,
+    header,
+    headerLogo, 
+    headerUserInfo,
     userEmailSpan,
     logoutButton,
+    headerLoading
 } from './dom-elements.js';
 
 // --- Estado Interno e Callbacks ---
