@@ -9,17 +9,18 @@ import {
     // Recálculo
     recalculateModal, recalculateErrorDiv, recalculateLoadingDiv,
     confirmRecalculateButton, newPaceInput,
-    // INÍCIO DA ALTERAÇÃO: Assumindo a existência de um novo elemento para a prévia
+    // INÍCIO DA ALTERAÇÃO: Importando o novo elemento
     recalcPreviewInfo,
     // FIM DA ALTERAÇÃO
     // Estatísticas
     statsModal, statsLoadingDiv, statsErrorDiv, statsContentDiv,
     statsActivePlanName, statsActivePlanProgress, statsTotalChapters,
-    statsPlansCompleted, statsAvgPace,
+    statsPlansCompleted, statsAvgPace, statsRecalculationsCount, statsForecastDate,
+    statsPlanSummaryContainer, statsPlanSummaryList,
     // Histórico
     historyModal, historyLoadingDiv, historyErrorDiv, historyListDiv,
     // Sincronização
-    syncModal, syncErrorDiv, syncLoadingDiv, syncBasePlanSelect, 
+    syncModal, syncErrorDiv, syncLoadingDiv, syncBasePlanSelect,
     syncTargetDateDisplay, syncPlansToAdjustList, confirmSyncButton,
     // Explorador da Bíblia
     bibleExplorerModal, explorerGridView, explorerBookGrid,
@@ -29,10 +30,10 @@ import {
 
 // Importa funções e dados auxiliares
 import { CANONICAL_BOOK_ORDER, BIBLE_BOOKS_CHAPTERS } from '../config/bible-data.js';
-import { 
-    formatUTCDateStringToBrasilian, 
-    getCurrentUTCDateString, 
-    countReadingDaysBetween 
+import {
+    formatUTCDateStringToBrasilian,
+    getCurrentUTCDateString,
+    countReadingDaysBetween
 } from '../utils/date-helpers.js';
 import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
 
@@ -40,8 +41,8 @@ import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
 let state = {
     callbacks: {
         onConfirmRecalculate: null,
-        // INÍCIO DA ALTERAÇÃO: Adicionado o novo callback para a prévia (Prioridade 2)
-        onRecalculatePreviewRequest: null,
+        // INÍCIO DA ALTERAÇÃO: Adicionando novo callback para a prévia
+        onRecalcPreview: null,
         // FIM DA ALTERAÇÃO
     },
 };
@@ -66,7 +67,6 @@ function _renderStatsChart(chartData) {
 
     const ctx = canvas.getContext('2d');
 
-    // Destrói a instância anterior do gráfico se ela existir.
     if (progressChartInstance) {
         progressChartInstance.destroy();
     }
@@ -160,13 +160,30 @@ export function hideError(modalId) {
     if (errorDiv) errorDiv.style.display = 'none';
 }
 
+// INÍCIO DA ALTERAÇÃO: Novas funções para controlar a prévia
+/**
+ * Exibe a prévia do recálculo com uma mensagem.
+ * @param {string} message - A mensagem em HTML a ser exibida.
+ */
+export function showRecalcPreview(message) {
+    if (recalcPreviewInfo) {
+        recalcPreviewInfo.innerHTML = message;
+        recalcPreviewInfo.classList.add('visible');
+    }
+}
+
+/**
+ * Esconde a prévia do recálculo.
+ */
+export function hideRecalcPreview() {
+    if (recalcPreviewInfo) {
+        recalcPreviewInfo.classList.remove('visible');
+    }
+}
+// FIM DA ALTERAÇÃO
 
 // --- Funções Específicas de População de Conteúdo ---
 
-/**
- * Exibe os dados de histórico de leitura no modal correspondente.
- * @param {object} readLog - O objeto de log de leitura do plano ativo.
- */
 export function displayHistory(readLog) {
     historyListDiv.innerHTML = '';
     hideError('history-modal');
@@ -194,14 +211,7 @@ export function displayHistory(readLog) {
     });
 }
 
-/**
- * Exibe as estatísticas calculadas e renderiza o gráfico de progresso no modal.
- * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData` e `planSummary`.
- */
 export function displayStats(statsData) {
-    const statsForecastDate = document.getElementById('stats-forecast-date');
-    const statsRecalculationsCount = document.getElementById('stats-recalculations-count');
-
     hideError('stats-modal');
     statsActivePlanName.textContent = statsData.activePlanName || '--';
     statsActivePlanProgress.textContent = `${Math.round(statsData.activePlanProgress || 0)}%`;
@@ -235,11 +245,6 @@ export function displayStats(statsData) {
     statsContentDiv.style.display = 'block';
 }
 
-/**
- * Exibe o explorador da Bíblia com dados agregados de todos os planos.
- * @param {Map<string, {icon: string, name: string}[]>} booksToIconsMap - Mapa de nomes de livros para arrays de objetos {ícone, nome}.
- * @param {Set<string>} allChaptersInPlans - Um Set com todos os capítulos de todos os planos.
- */
 export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     explorerBookGrid.innerHTML = '';
     explorerGridView.style.display = 'block';
@@ -272,10 +277,6 @@ export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     open('bible-explorer-modal');
 }
 
-/**
- * Função interna para mostrar os detalhes dos capítulos de um livro.
- * @private
- */
 function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailTitle.textContent = bookName;
     explorerChapterList.innerHTML = '';
@@ -296,11 +297,6 @@ function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailView.style.display = 'block';
 }
 
-/**
- * Popula e prepara o modal de sincronização de planos.
- * @param {Array<object>} plans - Lista de planos elegíveis para sincronização.
- * @param {Function} onConfirm - Callback a ser chamado na confirmação.
- */
 export function displaySyncOptions(plans, onConfirm) {
     const todayStr = getCurrentUTCDateString();
 
@@ -349,7 +345,7 @@ export function displaySyncOptions(plans, onConfirm) {
                      const paceWarningClass = newPace > 10 ? 'pace-warning' : ''; 
                      paceInfoHTML = `<small class="${paceWarningClass}">Novo ritmo: ~${newPace} caps/dia</small>`;
                  } else {
-                     paceInfoHTML = `<small class="pace-warning">⚠️ Impossível sincronizar. Não há dias de leitura disponíveis até a data alvo.</small>`;
+                     paceInfoHTML = `<small class="pace-warning">⚠️ Impossível sincronizar.</small>`;
                  }
             } else {
                  paceInfoHTML = `<small>Plano já concluído.</small>`;
@@ -385,33 +381,12 @@ export function displaySyncOptions(plans, onConfirm) {
     open('sync-plans-modal');
 }
 
-// INÍCIO DA ALTERAÇÃO: Nova função para exibir a prévia (Prioridade 2)
-/**
- * Exibe uma mensagem de prévia no modal de recálculo.
- * @param {string} message - A mensagem a ser exibida.
- * @param {boolean} isWarning - Se a mensagem deve ter um estilo de aviso.
- */
-export function displayRecalculatePreview(message, isWarning = false) {
-    // A existência de `recalcPreviewInfo` é assumida via importação de `dom-elements.js`
-    const previewEl = document.getElementById('recalc-preview-info'); 
-    if (previewEl) {
-        previewEl.textContent = message;
-        previewEl.className = `recalc-preview ${isWarning ? 'warning' : ''}`;
-        previewEl.style.display = message ? 'block' : 'none';
-    }
-}
-// FIM DA ALTERAÇÃO
-
-/**
- * Reseta o formulário do modal de recálculo para o estado padrão.
- */
+// INÍCIO DA ALTERAÇÃO: Atualizando a função de reset do formulário
 export function resetRecalculateForm() {
-    // Reseta a opção de como proceder
     const extendOption = recalculateModal.querySelector('input[name="recalc-option"][value="extend_date"]');
     if (extendOption) extendOption.checked = true;
     newPaceInput.value = '3';
 
-    // Reseta a opção de data de início
     const todayOption = recalculateModal.querySelector('input[name="recalc-start-option"][value="today"]');
     if (todayOption) todayOption.checked = true;
     
@@ -422,19 +397,16 @@ export function resetRecalculateForm() {
         specificDateInput.min = getCurrentUTCDateString();
     }
     
-    // INÍCIO DA ALTERAÇÃO: Garante que a prévia seja limpa ao resetar (Prioridade 2)
-    displayRecalculatePreview('');
-    // FIM DA ALTERAÇÃO
-    
     hideError('recalculate-modal');
+    hideRecalcPreview(); // Garante que a prévia seja escondida ao reabrir
 }
-
+// FIM DA ALTERAÇÃO
 
 // --- Inicialização ---
-
 /**
  * Inicializa o módulo de modais, configurando listeners de eventos genéricos.
- * @param {object} callbacks - Objeto com os callbacks para as ações dos modais.
+ * @param {object} callbacks - Objeto com os callbacks para as ações dos modais
+ * { onConfirmRecalculate, onRecalcPreview }.
  */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
@@ -461,53 +433,45 @@ export function init(callbacks) {
         });
     }
 
-    // --- LÓGICA DO MODAL DE RECÁLCULO (PRIORIDADES 1 e 2) ---
+    // --- INÍCIO DAS ALTERAÇÕES NO MODAL DE RECÁLCULO ---
     
-    const recalcForm = recalculateModal.querySelector('form'); // Encontra o formulário
+    const recalcStartOptions = document.querySelectorAll('input[name="recalc-start-option"]');
     const specificDateInput = document.getElementById('recalc-specific-date-input');
+    const optionsForPreview = recalculateModal.querySelectorAll('input[name="recalc-option"], #new-pace-input');
 
-    if (recalcForm) {
-        // Listener para alternar a visibilidade do campo de data específica
-        recalcForm.addEventListener('change', (e) => {
-            if (e.target.name === 'recalc-start-option') {
-                const isSpecificDate = e.target.value === 'specific_date';
+    if (recalcStartOptions.length > 0 && specificDateInput) {
+        recalcStartOptions.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isSpecificDate = radio.value === 'specific_date';
                 specificDateInput.style.display = isSpecificDate ? 'inline-block' : 'none';
-                if(isSpecificDate) specificDateInput.focus();
-            }
-
-            // INÍCIO DA ALTERAÇÃO: Gatilho para a prévia (Prioridade 2)
-            const planId = confirmRecalculateButton.dataset.planId;
-            if (planId && state.callbacks.onRecalculatePreviewRequest) {
-                const option = recalcForm.querySelector('input[name="recalc-option"]:checked')?.value;
-                const newPace = parseInt(newPaceInput.value, 10);
-                const startDateOption = recalcForm.querySelector('input[name="recalc-start-option"]:checked')?.value;
-                const specificDateValue = specificDateInput.value;
-                
-                // Envia o estado atual do formulário para o orquestrador calcular a prévia
-                state.callbacks.onRecalculatePreviewRequest(planId, {
-                    option,
-                    newPace,
-                    startDateOption,
-                    specificDate: specificDateValue
-                });
-            }
-            // FIM DA ALTERAÇÃO
+                if(isSpecificDate) {
+                    specificDateInput.focus();
+                }
+            });
         });
     }
-    
-    // Listener para o botão de confirmação final
-    confirmRecalculateButton.addEventListener('click', () => {
-        const planId = confirmRecalculateButton.dataset.planId;
-        if (!planId) return; // Sai se não houver plano selecionado
 
-        const option = recalcForm.querySelector('input[name="recalc-option"]:checked').value;
+    // Adiciona listener para as opções que afetam o cálculo da prévia
+    optionsForPreview.forEach(input => {
+        input.addEventListener('change', () => {
+            const option = document.querySelector('input[name="recalc-option"]:checked').value;
+            const newPace = parseInt(newPaceInput.value, 10);
+            
+            // Dispara o callback para que o main.js calcule e retorne a prévia
+            state.callbacks.onRecalcPreview?.(option, newPace);
+        });
+    });
+
+    confirmRecalculateButton.addEventListener('click', () => {
+        const option = document.querySelector('input[name="recalc-option"]:checked').value;
         const newPace = parseInt(newPaceInput.value, 10);
         
-        // Coleta dos dados de data de início (Prioridade 1)
-        const startDateOption = recalcForm.querySelector('input[name="recalc-start-option"]:checked').value;
+        const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
         const specificDate = specificDateInput.value;
         
-        // Chamada do callback com a assinatura corrigida e completa
-        state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, planId);
+        // Chama o callback com a assinatura completa, incluindo os dados da data de início
+        state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate);
     });
+
+    // --- FIM DAS ALTERAÇÕES ---
 }
