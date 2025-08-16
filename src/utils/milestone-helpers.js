@@ -6,7 +6,7 @@
 
 /**
  * Define os marcos de perseverança disponíveis, em ordem hierárquica para o cálculo.
- * Cada marco tem um valor, um ícone e um tipo ('main' para os que podem acumular, 'step' para os de preenchimento).
+ * Cada marco tem um valor, um ícone e um tipo ('main' para os que podem acumular, 'step' для os de preenchimento).
  * @type {Array<object>}
  */
 const MILESTONES_CONFIG = [
