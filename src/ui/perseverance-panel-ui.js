@@ -35,16 +35,15 @@ function _renderProgressBar(current, longest) {
 }
 
 /**
- * Renderiza os marcos de perseverança no DOM.
- * A lógica de cálculo foi abstraída para o `milestone-helpers.js`.
- * (Esta função foi completamente refatorada)
+ * Renderiza os marcos de perseverança no DOM, incluindo a lógica corrigida da coroa.
+ * A lógica de cálculo dos outros marcos foi abstraída para o `milestone-helpers.js`.
+ * (Esta é a versão final e corrigida da função)
  * @param {number} current - A sequência atual de dias.
  * @param {number} longest - O recorde de dias.
  */
 function _renderMilestoneIcons(current, longest) {
     // Seleção dos elementos do DOM
     const crownIcon = perseveranceSection.querySelector('.record-crown');
-    // MODIFICADO: Seleciona o novo container dinâmico
     const container = document.getElementById('cumulative-milestones-container');
     
     if (!container || !crownIcon) {
@@ -52,13 +51,18 @@ function _renderMilestoneIcons(current, longest) {
         return;
     }
 
-    // 1. Limpa o conteúdo anterior e reseta a coroa
+    // 1. Limpa o conteúdo dinâmico anterior
     container.innerHTML = '';
+    
+    // 2. LÓGICA DA COROA (CORRIGIDA)
+    // Por padrão, a coroa é escondida e seu estilo de "conquista" é removido.
+    crownIcon.style.display = 'none';
     crownIcon.classList.remove('achieved');
 
-    // 2. Lógica da Coroa (continua sendo uma responsabilidade da UI)
+    // A coroa só será exibida se a condição for atendida.
     if (longest > 0 && current >= longest) {
-        crownIcon.classList.add('achieved');
+        crownIcon.style.display = 'inline-block'; // Torna a coroa visível
+        crownIcon.classList.add('achieved');      // Aplica a animação
     }
 
     // 3. Obtém os marcos calculados chamando a função do helper
