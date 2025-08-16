@@ -592,6 +592,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 .milestone-legend { text-align: center; font-size: 0.85em; color: var(--text-color-muted); transition: color var(--transition-fast); }
 .milestone-legend span { white-space: nowrap; }
 
+/* INÍCIO DAS NOVAS REGRAS PARA O PAINEL DE PERSEVERANÇA */
 #cumulative-milestones-container {
     display: flex;
     justify-content: center;
@@ -626,6 +627,8 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     animation: icon-pop 0.4s;
     text-shadow: 0 3px 8px rgba(var(--primary-action-rgb), 0.35);
 }
+/* FIM DAS NOVAS REGRAS */
+
 
 /* Painel de Progresso Semanal */
 #global-weekly-tracker-section h3 { margin-top: 0; margin-bottom: 20px; text-align: center; color: var(--primary-action); font-size: 1.2em; font-weight: 700; transition: color var(--transition-fast); }
