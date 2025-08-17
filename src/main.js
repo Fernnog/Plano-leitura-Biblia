@@ -626,6 +626,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         const originalPlan = appState.userPlans.find(p => p.id === planId);
         let baseDateForCalc = getCurrentUTCDateString();
         
+        // INÍCIO DA ALTERAÇÃO CORRIGIDA
         switch (startDateOption) {
             case 'next_reading_day':
                 baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
@@ -640,6 +641,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
             default:
                 break;
         }
+        // FIM DA ALTERAÇÃO CORRIGIDA
 
         if (!baseDateForCalc) {
             throw new Error("Não foi possível determinar a data de início para o recálculo.");
