@@ -7,7 +7,7 @@
  * a comunicação entre os serviços (Firebase) e os módulos de UI.
  */
 
-// --- 1. IMPORTAÇÕES DE MÓDULOS ---
+// --- 1. IMPORTAÇÕES DE MÓDulos ---
 
 // Serviços (Comunicação com o Backend)
 import * as authService from './services/authService.js';
@@ -616,8 +616,6 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
 async function handleRecalculate(option, newPaceValue, startDateOption, specificDate) {
     const planId = document.getElementById('confirm-recalculate').dataset.planId;
     if (!appState.currentUser || !planId) return;
-
-    console.log(`[DIAGNÓSTICO 0/4] main.js: Iniciando processo de recálculo para o plano ID: ${planId}`);
     
     modalsUI.showLoading('recalculate-modal');
     modalsUI.hideError('recalculate-modal');
@@ -626,7 +624,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         const originalPlan = appState.userPlans.find(p => p.id === planId);
         let baseDateForCalc = getCurrentUTCDateString();
         
-        // INÍCIO DA ALTERAÇÃO CORRIGIDA
+        // --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) ---
         switch (startDateOption) {
             case 'next_reading_day':
                 baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
@@ -641,7 +639,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
             default:
                 break;
         }
-        // FIM DA ALTERAÇÃO CORRIGIDA
+        // --- FIM DA ALTERAÇÃO (PRIORIDADE 1) ---
 
         if (!baseDateForCalc) {
             throw new Error("Não foi possível determinar a data de início para o recálculo.");
@@ -670,8 +668,6 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
 
         const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc);
 
-        console.log('[DIAGNÓSTICO 2/4] main.js: Resultado recebido do plan-calculator. Verifique a "endDate".', JSON.parse(JSON.stringify(result)));
-
         if (!result) {
             const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
             throw new Error(`O plano não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima ou inválida.`);
@@ -696,7 +692,6 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         const planIndex = appState.userPlans.findIndex(p => p.id === planId);
         if (planIndex !== -1) {
             appState.userPlans[planIndex] = { ...recalculatedPlan, id: planId };
-            console.log(`[DIAGNÓSTICO 4/4] main.js: Estado local (appState) foi atualizado. Renderização será chamada agora com estes dados.`);
         }
         
         renderAllPlanCards();
