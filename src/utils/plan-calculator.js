@@ -10,6 +10,7 @@ import { distributeChaptersOverReadingDays } from './chapter-helpers.js';
 import { getEffectiveDateForDay } from './plan-logic-helpers.js';
 
 /**
+ * [NOVA FUNÇÃO PRIVADA]
  * Agrega todos os capítulos lidos do log de leitura de um plano.
  * Esta função é privada ao módulo e garante que a contagem de capítulos lidos seja precisa.
  * @private
@@ -30,6 +31,7 @@ function _getChaptersFromLog(plan) {
 }
 
 /**
+ * [FUNÇÃO MODIFICADA]
  * Recalcula um plano para terminar em uma data final específica.
  * Esta é a função central do módulo.
  * @param {object} plan - O objeto do plano original.
@@ -39,11 +41,13 @@ function _getChaptersFromLog(plan) {
  * e o novo ritmo (caps/dia), ou null se o recálculo for impossível.
  */
 export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
-    // 1. CORREÇÃO: Obtém um Set com os capítulos exatos que foram lidos a partir do log.
+    // --- INÍCIO DA ALTERAÇÃO: Lógica de capítulos restantes corrigida ---
+    // 1. Obtém um Set com os capítulos exatos que foram lidos a partir do log.
     const chaptersReadSet = _getChaptersFromLog(plan);
     
-    // 2. CORREÇÃO: Filtra a lista de capítulos original para obter apenas os que realmente faltam.
+    // 2. Filtra a lista de capítulos original para obter apenas os que realmente faltam.
     const remainingChapters = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter));
+    // --- FIM DA ALTERAÇÃO ---
 
     if (remainingChapters.length === 0) {
         // O plano já foi concluído, não há o que recalcular. Retorna o plano como está.
@@ -84,15 +88,15 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
         recalculationBaseDay: plan.currentDay,
         recalculationBaseDate: todayStr,
     };
-
-    // --- INÍCIO DA ADIÇÃO DO LOG ---
+    
+    // Log de diagnóstico mantido para consistência
     console.log('[DIAGNÓSTICO 1/4] plan-calculator.js: Objeto do plano pronto para ser retornado. Verifique a "endDate".', JSON.parse(JSON.stringify(updatedPlan)));
-    // --- FIM DA ADIÇÃO DO LOG ---
 
     return { recalculatedPlan: updatedPlan, newPace };
 }
 
 /**
+ * [FUNÇÃO MODIFICADA]
  * Calcula a data de término de um plano com base em um ritmo específico (caps/dia).
  * @param {object} plan - O objeto do plano original.
  * @param {number} pace - O ritmo desejado (capítulos por dia de leitura).
@@ -102,9 +106,10 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
 export function calculateEndDateFromPace(plan, pace, todayStr) {
     if (!pace || pace < 0) return null;
 
-    // CORREÇÃO: Usa o mesmo método robusto para encontrar os capítulos restantes.
+    // --- INÍCIO DA ALTERAÇÃO: Lógica de contagem de capítulos restantes corrigida ---
     const chaptersReadSet = _getChaptersFromLog(plan);
     const remainingChaptersCount = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter)).length;
+    // --- FIM DA ALTERAÇÃO ---
     
     if (remainingChaptersCount <= 0) return plan.endDate; // Já concluído.
 
