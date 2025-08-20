@@ -7,7 +7,7 @@
  * a comunicação entre os serviços (Firebase) e os módulos de UI.
  */
 
-// --- 1. IMPORTAÇÕES DE MÓDulos ---
+// --- 1. IMPORTAÇÕES DE MÓDULOS ---
 
 // Serviços (Comunicação com o Backend)
 import * as authService from './services/authService.js';
@@ -147,7 +147,6 @@ function renderAllPlanCards() {
                 // Calcula quantos DIAS DE LEITURA (sessões) faltam com base no ritmo
                 const remainingReadingDays = Math.ceil(remainingChapters / avgPace);
                 
-                // --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) ---
                 // Determina a data de início correta para a projeção.
                 // Deve ser a data de hoje ou a data base do recálculo, o que for mais recente.
                 let projectionStartDate = todayStr;
@@ -166,7 +165,6 @@ function renderAllPlanCards() {
                 
                 // Calcula a data de término projetada a partir da base correta.
                 const forecastDateStr = getEffectiveDateForDay(projectionPlan, remainingReadingDays);
-                // --- FIM DA ALTERAÇÃO (PRIORIDADE 1) ---
                 
                 let colorClass = 'forecast-neutral';
                 if (forecastDateStr && plan.endDate) {
@@ -613,9 +611,15 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
     }
 }
 
+/**
+ * [FUNÇÃO MODIFICADA]
+ * Lida com o evento de clique do botão de confirmação do recálculo.
+ */
 async function handleRecalculate(option, newPaceValue, startDateOption, specificDate) {
     const planId = document.getElementById('confirm-recalculate').dataset.planId;
     if (!appState.currentUser || !planId) return;
+
+    console.log(`[DIAGNÓSTICO 0/4] main.js: Iniciando processo de recálculo para o plano ID: ${planId}`);
     
     modalsUI.showLoading('recalculate-modal');
     modalsUI.hideError('recalculate-modal');
@@ -624,9 +628,10 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         const originalPlan = appState.userPlans.find(p => p.id === planId);
         let baseDateForCalc = getCurrentUTCDateString();
         
-        // --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) ---
+        // --- INÍCIO DA ALTERAÇÃO: Lógica de data de início corrigida ---
         switch (startDateOption) {
             case 'next_reading_day':
+                // Calcula a data do próximo dia de leitura válido a partir de hoje
                 baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
                 break;
             case 'specific_date':
@@ -637,9 +642,10 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
                 break;
             case 'today':
             default:
+                // 'baseDateForCalc' já é 'hoje', nenhuma ação necessária
                 break;
         }
-        // --- FIM DA ALTERAÇÃO (PRIORIDADE 1) ---
+        // --- FIM DA ALTERAÇÃO ---
 
         if (!baseDateForCalc) {
             throw new Error("Não foi possível determinar a data de início para o recálculo.");
@@ -668,6 +674,8 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
 
         const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc);
 
+        console.log('[DIAGNÓSTICO 2/4] main.js: Resultado recebido do plan-calculator. Verifique a "endDate".', JSON.parse(JSON.stringify(result)));
+
         if (!result) {
             const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
             throw new Error(`O plano não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima ou inválida.`);
@@ -692,6 +700,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         const planIndex = appState.userPlans.findIndex(p => p.id === planId);
         if (planIndex !== -1) {
             appState.userPlans[planIndex] = { ...recalculatedPlan, id: planId };
+            console.log(`[DIAGNÓSTICO 4/4] main.js: Estado local (appState) foi atualizado. Renderização será chamada agora com estes dados.`);
         }
         
         renderAllPlanCards();
@@ -839,7 +848,6 @@ function handleShowStats(planId) {
     
     const recalculationsCount = plan.recalculationHistory?.length || 0;
     
-    // --- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) ---
     let forecastDateStr = '--';
     if (!isCompleted && avgPace > 0) {
         const remainingChapters = plan.totalChapters - chaptersReadFromLog;
@@ -863,7 +871,6 @@ function handleShowStats(planId) {
             forecastDateStr = formatUTCDateStringToBrasilian(forecastDate);
         }
     }
-    // --- FIM DA ALTERAÇÃO (PRIORIDADE 1) ---
 
     const chartData = { idealLine: [], actualProgress: [] };
     const originalEndDate = getEffectiveDateForDay({ startDate: plan.startDate, allowedDays: plan.allowedDays }, Object.keys(plan.plan).length);
