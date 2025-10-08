@@ -30,6 +30,11 @@
 
         <!-- Área de Status do Usuário -->
         <div id="user-status" class="user-status-container">
+            <!-- ***** Card de Versão (NOVO) ***** -->
+            <div id="version-card" class="version-card" style="display: none;" title="Ver novidades da versão">
+                <!-- O conteúdo será preenchido via JS -->
+            </div>
+            <!-- ********************************* -->
             <span id="user-email" style="display: none;"></span>
             <button id="logout-button" class="button-danger" style="display: none;">Sair</button>
         </div>
@@ -372,6 +377,18 @@
             </div>
         </div>
         <!-- FIM DA ALTERAÇÃO (PRIORIDADE 1) -->
+
+        <!-- ***** Modal de Versão (NOVO) ***** -->
+        <div id="version-modal" class="modal" style="display: none;">
+            <div class="modal-content modal-content-scrollable">
+                <span class="close-button">×</span>
+                <h2 id="version-modal-title">Novidades da Versão</h2>
+                <div id="version-modal-content" class="version-changelog">
+                    <!-- O conteúdo do changelog será inserido aqui pelo JavaScript -->
+                </div>
+            </div>
+        </div>
+        <!-- ********************************** -->
 
     </main>
 
