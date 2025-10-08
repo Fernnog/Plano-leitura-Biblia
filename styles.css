@@ -1120,6 +1120,55 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 }
 /* --- FIM DA ADIÇÃO --- */
 
+/* 
+================================================================================
+  INÍCIO: NOVOS ESTILOS PARA CARD DE VERSÃO E MODAL
+================================================================================
+*/
+.version-card {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-color-light);
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.version-card:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.version-changelog {
+    margin-top: 20px;
+    text-align: left;
+}
+
+.changelog-item {
+    margin-bottom: 18px;
+    padding-left: 15px;
+    border-left: 3px solid var(--border-color);
+}
+
+.changelog-item strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--primary-action);
+}
+
+.changelog-item p {
+    margin: 0;
+    color: var(--text-color-muted);
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+/* --- FIM DA ADIÇÃO --- */
+
 /* --- Media Queries (Ajustes Responsivos) --- */
 @media (max-width: 768px) {
      main { max-width: 100%; }
