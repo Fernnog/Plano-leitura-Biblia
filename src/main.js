@@ -39,6 +39,7 @@ import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays, form
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
+import { APP_VERSION, VERSION_CHANGELOG } from './config/app-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
 import * as planCalculator from './utils/plan-calculator.js';
 
@@ -962,7 +963,10 @@ function initApplication() {
     authService.onAuthStateChanged(handleAuthStateChange);
 
     authUI.init({ onLogin: handleLogin, onSignup: handleSignup });
-    headerUI.init({ onLogout: handleLogout });
+    headerUI.init({
+        onLogout: handleLogout,
+        onShowVersionInfo: () => modalsUI.displayVersionInfo(APP_VERSION, VERSION_CHANGELOG)
+    });
     
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
     createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
