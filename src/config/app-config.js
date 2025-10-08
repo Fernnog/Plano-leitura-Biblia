@@ -11,18 +11,14 @@ export const APP_VERSION = '1.0.1';
 export const VERSION_CHANGELOG = [
     {
         type: 'NOVO ✨',
-        description: 'Adicionado um explorador interativo da Bíblia para visualizar quais livros e capítulos estão em seus planos.'
+        description: 'Introduzido o sistema de versionamento e o modal de "Novidades da Versão" para comunicar futuras atualizações.'
     },
     {
         type: 'MELHORIA 🚀',
-        description: 'Implementado o "Quadro de Carga Semanal" que permite rebalancear os planos de leitura entre os dias da semana com Drag & Drop.'
-    },
-    {
-        type: 'MELHORIA 🚀',
-        description: 'Adicionada a funcionalidade de sincronizar as datas de término de múltiplos planos.'
+        description: 'Centralizadas as configurações de versão em um novo arquivo (`app-config.js`) para facilitar manutenções futuras.'
     },
     {
         type: 'CORREÇÃO 🐞',
-        description: 'Corrigida a lógica de contagem de capítulos restantes para recálculos e previsões mais precisas.'
+        description: 'Corrigida a exibição do número da versão, que não estava aparecendo no novo card do cabeçalho.'
     }
 ];
