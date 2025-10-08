@@ -40,19 +40,22 @@ export function init(callbacks) {
  * Renderiza o cabeçalho com base no estado de autenticação do usuário.
  * @param {object|null} user - O objeto do usuário do Firebase, ou null se deslogado.
  */
-export function render(user) {
+export function render(user, version) {
     if (user) {
-        // --- Estado Logado ---
         userEmailSpan.textContent = user.email;
-        userEmailSpan.style.display = 'inline';
+        userEmailSpan.style.display = 'inline-block';
         logoutButton.style.display = 'inline-block';
-        versionCard.style.display = 'flex'; // Mostra o card de versão
+
+        // ADIÇÃO: Preenche o card com o número da versão e o exibe
+        if (version) {
+            versionCard.textContent = `v${version}`;
+            versionCard.style.display = 'flex';
+        }
+
     } else {
-        // --- Estado Deslogado ---
         userEmailSpan.style.display = 'none';
         logoutButton.style.display = 'none';
-        userEmailSpan.textContent = '';
-        versionCard.style.display = 'none'; // Esconde o card de versão
+        versionCard.style.display = 'none'; // Garante que ele suma ao deslogar
     }
 }
 
