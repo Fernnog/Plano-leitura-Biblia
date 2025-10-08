@@ -21,7 +21,9 @@ import {
     // Explorador da Bíblia
     bibleExplorerModal, explorerGridView, explorerBookGrid,
     explorerDetailView, explorerBackButton, explorerDetailTitle,
-    explorerChapterList
+    explorerChapterList,
+    // Versão (NOVO)
+    versionModal, versionModalTitle, versionModalContent
 } from './dom-elements.js';
 
 // Importa funções e dados auxiliares
@@ -42,7 +44,7 @@ let state = {
 
 // Adiciona todos os modais à lista de gerenciamento
 const allModals = [
-    recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal
+    recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal, versionModal
 ];
 
 // --- Variável para armazenar a instância do gráfico e evitar duplicatas ---
@@ -156,6 +158,32 @@ export function hideError(modalId) {
 
 
 // --- Funções Específicas de População de Conteúdo ---
+
+/**
+ * Exibe as informações da versão e changelog no novo modal.
+ * @param {string} version - A string da versão atual (ex: '1.0.1').
+ * @param {Array<object>} changelog - Um array com os itens do log de alterações.
+ */
+export function displayVersionInfo(version, changelog) {
+    versionModalTitle.innerHTML = `Novidades da Versão ${version}`;
+    versionModalContent.innerHTML = ''; // Limpa o conteúdo anterior
+
+    if (changelog && changelog.length > 0) {
+        changelog.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'changelog-item';
+            itemEl.innerHTML = `
+                <strong>${item.type}</strong>
+                <p>${item.description}</p>
+            `;
+            versionModalContent.appendChild(itemEl);
+        });
+    } else {
+        versionModalContent.innerHTML = '<p>Nenhuma novidade específica para esta versão.</p>';
+    }
+
+    open('version-modal');
+}
 
 /**
  * Exibe os dados de histórico de leitura no modal correspondente.
