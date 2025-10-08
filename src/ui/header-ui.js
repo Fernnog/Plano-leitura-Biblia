@@ -9,12 +9,14 @@ import {
     headerLogo,
     userEmailSpan,
     logoutButton,
+    versionCard // Adicionado para a nova funcionalidade
 } from './dom-elements.js';
 
 // --- Estado Interno e Callbacks ---
 let state = {
     callbacks: {
         onLogout: null,
+        onShowVersionInfo: null, // Adicionado para a nova funcionalidade
     },
 };
 
@@ -22,13 +24,16 @@ let state = {
 
 /**
  * Inicializa o módulo de UI do cabeçalho, configurando os listeners de eventos.
- * @param {object} callbacks - Objeto contendo o callback { onLogout }.
+ * @param {object} callbacks - Objeto contendo os callbacks { onLogout, onShowVersionInfo }.
  */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
     // O único evento que o header agora gerencia é o de logout.
     logoutButton.addEventListener('click', () => state.callbacks.onLogout?.());
+
+    // Adicionado o listener para o card de versão
+    versionCard.addEventListener('click', () => state.callbacks.onShowVersionInfo?.());
 }
 
 /**
@@ -41,11 +46,13 @@ export function render(user) {
         userEmailSpan.textContent = user.email;
         userEmailSpan.style.display = 'inline';
         logoutButton.style.display = 'inline-block';
+        versionCard.style.display = 'flex'; // Mostra o card de versão
     } else {
         // --- Estado Deslogado ---
         userEmailSpan.style.display = 'none';
         logoutButton.style.display = 'none';
         userEmailSpan.textContent = '';
+        versionCard.style.display = 'none'; // Esconde o card de versão
     }
 }
 
