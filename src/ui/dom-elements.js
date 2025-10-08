@@ -152,3 +152,9 @@ export const planReassessmentSection = document.getElementById('plan-reassessmen
 export const closeReassessmentButton = document.getElementById('close-reassessment-button');
 export const reassessmentGrid = document.getElementById('reassessment-grid');
 export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
+
+// --- Elementos do Card de Versão e Modal (NOVO) ---
+export const versionCard = document.getElementById('version-card');
+export const versionModal = document.getElementById('version-modal');
+export const versionModalTitle = document.getElementById('version-modal-title');
+export const versionModalContent = document.getElementById('version-modal-content');
