@@ -1,100 +1,160 @@
-// --- START OF FILE modules/dom-elements.js (COMPLETO E MODIFICADO) ---
+/**
+ * @file dom-elements.js
+ * @description Centraliza a seleção de todos os elementos do DOM utilizados pela aplicação.
+ * Cada elemento é exportado como uma constante para ser importado e utilizado por outros módulos de UI.
+ * Isso desacopla a lógica da aplicação da estrutura do HTML.
+ */
 
-// modules/dom-elements.js
-// RESPONSABILIDADE ÚNICA: Selecionar e exportar todos os elementos do DOM
-// que a aplicação precisa para interagir.
-
-// --- Seções e Layout ---
-export const cadastroPlanoSection = document.getElementById('cadastro-plano');
-export const planosLeituraSection = document.getElementById('planos-leitura');
-export const listaPlanos = document.getElementById('lista-planos');
-export const paginadorPlanosDiv = document.getElementById('paginador-planos');
-export const proximasLeiturasSection = document.getElementById('proximas-leituras-section');
-export const listaProximasLeiturasDiv = document.getElementById('lista-proximas-leituras');
-export const semProximasLeiturasP = document.getElementById('sem-proximas-leituras');
-export const leiturasAtrasadasSection = document.getElementById('leituras-atrasadas-section');
-export const listaLeiturasAtrasadasDiv = document.getElementById('lista-leitures-atrasadas');
-export const semLeiturasAtrasadasP = document.getElementById('sem-leituras-atrasadas');
-export const planosPausadosSection = document.getElementById('planos-pausados-section');
-export const listaPlanosPausadosDiv = document.getElementById('lista-planos-pausados');
-export const semPlanosPausadosP = document.getElementById('sem-planos-pausados');
-
-
-// --- Header e Botões de Ação ---
-export const novoPlanoBtn = document.getElementById('novo-plano');
-export const inicioBtn = document.getElementById('inicio');
-export const exportarAgendaBtn = document.getElementById('exportar-agenda');
-export const inicioCadastroBtn = document.getElementById('inicio-cadastro');
-export const reavaliarCargaBtn = document.getElementById('reavaliar-carga-btn');
-
-// --- Autenticação ---
-export const authFormDiv = document.getElementById('auth-form');
-export const showAuthButton = document.getElementById('show-auth-button');
-export const cancelAuthButton = document.getElementById('cancel-auth-button');
-export const loginEmailButton = document.getElementById('login-email-button');
-export const signupEmailButton = document.getElementById('signup-email-button');
-export const emailLoginInput = document.getElementById('email-login');
-export const passwordLoginInput = document.getElementById('password-login');
+// --- Header e Navegação Principal ---
+export const headerLogo = document.getElementById('header-logo');
+export const headerContent = document.querySelector('.header-content');
+export const userStatusContainer = document.getElementById('user-status');
+export const userEmailSpan = document.getElementById('user-email');
 export const logoutButton = document.getElementById('logout-button');
 
-// --- INÍCIO DA MODIFICAÇÃO (Prioridade 1) ---
-// Info do Header
-export const versionInfoDiv = document.getElementById('version-info');
-export const userEmailInfoDiv = document.getElementById('user-email-info');
-export const userEmailDisplaySpan = document.getElementById('user-email-display');
+// --- Seção de Autenticação (Login/Cadastro) ---
+export const authSection = document.getElementById('auth-section');
+export const authErrorDiv = document.getElementById('auth-error');
+export const signupErrorDiv = document.getElementById('signup-error');
+export const authLoadingDiv = document.getElementById('auth-loading');
+export const loginForm = document.getElementById('login-form');
+export const loginEmailInput = document.getElementById('login-email');
+export const loginPasswordInput = document.getElementById('login-password');
+export const loginButton = document.getElementById('login-button');
+export const showSignupLink = document.getElementById('show-signup');
+export const signupForm = document.getElementById('signup-form');
+export const signupEmailInput = document.getElementById('signup-email');
+export const signupPasswordInput = document.getElementById('signup-password');
+export const signupButton = document.getElementById('signup-button');
+export const showLoginLink = document.getElementById('show-login');
 
-// Modal de Changelog
-export const changelogModal = document.getElementById('changelog-modal');
-export const changelogModalCloseBtn = document.getElementById('changelog-modal-close-btn');
-// --- FIM DA MODIFICAÇÃO ---
+// --- Ações e Formulário de Criação/Edição de Plano ---
+export const planCreationActionsSection = document.getElementById('plan-creation-actions');
+export const createNewPlanButton = document.getElementById('create-new-plan-button');
+export const createFavoritePlanButton = document.getElementById('create-favorite-plan-button');
 
-// --- Formulário de Cadastro/Edição de Plano ---
-export const formPlano = document.getElementById('form-plano');
-export const periodicidadeSelect = document.getElementById('periodicidade');
-export const diasSemanaSelecao = document.getElementById('dias-semana-selecao');
-export const definirPorDatasRadio = document.getElementById('definir-por-datas');
-export const definirPorDiasRadio = document.getElementById('definir-por-dias');
-export const definirPorPaginasRadio = document.getElementById('definir-por-paginas');
-export const periodoPorDatasDiv = document.getElementById('periodo-por-datas');
-export const periodoPorDiasDiv = document.getElementById('periodo-por-dias');
-export const periodoPorPaginasDiv = document.getElementById('periodo-por-paginas');
-export const dataInicio = document.getElementById('data-inicio');
-export const dataFim = document.getElementById('data-fim');
-export const dataInicioDias = document.getElementById('data-inicio-dias');
-export const numeroDias = document.getElementById('numero-dias');
-export const dataInicioPaginas = document.getElementById('data-inicio-paginas');
-export const paginasPorDiaInput = document.getElementById('paginas-por-dia');
-export const linkDriveInput = document.getElementById('link-drive');
-export const tituloLivroInput = document.getElementById('titulo-livro');
-export const paginaInicioInput = document.getElementById('pagina-inicio');
-export const paginaFimInput = document.getElementById('pagina-fim');
-export const estimativaDataFimP = document.getElementById('estimativa-data-fim');
+export const planCreationSection = document.getElementById('plan-creation');
+export const planCreationTitle = document.getElementById('plan-creation-title');
+export const editingPlanIdInput = document.getElementById('editing-plan-id');
+export const planErrorDiv = document.getElementById('plan-error');
+export const planLoadingCreateDiv = document.getElementById('plan-loading-create');
+export const planNameInput = document.getElementById('plan-name');
+export const googleDriveLinkInput = document.getElementById('google-drive-link');
+export const iconSelectorContainer = document.getElementById('icon-selector-container');
+export const planStructureFieldset = document.getElementById('plan-structure-fieldset');
+export const creationMethodRadios = document.querySelectorAll('input[name="creation-method"]');
+export const intervalOptionsDiv = document.getElementById('interval-options');
+export const startBookSelect = document.getElementById("start-book-select");
+export const startChapterInput = document.getElementById("start-chapter-input");
+export const endBookSelect = document.getElementById("end-book-select");
+export const endChapterInput = document.getElementById("end-chapter-input");
+export const selectionOptionsDiv = document.getElementById('selection-options');
+export const booksSelect = document.getElementById("books-select");
+export const chaptersInput = document.getElementById("chapters-input");
+export const bookSuggestionsDatalist = document.getElementById("book-suggestions");
+export const durationMethodRadios = document.querySelectorAll('input[name="duration-method"]');
+export const daysOptionDiv = document.getElementById('days-option');
+export const daysInput = document.getElementById("days-input");
+export const endDateOptionDiv = document.getElementById('end-date-option');
+export const startDateInput = document.getElementById('start-date-input');
+export const endDateInput = document.getElementById('end-date-input');
+export const chaptersPerDayOptionDiv = document.getElementById('chapters-per-day-option');
+export const chaptersPerDayInput = document.getElementById('chapters-per-day-input');
+export const periodicityOptions = document.getElementById('periodicity-options');
+export const periodicityCheckboxes = document.querySelectorAll('input[name="reading-day"]');
+export const periodicityWarningDiv = document.getElementById('periodicity-warning');
+export const createPlanButton = document.getElementById('create-plan');
+export const cancelCreationButton = document.getElementById('cancel-creation-button');
 
-// --- Modal de Reavaliação ---
-export const reavaliacaoModal = document.getElementById('reavaliacao-modal');
-export const fecharReavaliacaoBtn = document.getElementById('fechar-reavaliacao-btn');
-export const tabelaReavaliacaoBody = document.querySelector('#tabela-reavaliacao tbody');
-export const reavaliacaoLegenda = document.getElementById('reavaliacao-legenda');
+// --- Painel de Perseverança ---
+export const perseveranceSection = document.getElementById('perseverance-section');
+export const perseveranceHeader = perseveranceSection.querySelector('.perseverance-header');
+export const milestoneIconsArea = perseveranceSection.querySelector('.milestone-icons-area');
+export const perseveranceBarContainer = perseveranceSection.querySelector('.perseverance-bar-container');
+export const perseveranceProgressFill = document.getElementById('perseverance-progress-fill');
+export const currentDaysText = perseveranceSection.querySelector('.current-days-text');
+export const recordDaysText = perseveranceSection.querySelector('.record-days-text');
+export const milestoneLegend = perseveranceSection.querySelector('.milestone-legend');
 
-// --- Modal de Recálculo ---
-export const recalculoModal = document.getElementById('recalculo-modal');
-export const recalculoModalCloseBtn = document.getElementById('recalculo-modal-close-btn');
-export const cancelRecalculoBtn = document.getElementById('cancel-recalculo-btn');
-export const confirmRecalculoBtn = document.getElementById('confirm-recalculo-btn');
-export const novaDataFimInput = document.getElementById('nova-data-fim-input');
-export const recalculoPlanoTitulo = document.getElementById('recalculo-plano-titulo');
+// --- Painel de Progresso Semanal Global ---
+export const globalWeeklyTrackerSection = document.getElementById('global-weekly-tracker-section');
+export const globalWeekDaysIndicators = document.getElementById('global-week-days-indicators');
+export const globalDayIndicatorElements = document.querySelectorAll('#global-weekly-tracker-section .day-indicator');
 
-// --- Elementos do Modal de Recálculo Flexível ---
-export const recalculoPorDataRadio = document.getElementById('recalculo-por-data');
-export const recalculoPorPaginasRadio = document.getElementById('recalculo-por-paginas');
-export const recalculoOpcaoDataDiv = document.getElementById('recalculo-opcao-data');
-export const recalculoOpcaoPaginasDiv = document.getElementById('recalculo-opcao-paginas');
-export const novaPaginasPorDiaInput = document.getElementById('nova-paginas-por-dia-input');
+// --- Seções de Leituras Atrasadas e Próximas ---
+export const overdueReadingsSection = document.getElementById('overdue-readings');
+export const overdueReadingsLoadingDiv = document.getElementById('overdue-readings-loading');
+export const overdueReadingsListDiv = document.getElementById('overdue-readings-list');
+export const upcomingReadingsSection = document.getElementById('upcoming-readings');
+export const upcomingReadingsLoadingDiv = document.getElementById('upcoming-readings-loading');
+export const upcomingReadingsListDiv = document.getElementById('upcoming-readings-list');
 
-// --- Modal de Exportação de Agenda ---
-export const agendaModal = document.getElementById('agenda-modal');
-export const confirmAgendaExportBtn = document.getElementById('confirm-agenda-export');
-export const cancelAgendaExportBtn = document.getElementById('cancel-agenda-export'); 
-export const cancelAgendaExportBtnBottom = document.getElementById('cancel-agenda-export-btn');
-export const agendaStartTimeInput = document.getElementById('agenda-start-time');
-export const agendaEndTimeInput = document.getElementById('agenda-end-time');
+// --- Container de Exibição dos Planos ---
+export const plansDisplaySection = document.getElementById('plans-display-section');
+// NOTA: Os elementos internos de cada card de plano (título, progresso, etc.)
+// são criados e gerenciados dinamicamente pelo módulo `reading-plan-ui.js`.
+
+// --- Modais ---
+
+// Modal de Recálculo
+export const recalculateModal = document.getElementById('recalculate-modal');
+export const recalculateErrorDiv = document.getElementById('recalculate-error');
+export const recalculateLoadingDiv = document.getElementById('recalculate-loading');
+export const newPaceInput = document.getElementById('new-pace-input');
+export const confirmRecalculateButton = document.getElementById('confirm-recalculate');
+// INÍCIO DA ALTERAÇÃO: Adicionados os elementos para recálculo inteligente e preview (Prioridades 2 e 3)
+export const recalcSpecificDateInput = document.getElementById('recalc-specific-date-input'); // Elemento para data específica
+// FIM DA ALTERAÇÃO
+
+// Modal de Estatísticas
+export const statsModal = document.getElementById('stats-modal');
+export const statsLoadingDiv = document.getElementById('stats-loading');
+export const statsErrorDiv = document.getElementById('stats-error');
+export const statsContentDiv = document.getElementById('stats-content');
+export const statsActivePlanName = document.getElementById('stats-active-plan-name');
+export const statsActivePlanProgress = document.getElementById('stats-active-plan-progress');
+export const statsTotalChapters = document.getElementById('stats-total-chapters');
+export const statsPlansCompleted = document.getElementById('stats-plans-completed');
+export const statsAvgPace = document.getElementById('stats-avg-pace');
+
+// Modal de Histórico
+export const historyModal = document.getElementById('history-modal');
+export const historyLoadingDiv = document.getElementById('history-loading');
+export const historyErrorDiv = document.getElementById('history-error');
+export const historyListDiv = document.getElementById('history-list');
+
+// Modal de Sincronização
+export const syncModal = document.getElementById('sync-plans-modal');
+export const syncErrorDiv = document.getElementById('sync-error');
+export const syncLoadingDiv = document.getElementById('sync-loading');
+export const syncBasePlanSelect = document.getElementById('sync-base-plan-select');
+export const syncTargetDateDisplay = document.getElementById('sync-target-date-display');
+export const syncPlansToAdjustList = document.getElementById('sync-plans-to-adjust-list');
+export const confirmSyncButton = document.getElementById('confirm-sync-button');
+
+// Botão para abrir o explorador
+export const exploreBibleButton = document.getElementById('explore-bible-button');
+
+// Elementos do Modal do Explorador
+export const bibleExplorerModal = document.getElementById('bible-explorer-modal');
+export const explorerGridView = document.getElementById('explorer-grid-view');
+export const explorerBookGrid = document.getElementById('explorer-book-grid');
+export const explorerDetailView = document.getElementById('explorer-detail-view');
+export const explorerBackButton = document.getElementById('explorer-back-button');
+export const explorerDetailTitle = document.getElementById('explorer-detail-title');
+export const explorerChapterList = document.getElementById('explorer-chapter-list');
+
+
+// --- Seção de Reavaliação de Planos ---
+export const reassessPlansButton = document.getElementById('reassess-plans-button');
+export const syncPlansButton = document.getElementById('sync-plans-button');
+export const planReassessmentSection = document.getElementById('plan-reassessment-section');
+export const closeReassessmentButton = document.getElementById('close-reassessment-button');
+export const reassessmentGrid = document.getElementById('reassessment-grid');
+export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
+
+// --- Elementos do Card de Versão e Modal (NOVO) ---
+export const versionCard = document.getElementById('version-card');
+export const versionModal = document.getElementById('version-modal');
+export const versionModalTitle = document.getElementById('version-modal-title');
+export const versionModalContent = document.getElementById('version-modal-content');
