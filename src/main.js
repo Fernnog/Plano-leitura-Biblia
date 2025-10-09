@@ -86,7 +86,7 @@ async function handleAuthStateChange(user) {
         
         await loadInitialUserData(user);
 
-        headerUI.render(user); 
+        headerUI.render(user, APP_VERSION); 
         planCreationActionsSection.style.display = 'flex';
         
         perseverancePanelUI.render(appState.userInfo);
