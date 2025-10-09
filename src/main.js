@@ -1,1034 +1,392 @@
-// src/main.js
+// --- START OF FILE main.js (COMPLETO E MODIFICADO) ---
 
-/**
- * @file main.js
- * @description Ponto de entrada principal e orquestrador da aplicação.
- * Gerencia o estado da aplicação, lida com a lógica de negócios e coordena
- * a comunicação entre os serviços (Firebase) e os módulos de UI.
- */
+// main.js - O Orquestrador da Aplicação
 
-// --- 1. IMPORTAÇÕES DE MÓDULOS ---
+// --- Importações dos Módulos ---
+import * as DOMElements from './modules/dom-elements.js';
+import * as state from './modules/state.js';
+import * as authService from './modules/auth.js';
+import * as firestoreService from './modules/firestore-service.js';
+import * as ui from './modules/ui.js';
+import * as planoLogic from './modules/plano-logic.js';
+import * as formHandler from './modules/form-handler.js';
 
-// Serviços (Comunicação com o Backend)
-import * as authService from './services/authService.js';
-import * as planService from './services/planService.js';
+// --- Inicialização da Aplicação ---
+document.addEventListener('DOMContentLoaded', initApp);
 
-// Módulos de UI (Manipulação do DOM)
-import * as authUI from './ui/auth-ui.js';
-import * as headerUI from './ui/header-ui.js';
-import * as modalsUI from './ui/modals-ui.js';
-import * as planCreationUI from './ui/plan-creation-ui.js';
-import * as perseverancePanelUI from './ui/perseverance-panel-ui.js';
-import * as weeklyTrackerUI from './ui/weekly-tracker-ui.js';
-import * as readingPlanUI from './ui/reading-plan-ui.js';
-import * as sidePanelsUI from './ui/side-panels-ui.js';
-import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
-import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
-
-// Helpers e Configurações
-import {
-    generateChaptersInRange,
-    parseChaptersInput,
-    generateChaptersForBookList,
-    generateIntercalatedChapters,
-    distributeChaptersOverReadingDays,
-    sortChaptersCanonically,
-    summarizeChaptersByBook
-} from './utils/chapter-helpers.js';
-import { getCurrentUTCDateString, dateDiffInDays, getUTCWeekId, addUTCDays, formatUTCDateStringToBrasilian, countReadingDaysBetween } from './utils/date-helpers.js';
-import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
-import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
-import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
-import { APP_VERSION, VERSION_CHANGELOG } from './config/app-config.js';
-import { buildPlanFromFormData } from './utils/plan-builder.js';
-import * as planCalculator from './utils/plan-calculator.js';
-
-// Elementos do DOM para ações principais
-import {
-    planCreationActionsSection,
-    createNewPlanButton,
-    createFavoritePlanButton,
-    reassessPlansButton,
-    exploreBibleButton, // Botão para a nova funcionalidade
-    planStructureFieldset
-} from './ui/dom-elements.js';
-
-
-// --- 2. ESTADO DA APLICAÇÃO ---
-
-const appState = {
-    currentUser: null,
-    userInfo: null,
-    userPlans: [],
-    activePlanId: null,
-    
-    get weeklyInteractions() {
-        return this.userInfo ? this.userInfo.globalWeeklyInteractions : null;
-    },
-
-    reset() {
-        this.currentUser = null;
-        this.userInfo = null;
-        this.userPlans = [];
-        this.activePlanId = null;
-    }
-};
-
-
-// --- 3. ORQUESTRADOR PRINCIPAL E LÓGICA DE NEGÓCIOS ---
-
-async function handleAuthStateChange(user) {
-    authUI.hideLoading(); 
-    if (user) {
-        appState.currentUser = user;
-        authUI.hide();
-        headerUI.showLoading();
-        
-        await loadInitialUserData(user);
-
-        headerUI.render(user, APP_VERSION);
-        planCreationActionsSection.style.display = 'flex';
-        
-        perseverancePanelUI.render(appState.userInfo);
-        weeklyTrackerUI.render(appState.weeklyInteractions);
-
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        
-        renderAllPlanCards();
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-        
-        if (appState.userPlans.length === 0) {
-            handleCreateNewPlanRequest();
-        }
-
-    } else {
-        appState.reset();
-        authUI.show();
-        headerUI.render(null);
-        planCreationActionsSection.style.display = 'none';
-        readingPlanUI.hide();
-        planCreationUI.hide();
-        planReassessmentUI.hide();
-        perseverancePanelUI.hide();
-        weeklyTrackerUI.hide();
-        sidePanelsUI.hide();
-        floatingNavigatorUI.hide();
-    }
+function initApp() {
+    console.log("[Main] DOM pronto. Iniciando aplicação modularizada.");
+    ui.registerServiceWorker();
+    setupEventHandlers();
+    formHandler.init(); 
+    authService.setupAuthStateObserver(handleAuthStateChange);
 }
 
-function renderAllPlanCards() {
-    const effectiveDatesMap = {};
-    const forecastsMap = {};
-    const todayStr = getCurrentUTCDateString(); // Pega a data de hoje para projeção
-
-    appState.userPlans.forEach(plan => {
-         effectiveDatesMap[plan.id] = getEffectiveDateForDay(plan, plan.currentDay);
-
-        const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-        const isCompleted = plan.currentDay > totalReadingDaysInPlan;
-        
-        if (!isCompleted) {
-            const logEntries = plan.readLog || {};
-            const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0);
-            
-            // Para calcular o ritmo, consideramos os dias em que houve leituras registradas
-            const daysWithReading = Object.keys(logEntries).filter(date => Array.isArray(logEntries[date]) && logEntries[date].length > 0).length;
-            const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
-
-            if (avgPace > 0) {
-                const remainingChapters = plan.totalChapters - chaptersReadFromLog;
-                // Calcula quantos DIAS DE LEITURA (sessões) faltam com base no ritmo
-                const remainingReadingDays = Math.ceil(remainingChapters / avgPace);
-                
-                // Determina a data de início correta para a projeção.
-                // Deve ser a data de hoje ou a data base do recálculo, o que for mais recente.
-                let projectionStartDate = todayStr;
-                if (plan.recalculationBaseDate && plan.recalculationBaseDate > todayStr) {
-                    projectionStartDate = plan.recalculationBaseDate;
-                }
-                
-                // Monta um objeto de "plano de projeção" simples para a função de cálculo.
-                const projectionPlan = {
-                    startDate: projectionStartDate,
-                    allowedDays: plan.allowedDays,
-                    // A projeção é limpa, não precisa de dados de recálculo internos.
-                    recalculationBaseDate: null, 
-                    recalculationBaseDay: null
-                };
-                
-                // Calcula a data de término projetada a partir da base correta.
-                const forecastDateStr = getEffectiveDateForDay(projectionPlan, remainingReadingDays);
-                
-                let colorClass = 'forecast-neutral';
-                if (forecastDateStr && plan.endDate) {
-                    if (forecastDateStr < plan.endDate) {
-                        colorClass = 'forecast-ahead';
-                    } else if (forecastDateStr > plan.endDate) {
-                        colorClass = 'forecast-behind';
-                    }
-                }
-                
-                forecastsMap[plan.id] = { forecastDateStr, colorClass };
-            }
+// --- Gerenciamento Central de Autenticação ---
+async function handleAuthStateChange(firebaseUser) {
+    state.setUser(firebaseUser);
+    
+    ui.toggleLoading(true);
+    if (state.getCurrentUser()) {
+        try {
+            const planosCarregados = await firestoreService.carregarPlanos(state.getCurrentUser());
+            state.setPlanos(planosCarregados);
+        } catch (error) {
+            console.error(error);
+            alert("Falha ao carregar seus dados. Verifique sua conexão e tente recarregar a página.");
         }
+    } else {
+        state.setPlanos([]);
+    }
+    
+    ui.renderApp(state.getPlanos(), state.getCurrentUser());
+    ui.toggleLoading(false);
+}
+
+// --- Configuração dos Ouvintes de Eventos (Event Listeners) ---
+function setupEventHandlers() {
+    // Autenticação
+    DOMElements.loginEmailButton.addEventListener('click', handleLogin);
+    DOMElements.signupEmailButton.addEventListener('click', handleSignup);
+    DOMElements.logoutButton.addEventListener('click', handleLogout);
+    DOMElements.showAuthButton.addEventListener('click', ui.showAuthForm);
+    DOMElements.cancelAuthButton.addEventListener('click', ui.hideAuthForm);
+
+    // Navegação Principal
+    DOMElements.novoPlanoBtn.addEventListener('click', () => ui.showCadastroForm());
+    DOMElements.inicioBtn.addEventListener('click', () => ui.showPlanosList(state.getPlanos(), state.getCurrentUser()));
+    DOMElements.inicioCadastroBtn.addEventListener('click', () => ui.showPlanosList(state.getPlanos(), state.getCurrentUser()));
+    
+    // Formulário de Plano
+    DOMElements.formPlano.addEventListener('submit', handleFormSubmit);
+
+    // Ações nos Cards (Event Delegation)
+    DOMElements.listaPlanos.addEventListener('click', handleCardAction);
+
+    // Modal de Reavaliação de Carga
+    DOMElements.reavaliarCargaBtn.addEventListener('click', handleReavaliarCarga);
+    DOMElements.fecharReavaliacaoBtn.addEventListener('click', ui.hideReavaliacaoModal);
+    
+    // Listener para o modal que lida com o fechamento do overlay e ações internas
+    DOMElements.reavaliacaoModal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.reavaliacaoModal) {
+            ui.hideReavaliacaoModal();
+            return;
+        }
+        handleModalReavaliacaoAction(e); // Delega ações internas para o handler
     });
     
-    readingPlanUI.renderAllPlanCards(appState.userPlans, appState.activePlanId, effectiveDatesMap, forecastsMap);
+    // Modal de Recálculo
+    DOMElements.confirmRecalculoBtn.addEventListener('click', handleConfirmRecalculo);
+    DOMElements.recalculoModalCloseBtn.addEventListener('click', ui.hideRecalculoModal);
+    DOMElements.cancelRecalculoBtn.addEventListener('click', ui.hideRecalculoModal);
+    DOMElements.recalculoModal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.recalculoModal) ui.hideRecalculoModal();
+    });
+
+    // Exportação para Agenda
+    DOMElements.exportarAgendaBtn.addEventListener('click', ui.showAgendaModal);
+    DOMElements.confirmAgendaExportBtn.addEventListener('click', handleAgendaExport);
+    DOMElements.cancelAgendaExportBtn.addEventListener('click', ui.hideAgendaModal);
+    DOMElements.cancelAgendaExportBtnBottom.addEventListener('click', ui.hideAgendaModal);
+    DOMElements.agendaModal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.agendaModal) ui.hideAgendaModal();
+    });
+
+    // NOVA LÓGICA para o Modal de Changelog
+    DOMElements.versionInfoDiv.addEventListener('click', ui.showChangelogModal);
+    DOMElements.changelogModalCloseBtn.addEventListener('click', ui.hideChangelogModal);
+    DOMElements.changelogModal.addEventListener('click', (e) => {
+        if (e.target === DOMElements.changelogModal) ui.hideChangelogModal();
+    });
 }
 
-async function loadInitialUserData(user) {
+
+// --- Manipuladores de Ações de Autenticação e Formulário (Handlers) ---
+
+async function handleLogin() {
     try {
-        appState.userInfo = await planService.fetchUserInfo(user.uid, user.email);
-        
-        const streakUpdates = verifyAndResetStreak(appState.userInfo);
-        if (streakUpdates) {
-            await planService.updateUserInteractions(user.uid, streakUpdates);
-            appState.userInfo.currentStreak = 0;
-        }
-
-        appState.userPlans = await planService.fetchUserPlans(user.uid);
-        appState.activePlanId = appState.userInfo.activePlanId;
-
+        const email = DOMElements.emailLoginInput.value;
+        const password = DOMElements.passwordLoginInput.value;
+        await authService.loginWithEmailPassword(email, password);
     } catch (error) {
-        console.error("Erro ao carregar dados iniciais do usuário:", error);
-        alert(`Falha ao carregar dados: ${error.message}`);
-    } finally {
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        headerUI.hideLoading();
+        console.error('[Main] Erro no login:', error);
+        alert('Erro ao fazer login: ' + error.message);
     }
 }
-
-function verifyAndResetStreak(userInfo) {
-    const todayStr = getCurrentUTCDateString();
-    const { lastStreakInteractionDate, currentStreak } = userInfo;
-
-    if (currentStreak === 0 || !lastStreakInteractionDate || lastStreakInteractionDate === todayStr) {
-        return null;
-    }
-
-    const daysSinceLastInteraction = dateDiffInDays(lastStreakInteractionDate, todayStr);
-    if (daysSinceLastInteraction > 1) {
-        return { currentStreak: 0 };
-    }
-    return null;
-}
-
-async function handleLogin(email, password) {
-    authUI.showLoading();
+async function handleSignup() {
     try {
-        await authService.login(email, password);
+        const email = DOMElements.emailLoginInput.value;
+        const password = DOMElements.passwordLoginInput.value;
+        await authService.signupWithEmailPassword(email, password);
+        alert('Cadastro realizado com sucesso! Agora você pode fazer login.');
+        ui.hideAuthForm();
     } catch (error) {
-        authUI.hideLoading();
-        authUI.showLoginError(`Erro de login: ${error.message}`);
+        console.error('[Main] Erro no cadastro:', error);
+        alert('Erro ao cadastrar: ' + error.message);
     }
 }
-
-async function handleSignup(email, password) {
-    authUI.showLoading();
-    try {
-        await authService.signup(email, password);
-        alert("Cadastro realizado com sucesso! Você já está logado.");
-    } catch (error) {
-        authUI.hideLoading();
-        authUI.showSignupError(`Erro de cadastro: ${error.message}`);
-    }
-}
-
 async function handleLogout() {
     try {
         await authService.logout();
     } catch (error) {
-        alert(`Erro ao sair: ${error.message}`);
+        console.error('[Main] Erro no logout:', error);
+        alert('Erro ao sair: ' + error.message);
     }
 }
 
-async function handleSwitchPlan(planId) {
-    if (!appState.currentUser || planId === appState.activePlanId) {
-        const targetElement = document.getElementById(`plan-card-${planId}`);
-        targetElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+async function handleFormSubmit(event) {
+    event.preventDefault();
+    const currentUser = state.getCurrentUser();
+    if (!currentUser) {
+        alert("Você precisa estar logado para salvar um plano.");
         return;
     }
 
     try {
-        await planService.setActivePlan(appState.currentUser.uid, planId);
-        const oldActivePlanId = appState.activePlanId;
-        appState.activePlanId = planId;
-        const oldActiveCard = document.querySelector(`.plan-card[data-plan-id="${oldActivePlanId}"]`);
-        if (oldActiveCard) {
-            oldActiveCard.classList.remove('active-plan');
-        }
-        const newActiveCard = document.getElementById(`plan-card-${planId}`);
-        if (newActiveCard) {
-            newActiveCard.classList.add('active-plan');
-        }
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-        requestAnimationFrame(() => {
-            newActiveCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-
-    } catch (error) {
-        console.error("Erro ao trocar de plano:", error);
-        alert(`Erro ao ativar plano: ${error.message}`);
-        await loadInitialUserData(appState.currentUser);
-        renderAllPlanCards();
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-    }
-}
-
-function handleCreateNewPlanRequest() {
-    readingPlanUI.hide();
-    sidePanelsUI.hide();
-    planCreationActionsSection.style.display = 'none';
-    floatingNavigatorUI.hide();
-    planReassessmentUI.hide();
-    perseverancePanelUI.hide();
-    weeklyTrackerUI.hide();
-    planCreationUI.show(appState.userPlans.length === 0);
-}
-
-function handleCancelPlanCreation() {
-    planCreationUI.hide();
-    planReassessmentUI.hide();
-    
-    planCreationActionsSection.style.display = 'flex';
-    readingPlanUI.show();
-    floatingNavigatorUI.show();
-    
-    perseverancePanelUI.render(appState.userInfo);
-    weeklyTrackerUI.render(appState.weeklyInteractions);
-
-    sidePanelsUI.render(appState.userPlans, {
-        onSwitchPlan: handleSwitchPlan,
-        onRecalculate: (planId) => {
-            modalsUI.resetRecalculateForm();
-            const confirmBtn = document.getElementById('confirm-recalculate');
-            confirmBtn.dataset.planId = planId;
-            modalsUI.open('recalculate-modal');
-        }
-    });
-}
-
-async function handlePlanSubmit(formData, planId, isReassessing) {
-    planCreationUI.showLoading();
+        const formData = ui.getFormData(); 
+        const planoData = planoLogic.construirObjetoPlano(formData, state.getPlanoByIndex(state.getPlanoEditandoIndex()));
+        planoLogic.distribuirPaginasPlano(planoData);
         
-    try {
-        if (planId) {
-            let updatedData = {};
-            
-            if (isReassessing) {
-                updatedData = { allowedDays: formData.allowedDays };
-                await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
-                alert('Dias de leitura atualizados com sucesso!');
-
-            } else {
-                updatedData = { 
-                    name: formData.name, 
-                    icon: formData.icon, 
-                    googleDriveLink: formData.googleDriveLink || null 
-                };
-                await planService.updatePlan(appState.currentUser.uid, planId, updatedData);
-                alert(`Plano "${formData.name}" atualizado com sucesso!`);
-            }
+        const indexEditando = state.getPlanoEditandoIndex();
+        if (indexEditando !== -1) {
+            state.updatePlano(indexEditando, planoData);
         } else {
-            const newPlan = buildPlanFromFormData(formData);
-            const newPlanId = await planService.saveNewPlan(appState.currentUser.uid, newPlan);
-            if (appState.userPlans.length === 0) {
-                await planService.setActivePlan(appState.currentUser.uid, newPlanId);
-            }
-            alert(`Plano "${newPlan.name}" criado com sucesso!`);
+            state.addPlano(planoData);
         }
+        
+        await firestoreService.salvarPlanos(currentUser, state.getPlanos());
 
-        await loadInitialUserData(appState.currentUser);
-
-        planCreationUI.hide();
-
-        if (isReassessing) {
-            handleReassessPlansRequest();
-        } else {
-            handleCancelPlanCreation();
+        const acao = indexEditando !== -1 ? 'atualizado' : 'criado';
+        alert(`Plano "${planoData.titulo}" ${acao} com sucesso!`);
+        
+        state.setPlanoEditando(-1);
+        ui.showPlanosList(state.getPlanos(), currentUser);
+        
+        const planoIndexFinal = state.getPlanos().findIndex(p => p.id === planoData.id);
+        if(planoIndexFinal !== -1) {
+            ui.highlightAndScrollToPlano(planoIndexFinal);
         }
 
     } catch (error) {
-        planCreationUI.showError(`Erro: ${error.message}`);
-    } finally {
-        planCreationUI.hideLoading();
+        console.error("[Main] Erro ao submeter formulário:", error);
+        alert("Erro: " + error.message);
     }
 }
 
-async function handleChapterToggle(planId, chapterName, isRead) {
-    if (!appState.currentUser) return;
+async function handleAgendaExport() {
+    const planos = state.getPlanos();
+    const planosAtivos = planos.filter(p => planoLogic.determinarStatusPlano(p) !== 'concluido' && planoLogic.determinarStatusPlano(p) !== 'pausado');
+
+    if (!planosAtivos || planosAtivos.length === 0) {
+        alert("Não há planos ativos para exportar.");
+        return;
+    }
+
+    const horaInicio = DOMElements.agendaStartTimeInput.value;
+    const horaFim = DOMElements.agendaEndTimeInput.value;
+
+    if (!horaInicio || !horaFim) {
+        alert("Por favor, preencha os horários de início e fim.");
+        return;
+    }
 
     try {
-        await planService.updateChapterStatus(appState.currentUser.uid, planId, chapterName, isRead);
-        
-        const planToUpdate = appState.userPlans.find(p => p.id === planId);
-        if (planToUpdate) {
-            if (!planToUpdate.dailyChapterReadStatus) planToUpdate.dailyChapterReadStatus = {};
-            planToUpdate.dailyChapterReadStatus[chapterName] = isRead;
-        }
-        
-        const todayStr = getCurrentUTCDateString();
-        let interactionUpdates = {};
-        if (isRead && appState.userInfo.lastStreakInteractionDate !== todayStr) {
-            const daysDiff = appState.userInfo.lastStreakInteractionDate ? dateDiffInDays(appState.userInfo.lastStreakInteractionDate, todayStr) : Infinity;
-            appState.userInfo.currentStreak = (daysDiff === 1) ? appState.userInfo.currentStreak + 1 : 1;
-            appState.userInfo.longestStreak = Math.max(appState.userInfo.longestStreak, appState.userInfo.currentStreak);
-            appState.userInfo.lastStreakInteractionDate = todayStr;
-            interactionUpdates = {
-                currentStreak: appState.userInfo.currentStreak,
-                longestStreak: appState.userInfo.longestStreak,
-                lastStreakInteractionDate: todayStr
-            };
-        }
-        const currentWeekId = getUTCWeekId();
-        if (appState.weeklyInteractions?.weekId !== currentWeekId) {
-            appState.userInfo.globalWeeklyInteractions = { weekId: currentWeekId, interactions: {} };
-        }
-        if (!appState.userInfo.globalWeeklyInteractions.interactions) {
-            appState.userInfo.globalWeeklyInteractions.interactions = {};
-        }
-        appState.userInfo.globalWeeklyInteractions.interactions[todayStr] = true;
-        interactionUpdates.globalWeeklyInteractions = appState.userInfo.globalWeeklyInteractions;
-
-        if (Object.keys(interactionUpdates).length > 0) {
-            await planService.updateUserInteractions(appState.currentUser.uid, interactionUpdates);
-        }
-
-        renderAllPlanCards();
-        perseverancePanelUI.render(appState.userInfo);
-        weeklyTrackerUI.render(appState.weeklyInteractions);
-        
+        const icsContent = planoLogic.gerarConteudoICS(planos, horaInicio, horaFim);
+        ui.triggerDownload('planos_de_leitura.ics', icsContent);
+        ui.hideAgendaModal();
+        alert('Seu arquivo de agenda (.ics) foi gerado e o download deve começar em breve!');
     } catch (error) {
-        alert(`Erro ao salvar progresso: ${error.message}`);
-        await loadInitialUserData(appState.currentUser);
-        renderAllPlanCards();
+        console.error("[Main] Erro ao gerar arquivo de agenda:", error);
+        alert("Ocorreu um erro ao gerar a agenda. Tente novamente.");
     }
 }
 
-async function handleCompleteDay(planId) {
-    const planToAdvance = appState.userPlans.find(p => p.id === planId);
-    if (!planToAdvance) return;
+// Mapeamento de ações para suas respectivas funções de tratamento
+const actionHandlers = {
+    'editar': handleEditarPlano,
+    'excluir': handleExcluirPlano,
+    'marcar-lido': handleMarcarLido,
+    'pausar': handlePausarPlano,
+    'retomar': handleRetomarPlano,
+    'recalcular': handleRecalcularPlano,
+    'salvar-parcial': handleSalvarParcial
+};
 
-    try {
-        const { currentDay, plan } = planToAdvance;
-        const chaptersForLog = plan[currentDay.toString()] || [];
-        const newDay = currentDay + 1;
+/**
+ * Função principal que delega as ações executadas nos cards dos planos.
+ * Atua como um "dispatcher", chamando a função de tratamento correta.
+ * @param {Event} event - O evento de clique.
+ */
+function handleCardAction(event) {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
 
-        await planService.advanceToNextDay(appState.currentUser.uid, planId, newDay, getCurrentUTCDateString(), chaptersForLog);
-        await loadInitialUserData(appState.currentUser);
-        
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-        
-        if (newDay > Object.keys(plan).length) {
-            setTimeout(() => alert(`Parabéns! Você concluiu o plano "${planToAdvance.name}"!`), 100);
-        }
-    } catch (error) {
-        alert(`Erro ao avançar o plano: ${error.message}`);
+    const action = target.dataset.action;
+    const planoIndex = parseInt(target.dataset.planoIndex, 10);
+    const plano = state.getPlanoByIndex(planoIndex);
+    const currentUser = state.getCurrentUser();
+
+    if (isNaN(planoIndex) || !plano || !currentUser) return;
+
+    // Chama o handler correspondente à ação, se ele existir
+    if (actionHandlers[action]) {
+        actionHandlers[action](target, plano, planoIndex, currentUser);
     }
 }
 
-async function handleDeletePlan(planId) {
-    const planToDelete = appState.userPlans.find(p => p.id === planId);
-    if (!planToDelete) return;
+// --- Funções de Tratamento de Ações do Card ---
 
-    if (confirm(`Tem certeza que deseja excluir o plano "${planToDelete.name}"? Esta ação não pode ser desfeita.`)) {
-        try {
-            await planService.deletePlan(appState.currentUser.uid, planId);
+function handleEditarPlano(target, plano, planoIndex, currentUser) {
+    state.setPlanoEditando(planoIndex);
+    ui.showCadastroForm(plano);
+}
 
-            if (appState.activePlanId === planId) {
-                const remainingPlans = appState.userPlans.filter(p => p.id !== planId);
-                const newActivePlanId = remainingPlans.length > 0 ? remainingPlans[0].id : null;
-                await planService.setActivePlan(appState.currentUser.uid, newActivePlanId);
-            }
-            
-            alert(`Plano "${planToDelete.name}" excluído com sucesso.`);
-            await loadInitialUserData(appState.currentUser); 
-            
-            renderAllPlanCards();
-            sidePanelsUI.render(appState.userPlans, {
-                onSwitchPlan: handleSwitchPlan,
-                onRecalculate: (planId) => {
-                    modalsUI.resetRecalculateForm();
-                    const confirmBtn = document.getElementById('confirm-recalculate');
-                    confirmBtn.dataset.planId = planId;
-                    modalsUI.open('recalculate-modal');
-                }
-            });
-            floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-            
-            if (appState.userPlans.length === 0) {
-                handleCreateNewPlanRequest();
-            }
-
-        } catch (error) {
-            alert(`Erro ao deletar: ${error.message}`);
-        }
+async function handleExcluirPlano(target, plano, planoIndex, currentUser) {
+    if (confirm(`Tem certeza que deseja excluir o plano "${plano.titulo}"?`)) {
+        state.removePlano(planoIndex);
+        await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+        alert(`Plano excluído.`);
+        ui.renderApp(state.getPlanos(), currentUser);
     }
 }
 
-function handleEditPlanRequest(planId) {
-    const planToEdit = appState.userPlans.find(p => p.id === planId);
-    if (planToEdit) {
-        readingPlanUI.hide();
-        sidePanelsUI.hide();
-        planCreationActionsSection.style.display = 'none';
-        floatingNavigatorUI.hide();
-        planReassessmentUI.hide();
-        perseverancePanelUI.hide();
-        weeklyTrackerUI.hide();
-        planCreationUI.openForEditing(planToEdit);
+async function handleMarcarLido(target, plano, planoIndex, currentUser) {
+    const diaIndex = parseInt(target.dataset.diaIndex, 10);
+    const dia = plano.diasPlano[diaIndex];
+    
+    dia.lido = target.checked;
+
+    if (dia.lido) {
+        dia.ultimaPaginaLida = null;
+    }
+
+    planoLogic.atualizarPaginasLidas(plano);
+    state.updatePlano(planoIndex, plano);
+    await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+    ui.renderApp(state.getPlanos(), currentUser);
+}
+
+async function handleSalvarParcial(target, plano, planoIndex, currentUser) {
+    const diaIndex = parseInt(target.dataset.diaIndex, 10);
+    const dia = plano.diasPlano[diaIndex];
+    const inputParcial = document.getElementById(`parcial-${planoIndex}-${diaIndex}`);
+    const ultimaPagina = parseInt(inputParcial.value, 10);
+
+    if (!ultimaPagina || isNaN(ultimaPagina) || ultimaPagina < dia.paginaInicioDia || ultimaPagina > dia.paginaFimDia) {
+        alert(`Por favor, insira um número de página válido entre ${dia.paginaInicioDia} e ${dia.paginaFimDia}.`);
+        inputParcial.focus();
+        return;
+    }
+
+    dia.ultimaPaginaLida = ultimaPagina;
+
+    if (ultimaPagina === dia.paginaFimDia) {
+        dia.lido = true;
+        dia.ultimaPaginaLida = null;
     } else {
-        alert("Erro: Plano não encontrado para edição.");
+        dia.lido = false;
+    }
+
+    planoLogic.atualizarPaginasLidas(plano);
+    state.updatePlano(planoIndex, plano);
+    await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+    ui.renderApp(state.getPlanos(), currentUser);
+}
+
+
+async function handlePausarPlano(target, plano, planoIndex, currentUser) {
+    if (confirm(`Tem certeza que deseja pausar o plano "${plano.titulo}"? O cronograma será congelado.`)) {
+        plano.isPaused = true;
+        plano.dataPausa = new Date();
+        state.updatePlano(planoIndex, plano);
+        await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+        alert(`Plano pausado.`);
+        ui.renderApp(state.getPlanos(), currentUser);
     }
 }
 
-
-// --- 4. FUNÇÕES DE RECÁLCULO, SINCRONIZAÇÃO E REAVALIAÇÃO ---
-
-function handleReassessPlansRequest() {
-    readingPlanUI.hide();
-    sidePanelsUI.hide();
-    planCreationActionsSection.style.display = 'none';
-    floatingNavigatorUI.hide();
-    planCreationUI.hide();
-    perseverancePanelUI.hide();
-    weeklyTrackerUI.hide();
-
-    planReassessmentUI.render(appState.userPlans);
-    planReassessmentUI.show();
+async function handleRetomarPlano(target, plano, planoIndex, currentUser) {
+    const planoRetomado = planoLogic.retomarPlano(plano);
+    state.updatePlano(planoIndex, planoRetomado);
+    await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+    alert(`Plano "${plano.titulo}" retomado! As datas futuras foram ajustadas.`);
+    ui.renderApp(state.getPlanos(), currentUser);
 }
 
-function handleReassessPlanEdit(planId) {
-    const planToEdit = appState.userPlans.find(p => p.id === planId);
-    if (planToEdit) {
-        planReassessmentUI.hide();
-        planCreationUI.openForReassessment(planToEdit);
-    }
+function handleRecalcularPlano(target, plano, planoIndex, currentUser) {
+    ui.showRecalculoModal(plano, planoIndex, 'Confirmar Recálculo');
 }
 
-async function handlePlanUpdateDaysByDrag(planId, sourceDay, targetDay) {
-    if (sourceDay === targetDay) return;
+// --- Handlers de Modais ---
 
-    const planToUpdate = appState.userPlans.find(p => p.id === planId);
-    if (!planToUpdate) return;
-    
-    let newAllowedDays = [...(planToUpdate.allowedDays || [])];
-    newAllowedDays = newAllowedDays.filter(day => day !== sourceDay);
-    if (!newAllowedDays.includes(targetDay)) {
-        newAllowedDays.push(targetDay);
-    }
-    
-    try {
-        await planService.updatePlan(appState.currentUser.uid, planId, { allowedDays: newAllowedDays });
-        await loadInitialUserData(appState.currentUser);
-        planReassessmentUI.render(appState.userPlans);
-    } catch (error) {
-        console.error("Erro ao atualizar plano por Drag & Drop:", error);
-        alert("Ocorreu um erro ao remanejar o plano.");
-    }
-}
+async function handleConfirmRecalculo() {
+    const planoIndex = parseInt(DOMElements.confirmRecalculoBtn.dataset.planoIndex, 10);
+    const planoOriginal = state.getPlanoByIndex(planoIndex);
+    const currentUser = state.getCurrentUser();
 
-function handleSyncPlansRequest() {
-    const eligiblePlans = appState.userPlans.filter(p => {
-        const totalDays = Object.keys(p.plan || {}).length;
-        return totalDays > 0 && p.currentDay <= totalDays;
-    });
-
-    modalsUI.displaySyncOptions(eligiblePlans, handleConfirmSync);
-}
-
-async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
-    modalsUI.showLoading('sync-modal');
-    modalsUI.hideError('sync-modal');
+    if (!planoOriginal || !currentUser) return;
 
     try {
-        if (!targetDate || plansToSyncIds.length === 0) {
-            throw new Error("Seleção inválida. Escolha um plano de referência e planos para ajustar.");
-        }
-        const todayStr = getCurrentUTCDateString();
+        const planoModificado = JSON.parse(JSON.stringify(planoOriginal));
+        const recalculoCheckboxes = document.querySelectorAll('#recalculo-dias-semana-selecao input[type="checkbox"]:checked');
+        const novosDiasSemana = Array.from(recalculoCheckboxes).map(cb => parseInt(cb.value));
 
-        for (const planId of plansToSyncIds) {
-            const originalPlan = appState.userPlans.find(p => p.id === planId);
-            
-            const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetDate, todayStr);
-
-            if (!result) {
-                const formattedDate = formatUTCDateStringToBrasilian(targetDate);
-                throw new Error(`O plano "${originalPlan.name}" não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima.`);
-            }
-            let { recalculatedPlan } = result;
-            
-            if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
-            recalculatedPlan.recalculationHistory.push({
-                date: todayStr,
-                type: 'sync',
-                recalculatedFromDay: originalPlan.currentDay,
-                chaptersReadAtPoint: Object.values(originalPlan.readLog || {}).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0),
-                targetDate: targetDate,
-                syncedWithPlanId: basePlanId,
-            });
-
-            const planToSave = { ...recalculatedPlan };
-            delete planToSave.id;
-            await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
+        if (novosDiasSemana.length === 0) {
+            throw new Error("Selecione pelo menos um dia da semana para o remanejamento.");
         }
 
-        alert("Planos sincronizados com sucesso!");
-        modalsUI.close('sync-plans-modal');
-        await loadInitialUserData(appState.currentUser);
-        renderAllPlanCards();
-        handleReassessPlansRequest();
+        planoModificado.diasSemana = novosDiasSemana;
+        planoModificado.periodicidade = 'semanal';
+
+        let planoRecalculado;
+        if (DOMElements.recalculoPorDataRadio.checked) {
+            const novaDataFimStr = DOMElements.novaDataFimInput.value;
+            if (!novaDataFimStr) throw new Error("Por favor, selecione uma nova data de fim.");
+            const novaDataFim = new Date(novaDataFimStr + 'T00:00:00');
+            planoRecalculado = planoLogic.recalcularPlanoComNovaData(planoModificado, novaDataFim);
+        } else {
+            const paginasPorDia = parseInt(DOMElements.novaPaginasPorDiaInput.value, 10);
+            if (!paginasPorDia || paginasPorDia <= 0) throw new Error("Insira um número válido de páginas por dia.");
+            planoRecalculado = planoLogic.recalcularPlanoPorPaginasDia(planoModificado, paginasPorDia);
+        }
+        
+        state.updatePlano(planoIndex, planoRecalculado);
+        await firestoreService.salvarPlanos(currentUser, state.getPlanos());
+        
+        ui.hideRecalculoModal();
+        alert(`Plano "${planoOriginal.titulo}" remanejado e recalculado com sucesso!`);
+        
+        ui.renderApp(state.getPlanos(), currentUser);
+        ui.highlightAndScrollToPlano(planoIndex);
 
     } catch (error) {
-        modalsUI.showError('sync-modal', `Erro: ${error.message}`);
-    } finally {
-        modalsUI.hideLoading('sync-modal');
+        console.error('[Main] Erro ao confirmar recálculo/remanejamento:', error);
+        alert('Erro ao remanejar: ' + error.message);
     }
 }
 
-/**
- * [FUNÇÃO MODIFICADA]
- * Lida com o evento de clique do botão de confirmação do recálculo.
- */
-async function handleRecalculate(option, newPaceValue, startDateOption, specificDate) {
-    const planId = document.getElementById('confirm-recalculate').dataset.planId;
-    if (!appState.currentUser || !planId) return;
-
-    console.log(`[DIAGNÓSTICO 0/4] main.js: Iniciando processo de recálculo para o plano ID: ${planId}`);
+function handleReavaliarCarga() {
+    const planosAtuais = state.getPlanos();
+    const totalPlanos = planosAtuais.length; 
+    const dadosCarga = planoLogic.analisarCargaSemanal(planosAtuais, totalPlanos);
     
-    modalsUI.showLoading('recalculate-modal');
-    modalsUI.hideError('recalculate-modal');
-
-    try {
-        const originalPlan = appState.userPlans.find(p => p.id === planId);
-        let baseDateForCalc = getCurrentUTCDateString();
-        
-        // --- INÍCIO DA ALTERAÇÃO: Lógica de data de início corrigida ---
-        switch (startDateOption) {
-            case 'next_reading_day':
-                // Calcula a data do próximo dia de leitura válido a partir de hoje
-                baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
-                break;
-            case 'specific_date':
-                if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(getCurrentUTCDateString() + 'T00:00:00Z')) {
-                    throw new Error("Por favor, selecione uma data futura válida para o início do recálculo.");
-                }
-                baseDateForCalc = specificDate;
-                break;
-            case 'today':
-            default:
-                // 'baseDateForCalc' já é 'hoje', nenhuma ação necessária
-                break;
-        }
-        // --- FIM DA ALTERAÇÃO ---
-
-        if (!baseDateForCalc) {
-            throw new Error("Não foi possível determinar a data de início para o recálculo.");
-        }
-        
-        let targetEndDate = null;
-        switch(option) {
-            case 'new_pace':
-                if (!newPaceValue || newPaceValue < 1) throw new Error("O novo ritmo deve ser de pelo menos 1.");
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, newPaceValue, baseDateForCalc);
-                break;
-            case 'increase_pace':
-                targetEndDate = originalPlan.endDate;
-                break;
-            case 'extend_date':
-            default:
-                const originalTotalDays = Object.keys(originalPlan.plan).length;
-                const originalPace = originalTotalDays > 0 ? (originalPlan.totalChapters / originalTotalDays) : 1;
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, originalPace, baseDateForCalc);
-                break;
-        }
-
-        if (!targetEndDate) {
-            throw new Error("Não foi possível calcular uma nova data final para a opção selecionada.");
-        }
-
-        const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc);
-
-        console.log('[DIAGNÓSTICO 2/4] main.js: Resultado recebido do plan-calculator. Verifique a "endDate".', JSON.parse(JSON.stringify(result)));
-
-        if (!result) {
-            const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
-            throw new Error(`O plano não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima ou inválida.`);
-        }
-        let { recalculatedPlan } = result;
-
-        if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
-        recalculatedPlan.recalculationHistory.push({
-            date: getCurrentUTCDateString(),
-            type: 'manual',
-            recalculatedFromDay: originalPlan.currentDay,
-            chaptersReadAtPoint: Object.values(originalPlan.readLog || {}).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0),
-            option: option,
-            paceValue: option === 'new_pace' ? newPaceValue : null,
-            startDateOption: startDateOption,
-        });
-
-        const planToSave = { ...recalculatedPlan };
-        delete planToSave.id;
-        await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
-        
-        const planIndex = appState.userPlans.findIndex(p => p.id === planId);
-        if (planIndex !== -1) {
-            appState.userPlans[planIndex] = { ...recalculatedPlan, id: planId };
-            console.log(`[DIAGNÓSTICO 4/4] main.js: Estado local (appState) foi atualizado. Renderização será chamada agora com estes dados.`);
-        }
-        
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                document.getElementById('confirm-recalculate').dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-        
-        modalsUI.close('recalculate-modal');
-        alert("Plano recalculado com sucesso!");
-
-        // Melhoria de UX: Feedback visual no card recalculado
-        const planCard = document.getElementById(`plan-card-${planId}`);
-        if (planCard) {
-            planCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            planCard.classList.add('recalculated-highlight');
-            setTimeout(() => {
-                planCard.classList.remove('recalculated-highlight');
-            }, 2500); // Duração da animação deve corresponder ao CSS
-        }
-
-    } catch (error) {
-        console.error("[ERRO NO RECÁLCULO]", error);
-        modalsUI.showError('recalculate-modal', `Erro: ${error.message}`);
-    } finally {
-        modalsUI.hideLoading('recalculate-modal');
-    }
+    ui.renderizarModalReavaliacaoCompleto(dadosCarga, planosAtuais, totalPlanos); 
+    
+    ui.showReavaliacaoModal();
 }
 
-/**
- * Lida com a solicitação de pré-visualização do modal de recálculo.
- * @returns {object|null} Um objeto com a nova data final e o novo ritmo, ou null se inválido.
- */
-function handleRecalculationPreview(planId, option, newPaceValue, startDateOption, specificDate) {
-    try {
-        if (!planId) return null;
-        const originalPlan = appState.userPlans.find(p => p.id === planId);
-        if (!originalPlan) return null;
+function handleModalReavaliacaoAction(event) {
+    const target = event.target.closest('[data-action="remanejar-plano"]');
+    if (!target) return;
 
-        let baseDateForCalc = getCurrentUTCDateString();
-        if (startDateOption === 'next_reading_day') {
-            baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
-        } else if (startDateOption === 'specific_date') {
-            if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(getCurrentUTCDateString() + 'T00:00:00Z')) {
-                return { newEndDate: 'Data Inválida', newPace: 'N/A' };
-            }
-            baseDateForCalc = specificDate;
-        }
+    const planoIndex = parseInt(target.dataset.planoIndex, 10);
+    const plano = state.getPlanoByIndex(planoIndex);
 
-        if (!baseDateForCalc) return null;
-
-        let targetEndDate = null;
-        let resultingPace = 0;
-        
-        const chaptersReadSet = new Set(Object.values(originalPlan.readLog || {}).flat());
-        const remainingChaptersCount = originalPlan.chaptersList.filter(ch => !chaptersReadSet.has(ch)).length;
-
-        switch(option) {
-            case 'new_pace':
-                if (!newPaceValue || newPaceValue < 1) return null;
-                resultingPace = newPaceValue;
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, resultingPace, baseDateForCalc);
-                break;
-            case 'increase_pace':
-                targetEndDate = originalPlan.endDate;
-                const availableDays = countReadingDaysBetween(baseDateForCalc, targetEndDate, originalPlan.allowedDays);
-                resultingPace = availableDays > 0 ? (remainingChaptersCount / availableDays) : Infinity;
-                break;
-            case 'extend_date':
-            default:
-                const originalTotalDays = Object.keys(originalPlan.plan).length;
-                const originalPace = originalTotalDays > 0 ? (originalPlan.totalChapters / originalTotalDays) : 1;
-                resultingPace = originalPace;
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, resultingPace, baseDateForCalc);
-                break;
-        }
-
-        if (!targetEndDate) {
-            return { newEndDate: 'Não calculável', newPace: resultingPace.toFixed(1) };
-        }
-
-        return {
-            newEndDate: formatUTCDateStringToBrasilian(targetEndDate),
-            newPace: resultingPace.toFixed(1)
-        };
-    } catch (error) {
-        console.error("Erro durante a pré-visualização do recálculo:", error);
-        return null;
-    }
+    if (isNaN(planoIndex) || !plano) return;
+    
+    ui.hideReavaliacaoModal();
+    setTimeout(() => {
+        ui.showRecalculoModal(plano, planoIndex, 'Confirmar Remanejamento');
+    }, 300);
 }
-
-
-// --- 5. FUNÇÕES DE MODAIS E OUTRAS AÇÕES ---
-
-function handleShowBibleExplorer() {
-    const booksToIconsMap = new Map();
-    const allChaptersInPlans = new Set();
-
-    appState.userPlans.forEach(plan => {
-        if (!plan.chaptersList || plan.chaptersList.length === 0) {
-            return;
-        }
-
-        plan.chaptersList.forEach(chapter => allChaptersInPlans.add(chapter));
-        
-        const booksInCurrentPlan = new Set();
-        plan.chaptersList.forEach(chapterString => {
-            const bookNameMatch = chapterString.match(/^(.*)\s+\d+$/);
-            if (bookNameMatch && bookNameMatch[1]) {
-                booksInCurrentPlan.add(bookNameMatch[1]);
-            }
-        });
-
-        booksInCurrentPlan.forEach(bookName => {
-            if (!booksToIconsMap.has(bookName)) {
-                booksToIconsMap.set(bookName, []);
-            }
-            booksToIconsMap.get(bookName).push({ 
-                icon: plan.icon || '📖',
-                name: plan.name 
-            });
-        });
-    });
-    
-    modalsUI.displayBibleExplorer(booksToIconsMap, allChaptersInPlans);
-}
-
-function handleShowStats(planId) {
-    const plan = appState.userPlans.find(p => p.id === planId);
-    if (!plan) return;
-
-    const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-    const isCompleted = plan.currentDay > totalReadingDaysInPlan;
-    const progressPercentage = totalReadingDaysInPlan > 0 ? Math.min(100, ((plan.currentDay - 1) / totalReadingDaysInPlan) * 100) : 0;
-    
-    const logEntries = plan.readLog || {};
-    const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0);
-    const daysWithReading = Object.keys(logEntries).filter(date => Array.isArray(logEntries[date]) && logEntries[date].length > 0).length;
-    const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
-    
-    const recalculationsCount = plan.recalculationHistory?.length || 0;
-    
-    let forecastDateStr = '--';
-    if (!isCompleted && avgPace > 0) {
-        const remainingChapters = plan.totalChapters - chaptersReadFromLog;
-        const remainingReadingDays = Math.ceil(remainingChapters / avgPace);
-
-        const todayStr = getCurrentUTCDateString();
-        let projectionStartDate = todayStr;
-        if (plan.recalculationBaseDate && plan.recalculationBaseDate > todayStr) {
-            projectionStartDate = plan.recalculationBaseDate;
-        }
-
-        const projectionPlan = {
-            startDate: projectionStartDate,
-            allowedDays: plan.allowedDays,
-            recalculationBaseDate: null,
-            recalculationBaseDay: null
-        };
-        const forecastDate = getEffectiveDateForDay(projectionPlan, remainingReadingDays);
-
-        if (forecastDate) {
-            forecastDateStr = formatUTCDateStringToBrasilian(forecastDate);
-        }
-    }
-
-    const chartData = { idealLine: [], actualProgress: [] };
-    const originalEndDate = getEffectiveDateForDay({ startDate: plan.startDate, allowedDays: plan.allowedDays }, Object.keys(plan.plan).length);
-    chartData.idealLine.push({ x: plan.startDate, y: 0 });
-    if(originalEndDate) {
-        chartData.idealLine.push({ x: originalEndDate, y: plan.totalChapters });
-    }
-    
-    chartData.actualProgress.push({ x: plan.startDate, y: 0 });
-    const sortedLog = Object.entries(logEntries).sort((a, b) => a[0].localeCompare(b[0]));
-    let cumulativeChapters = 0;
-    for (const [date, chapters] of sortedLog) {
-        if (Array.isArray(chapters)) {
-            cumulativeChapters += chapters.length;
-            chartData.actualProgress.push({ x: date, y: cumulativeChapters });
-        }
-    }
-
-    const planSummary = summarizeChaptersByBook(plan.chaptersList);
-
-    const stats = {
-        activePlanName: plan.name || 'Plano sem nome',
-        activePlanProgress: progressPercentage,
-        chaptersReadFromLog: chaptersReadFromLog,
-        isCompleted: isCompleted,
-        avgPace: `${avgPace.toFixed(1)} caps/dia`,
-        recalculationsCount: recalculationsCount,
-        forecastDate: forecastDateStr,
-        planSummary: planSummary,
-        chartData: chartData
-    };
-    
-    modalsUI.displayStats(stats);
-    modalsUI.open('stats-modal');
-}
-
-function handleShowHistory(planId) {
-    const plan = appState.userPlans.find(p => p.id === planId);
-    if (!plan) return;
-    modalsUI.displayHistory(plan.readLog);
-    modalsUI.open('history-modal');
-}
-
-async function handleCreateFavoritePlanSet() {
-    try {
-        for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
-            const chaptersToRead = config.intercalate
-                ? generateIntercalatedChapters(config.bookBlocks)
-                : generateChaptersForBookList(config.books);
-            const totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
-            const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
-            const startDate = getCurrentUTCDateString();
-            const endDate = getEffectiveDateForDay({ startDate, allowedDays: config.allowedDays }, totalReadingDays);
-            const planData = {
-                name: config.name, icon: FAVORITE_PLAN_ICONS[config.name] || '📖', plan: planMap,
-                chaptersList: chaptersToRead, totalChapters: chaptersToRead.length, currentDay: 1,
-                startDate, endDate, allowedDays: config.allowedDays, readLog: {},
-                dailyChapterReadStatus: {}, googleDriveLink: null, recalculationBaseDay: null,
-                recalculationBaseDate: null,
-            };
-            await planService.saveNewPlan(appState.currentUser.uid, planData);
-        }
-        const updatedPlans = await planService.fetchUserPlans(appState.currentUser.uid);
-        if (updatedPlans.length > 0) {
-            await planService.setActivePlan(appState.currentUser.uid, updatedPlans[0].id);
-        }
-        alert("Conjunto de planos favoritos criado com sucesso!");
-        await loadInitialUserData(appState.currentUser);
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-    } catch (error) {
-        alert(`Erro ao criar planos favoritos: ${error.message}`);
-    }
-}
-
-
-// --- 6. INICIALIZAÇÃO DA APLICAÇÃO ---
-
-function initApplication() {
-    authService.onAuthStateChanged(handleAuthStateChange);
-
-    authUI.init({ onLogin: handleLogin, onSignup: handleSignup });
-    headerUI.init({
-        onLogout: handleLogout,
-        onShowVersionInfo: () => modalsUI.displayVersionInfo(APP_VERSION, VERSION_CHANGELOG)
-    });
-    
-    createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
-    createFavoritePlanButton.addEventListener('click', handleCreateFavoritePlanSet);
-    reassessPlansButton.addEventListener('click', handleReassessPlansRequest);
-
-    if (exploreBibleButton) {
-        exploreBibleButton.addEventListener('click', handleShowBibleExplorer);
-    }
-
-    planCreationUI.init({
-        onSubmit: handlePlanSubmit,
-        onCancel: () => {
-            const isReassessing = !planStructureFieldset.disabled;
-            planCreationUI.hide();
-            if (isReassessing) {
-                handleReassessPlansRequest();
-            } else {
-                handleCancelPlanCreation();
-            }
-        }
-    });
-    
-    readingPlanUI.init({
-        onCompleteDay: handleCompleteDay,
-        onChapterToggle: handleChapterToggle,
-        onDeletePlan: handleDeletePlan,
-        onEditPlan: handleEditPlanRequest,
-        onRecalculate: (planId) => { 
-            modalsUI.resetRecalculateForm();
-            const confirmBtn = document.getElementById('confirm-recalculate');
-            confirmBtn.dataset.planId = planId;
-            modalsUI.open('recalculate-modal'); 
-        },
-        onShowStats: handleShowStats,
-        onShowHistory: handleShowHistory,
-    });
-    
-    perseverancePanelUI.init();
-    weeklyTrackerUI.init();
-    sidePanelsUI.init();
-    
-    planReassessmentUI.init({
-        onClose: handleCancelPlanCreation,
-        onPlanSelect: handleReassessPlanEdit,
-        onUpdatePlanDays: handlePlanUpdateDaysByDrag,
-        onSyncRequest: handleSyncPlansRequest,
-    });
-
-    floatingNavigatorUI.init({
-        onSwitchPlan: handleSwitchPlan
-    });
-    
-    modalsUI.init({
-        onConfirmRecalculate: (option, newPace, startDateOption, specificDate) => {
-            handleRecalculate(option, newPace, startDateOption, specificDate);
-        },
-        onPreviewRecalculate: (planId, option, newPace, startDateOption, specificDate) => {
-            return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
-        }
-    });
-    
-    console.log("Aplicação modular inicializada com nova arquitetura de UI.");
-}
-
-document.addEventListener('DOMContentLoaded', initApplication);
