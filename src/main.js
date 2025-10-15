@@ -24,6 +24,7 @@ import * as readingPlanUI from './ui/reading-plan-ui.js';
 import * as sidePanelsUI from './ui/side-panels-ui.js';
 import * as floatingNavigatorUI from './ui/floating-navigator-ui.js';
 import * as planReassessmentUI from './ui/plan-reassessment-ui.js';
+import * as splashScreenUI from './ui/splash-screen-ui.js'; // INÍCIO DA ALTERAÇÃO (Prioridade 3)
 
 // Helpers e Configurações
 import {
@@ -109,6 +110,8 @@ async function handleAuthStateChange(user) {
             handleCreateNewPlanRequest();
         }
 
+        splashScreenUI.hide(); // INÍCIO DA ALTERAÇÃO (Prioridade 1 e 3)
+
     } else {
         appState.reset();
         authUI.show();
@@ -121,6 +124,8 @@ async function handleAuthStateChange(user) {
         weeklyTrackerUI.hide();
         sidePanelsUI.hide();
         floatingNavigatorUI.hide();
+
+        splashScreenUI.hide(); // INÍCIO DA ALTERAÇÃO (Prioridade 1 e 3)
     }
 }
 
@@ -962,6 +967,7 @@ async function handleCreateFavoritePlanSet() {
 function initApplication() {
     authService.onAuthStateChanged(handleAuthStateChange);
 
+    splashScreenUI.init(); // INÍCIO DA ALTERAÇÃO (Prioridade 3)
     authUI.init({ onLogin: handleLogin, onSignup: handleSignup });
     headerUI.init({
         onLogout: handleLogout,
