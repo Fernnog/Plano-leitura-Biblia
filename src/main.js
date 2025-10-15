@@ -625,13 +625,26 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
     const planId = document.getElementById('confirm-recalculate').dataset.planId;
     if (!appState.currentUser || !planId) return;
 
+    // INÍCIO DA ALTERAÇÃO (DIAGNÓSTICO)
     console.log(`[DIAGNÓSTICO 0/4] main.js: Iniciando processo de recálculo para o plano ID: ${planId}`);
+    // FIM DA ALTERAÇÃO (DIAGNÓSTICO)
     
     modalsUI.showLoading('recalculate-modal');
     modalsUI.hideError('recalculate-modal');
 
     try {
         const originalPlan = appState.userPlans.find(p => p.id === planId);
+
+        // INÍCIO DA ALTERAÇÃO (DIAGNÓSTICO)
+        const chaptersReadCount = Object.values(originalPlan.readLog || {}).flat().length;
+        console.log('[DIAGNÓSTICO 1/4] main.js: Estado do plano ANTES do recálculo.', {
+            totalChapters: originalPlan.totalChapters,
+            chaptersRead: chaptersReadCount,
+            currentDay: originalPlan.currentDay,
+            endDate: originalPlan.endDate
+        });
+        // FIM DA ALTERAÇÃO (DIAGNÓSTICO)
+
         let baseDateForCalc = getCurrentUTCDateString();
         
         // --- INÍCIO DA ALTERAÇÃO: Lógica de data de início corrigida ---
@@ -680,7 +693,9 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
 
         const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc);
 
+        // INÍCIO DA ALTERAÇÃO (DIAGNÓSTICO)
         console.log('[DIAGNÓSTICO 2/4] main.js: Resultado recebido do plan-calculator. Verifique a "endDate".', JSON.parse(JSON.stringify(result)));
+        // FIM DA ALTERAÇÃO (DIAGNÓSTICO)
 
         if (!result) {
             const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
@@ -701,12 +716,19 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
 
         const planToSave = { ...recalculatedPlan };
         delete planToSave.id;
+
+        // INÍCIO DA ALTERAÇÃO (DIAGNÓSTICO)
+        console.log('[DIAGNÓSTICO 3/4] main.js: Objeto final que será salvo no Firebase.', JSON.parse(JSON.stringify(planToSave)));
+        // FIM DA ALTERAÇÃO (DIAGNÓSTICO)
+
         await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
         
         const planIndex = appState.userPlans.findIndex(p => p.id === planId);
         if (planIndex !== -1) {
             appState.userPlans[planIndex] = { ...recalculatedPlan, id: planId };
+            // INÍCIO DA ALTERAÇÃO (DIAGNÓSTICO)
             console.log(`[DIAGNÓSTICO 4/4] main.js: Estado local (appState) foi atualizado. Renderização será chamada agora com estes dados.`);
+            // FIM DA ALTERAÇÃO (DIAGNÓSTICO)
         }
         
         renderAllPlanCards();
