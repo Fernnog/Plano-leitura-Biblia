@@ -69,18 +69,6 @@ function _renderStatsChart(chartData) {
         progressChartInstance.destroy();
     }
 
-    /* 
-       ATUALIZAÇÃO DE CORES (REBRANDING):
-       - A linha de 'Progresso Ideal' (Tracejada) agora usa um cinza/dourado suave.
-       - A linha de 'Seu Progresso Real' agora usa o Azul Petróleo (--primary-action).
-       - O preenchimento abaixo da linha real usa um tom translúcido de Azul Petróleo.
-       
-       Observação: O Chart.js pode não ler variáveis CSS diretamente em versões antigas ou contextos específicos.
-       Para garantir, usamos os valores Hexadecimais definidos no CSS novo:
-       --primary-action: #1B3B48
-       --accent-color: #C8A868
-    */
-
     progressChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -88,7 +76,7 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Progresso Ideal',
                     data: chartData.idealLine,
-                    borderColor: 'rgba(200, 168, 104, 0.5)', // Dourado translúcido (#C8A868)
+                    borderColor: 'rgba(0, 0, 0, 0.2)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     borderDash: [5, 5],
@@ -98,13 +86,11 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Seu Progresso Real',
                     data: chartData.actualProgress,
-                    borderColor: '#1B3B48', // Azul Petróleo Sólido
-                    backgroundColor: 'rgba(27, 59, 72, 0.1)', // Azul Petróleo RGB(27,59,72) translúcido
+                    borderColor: 'var(--primary-action)',
+                    backgroundColor: 'rgba(138, 43, 226, 0.1)',
                     borderWidth: 3,
                     pointRadius: 4,
-                    pointBackgroundColor: '#1B3B48', // Azul Petróleo Sólido
-                    pointBorderColor: '#fff', // Borda branca para destaque
-                    pointBorderWidth: 1,
+                    pointBackgroundColor: 'var(--primary-action)',
                     fill: true,
                     tension: 0.1
                 }
@@ -121,29 +107,16 @@ function _renderStatsChart(chartData) {
                         tooltipFormat: 'dd/MM/yyyy',
                         displayFormats: { month: 'MMM yyyy' }
                     },
-                    title: { display: true, text: 'Data', color: '#6c757d' },
-                    grid: { color: '#EAE6DE' } // Grid suave combinando com o fundo off-white
+                    title: { display: true, text: 'Data' }
                 },
                 y: {
                     beginAtZero: true,
-                    title: { display: true, text: 'Capítulos Lidos', color: '#6c757d' },
-                    grid: { color: '#EAE6DE' }
+                    title: { display: true, text: 'Capítulos Lidos' }
                 }
             },
             plugins: {
-                legend: { 
-                    position: 'top',
-                    labels: { color: '#1B3B48', font: { family: "'Inter', sans-serif" } }
-                },
-                tooltip: { 
-                    mode: 'index', 
-                    intersect: false,
-                    backgroundColor: 'rgba(27, 59, 72, 0.9)', // Tooltip escuro (Azul Petróleo)
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    borderColor: '#C8A868', // Borda Dourada
-                    borderWidth: 1
-                }
+                legend: { position: 'top' },
+                tooltip: { mode: 'index', intersect: false }
             }
         }
     });
@@ -473,7 +446,7 @@ export function resetRecalculateForm() {
 /**
  * Renderiza a lista de capítulos para confirmação manual no Passo 2 do Wizard.
  * Filtra capítulos já lidos e mostra apenas os próximos pendentes.
- * @param {object} plan - O objeto de plano.
+ * @param {object} plan - O objeto do plano.
  */
 export function renderManualCheckList(plan) {
     if (!manualCheckList) return;
