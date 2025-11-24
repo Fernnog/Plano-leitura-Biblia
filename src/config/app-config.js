@@ -5,20 +5,19 @@
  * @description Contém configurações globais da aplicação, como versão e changelog.
  */
 
-export const APP_VERSION = '1.0.2';
+export const APP_VERSION = '1.0.3';
 
-// O changelog é um array de objetos para permitir uma formatação rica no futuro.
 export const VERSION_CHANGELOG = [
     {
-        type: 'NOVO ✨',
-        description: 'Adicionada uma tela de carregamento (Splash Screen) para uma inicialização mais suave e profissional da aplicação.'
+        type: '✨ Novidade',
+        description: '<strong>Recálculo Preciso:</strong> Novo passo de confirmação manual para marcar capítulos lidos antes de ajustar o plano.'
     },
     {
-        type: 'MELHORIA 🚀',
-        description: 'O logotipo na tela de carregamento agora possui uma animação de pulso sutil para melhorar a percepção de atividade durante a inicialização.'
+        type: '📱 Melhoria',
+        description: '<strong>Visualização Mobile:</strong> Correção na barra de rolagem das janelas (modais) em telas pequenas.'
     },
     {
-        type: 'MELHORIA 🚀',
-        description: 'A lógica da nova tela de carregamento foi modularizada (`splash-screen-ui.js`), seguindo as boas práticas de arquitetura do projeto para facilitar futuras manutenções.'
+        type: '🛠️ Ajuste',
+        description: 'Melhorias internas na precisão da lógica de datas.'
     }
 ];
