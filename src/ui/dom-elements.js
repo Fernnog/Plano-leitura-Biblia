@@ -91,20 +91,23 @@ export const upcomingReadingsListDiv = document.getElementById('upcoming-reading
 
 // --- Container de Exibição dos Planos ---
 export const plansDisplaySection = document.getElementById('plans-display-section');
-// NOTA: Os elementos internos de cada card de plano (título, progresso, etc.)
-// são criados e gerenciados dinamicamente pelo módulo `reading-plan-ui.js`.
 
 // --- Modais ---
 
-// Modal de Recálculo
+// Modal de Recálculo (ATUALIZADO PARA O WIZARD)
 export const recalculateModal = document.getElementById('recalculate-modal');
-export const recalculateErrorDiv = document.getElementById('recalculate-error');
+export const recalculateErrorDiv = document.getElementById('recalc-error'); // ID ajustado conforme HTML novo
 export const recalculateLoadingDiv = document.getElementById('recalculate-loading');
 export const newPaceInput = document.getElementById('new-pace-input');
 export const confirmRecalculateButton = document.getElementById('confirm-recalculate');
-// INÍCIO DA ALTERAÇÃO: Adicionados os elementos para recálculo inteligente e preview (Prioridades 2 e 3)
-export const recalcSpecificDateInput = document.getElementById('recalc-specific-date-input'); // Elemento para data específica
-// FIM DA ALTERAÇÃO
+export const recalcSpecificDateInput = document.getElementById('recalc-specific-date-input');
+
+// Elementos do Wizard de Recálculo (NOVOS)
+export const recalcStep1 = document.getElementById('recalc-step-1');
+export const recalcStep2 = document.getElementById('recalc-step-2');
+export const btnGotoStep2 = document.getElementById('btn-goto-step-2');
+export const btnBackStep1 = document.getElementById('btn-back-step-1');
+export const manualCheckList = document.getElementById('manual-check-list');
 
 // Modal de Estatísticas
 export const statsModal = document.getElementById('stats-modal');
@@ -144,7 +147,6 @@ export const explorerBackButton = document.getElementById('explorer-back-button'
 export const explorerDetailTitle = document.getElementById('explorer-detail-title');
 export const explorerChapterList = document.getElementById('explorer-chapter-list');
 
-
 // --- Seção de Reavaliação de Planos ---
 export const reassessPlansButton = document.getElementById('reassess-plans-button');
 export const syncPlansButton = document.getElementById('sync-plans-button');
@@ -153,7 +155,7 @@ export const closeReassessmentButton = document.getElementById('close-reassessme
 export const reassessmentGrid = document.getElementById('reassessment-grid');
 export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
 
-// --- Elementos do Card de Versão e Modal (NOVO) ---
+// --- Elementos do Card de Versão e Modal ---
 export const versionCard = document.getElementById('version-card');
 export const versionModal = document.getElementById('version-modal');
 export const versionModalTitle = document.getElementById('version-modal-title');

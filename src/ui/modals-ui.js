@@ -6,9 +6,10 @@
 
 // Importa todos os elementos do DOM relacionados aos modais
 import {
-    // Recálculo
+    // Recálculo e Wizard (ATUALIZADO)
     recalculateModal, recalculateErrorDiv, recalculateLoadingDiv,
     confirmRecalculateButton, newPaceInput, recalcSpecificDateInput,
+    recalcStep1, recalcStep2, btnGotoStep2, btnBackStep1, manualCheckList,
     // Estatísticas
     statsModal, statsLoadingDiv, statsErrorDiv, statsContentDiv,
     statsActivePlanName, statsActivePlanProgress, statsTotalChapters,
@@ -22,7 +23,7 @@ import {
     bibleExplorerModal, explorerGridView, explorerBookGrid,
     explorerDetailView, explorerBackButton, explorerDetailTitle,
     explorerChapterList,
-    // Versão (NOVO)
+    // Versão
     versionModal, versionModalTitle, versionModalContent
 } from './dom-elements.js';
 
@@ -39,6 +40,7 @@ import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
 let state = {
     callbacks: {
         onConfirmRecalculate: null,
+        onRequestStep2: null, // Novo callback para buscar dados do plano no Wizard
     },
 };
 
@@ -144,7 +146,11 @@ export function hideLoading(modalId) {
 }
 
 export function showError(modalId, message) {
-    const errorDiv = document.getElementById(`${modalId.replace('-modal', '')}-error`);
+    // Ajuste para o ID customizado do erro de recálculo se necessário
+    let errorDivId = `${modalId.replace('-modal', '')}-error`;
+    if (modalId === 'recalculate-modal') errorDivId = 'recalc-error';
+    
+    const errorDiv = document.getElementById(errorDivId);
     if (errorDiv) {
         errorDiv.textContent = message;
         errorDiv.style.display = 'block';
@@ -152,7 +158,10 @@ export function showError(modalId, message) {
 }
 
 export function hideError(modalId) {
-    const errorDiv = document.getElementById(`${modalId.replace('-modal', '')}-error`);
+    let errorDivId = `${modalId.replace('-modal', '')}-error`;
+    if (modalId === 'recalculate-modal') errorDivId = 'recalc-error';
+    
+    const errorDiv = document.getElementById(errorDivId);
     if (errorDiv) errorDiv.style.display = 'none';
 }
 
@@ -408,7 +417,7 @@ export function displaySyncOptions(plans, onConfirm) {
 }
 
 /**
- * Reseta o formulário do modal de recálculo para o estado padrão.
+ * Reseta o formulário do modal de recálculo para o estado padrão (Passo 1).
  */
 export function resetRecalculateForm() {
     // Reseta a opção de como proceder
@@ -416,18 +425,67 @@ export function resetRecalculateForm() {
     if (extendOption) extendOption.checked = true;
     newPaceInput.value = '3';
 
-    // Reseta a opção de data de início (nova funcionalidade)
+    // Reseta a opção de data de início
     const todayOption = recalculateModal.querySelector('input[name="recalc-start-option"][value="today"]');
     if (todayOption) todayOption.checked = true;
     
     if (recalcSpecificDateInput) {
         recalcSpecificDateInput.style.display = 'none';
         recalcSpecificDateInput.value = '';
-        // Prioridade 2: Impede a seleção de datas passadas
         recalcSpecificDateInput.min = getCurrentUTCDateString();
     }
 
+    // Reseta a visualização do Wizard (Volta para o Passo 1)
+    if (recalcStep1) recalcStep1.style.display = 'block';
+    if (recalcStep2) recalcStep2.style.display = 'none';
+    if (manualCheckList) manualCheckList.innerHTML = '';
+
     hideError('recalculate-modal');
+}
+
+/**
+ * Renderiza a lista de capítulos para confirmação manual no Passo 2 do Wizard.
+ * Filtra capítulos já lidos e mostra apenas os próximos pendentes.
+ * @param {object} plan - O objeto do plano.
+ */
+export function renderManualCheckList(plan) {
+    if (!manualCheckList) return;
+    manualCheckList.innerHTML = '';
+    
+    // Identifica todos os capítulos que o sistema considera JÁ lidos
+    const readSet = new Set();
+    
+    // 1. Do histórico confirmado
+    Object.values(plan.readLog || {}).forEach(dayArr => {
+        if(Array.isArray(dayArr)) dayArr.forEach(ch => readSet.add(ch));
+    });
+    
+    // 2. Dos checkboxes marcados no dia atual (ainda não confirmados no log)
+    Object.keys(plan.dailyChapterReadStatus || {}).forEach(ch => {
+        if(plan.dailyChapterReadStatus[ch]) readSet.add(ch);
+    });
+
+    const allChapters = plan.chaptersList || [];
+    // Filtra apenas o que falta ler e pega os primeiros 30 para não travar a UI
+    const pendingChapters = allChapters.filter(ch => !readSet.has(ch)).slice(0, 30);
+
+    if (pendingChapters.length === 0) {
+        manualCheckList.innerHTML = '<p class="small-text">Não há capítulos pendentes próximos identificados.</p>';
+        return;
+    }
+
+    pendingChapters.forEach(chapter => {
+        const div = document.createElement('div');
+        div.className = 'manual-chapter-item';
+        // Checkbox começa desmarcado. O usuário marca se JÁ LEU este capítulo "extraoficialmente".
+        div.innerHTML = `
+            <label style="cursor:pointer; width:100%; display:flex; align-items:center; margin:0; font-weight:normal;">
+                <input type="checkbox" value="${chapter}" class="manual-chapter-check">
+                <span>${chapter}</span>
+            </label>
+        `;
+        manualCheckList.appendChild(div);
+    });
 }
 
 
@@ -462,10 +520,10 @@ export function init(callbacks) {
         });
     }
 
-    // --- INÍCIO DAS ALTERAÇÕES NO MODAL DE RECÁLCULO ---
+    // --- LÓGICA DO MODAL DE RECÁLCULO (WIZARD) ---
 
+    // Opções de data específica
     const recalcStartOptions = document.querySelectorAll('input[name="recalc-start-option"]');
-
     if (recalcStartOptions.length > 0 && recalcSpecificDateInput) {
         recalcStartOptions.forEach(radio => {
             radio.addEventListener('change', () => {
@@ -478,17 +536,46 @@ export function init(callbacks) {
         });
     }
 
-    confirmRecalculateButton.addEventListener('click', () => {
-        const option = document.querySelector('input[name="recalc-option"]:checked').value;
-        const newPace = parseInt(newPaceInput.value, 10);
+    // Botão "Próximo: Confirmar Capítulos" (Vai para o Passo 2)
+    if (btnGotoStep2) {
+        btnGotoStep2.addEventListener('click', () => {
+            const planId = confirmRecalculateButton.dataset.planId;
+            
+            // Chama o callback para que o main.js forneça os dados do plano e renderize a lista
+            state.callbacks.onRequestStep2?.(planId);
+            
+            // Alterna a visualização
+            if (recalcStep1) recalcStep1.style.display = 'none';
+            if (recalcStep2) recalcStep2.style.display = 'block';
+        });
+    }
 
-        // Coleta dos novos dados de data de início
-        const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
-        const specificDate = recalcSpecificDateInput.value;
+    // Botão "Voltar" (Volta para o Passo 1)
+    if (btnBackStep1) {
+        btnBackStep1.addEventListener('click', () => {
+            if (recalcStep2) recalcStep2.style.display = 'none';
+            if (recalcStep1) recalcStep1.style.display = 'block';
+        });
+    }
 
-        // Chamada do callback com a nova assinatura
-        state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate);
-    });
+    // Botão "Confirmar Recálculo" (Finaliza o processo)
+    if (confirmRecalculateButton) {
+        confirmRecalculateButton.addEventListener('click', () => {
+            const option = document.querySelector('input[name="recalc-option"]:checked').value;
+            const newPace = parseInt(newPaceInput.value, 10);
+            const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
+            const specificDate = recalcSpecificDateInput.value;
 
-    // --- FIM DAS ALTERAÇÕES ---
+            // Coleta os capítulos marcados manualmente no passo 2
+            let manuallyReadChapters = [];
+            if (manualCheckList) {
+                manuallyReadChapters = Array.from(
+                    manualCheckList.querySelectorAll('.manual-chapter-check:checked')
+                ).map(cb => cb.value);
+            }
+
+            // Chamada do callback com a lista de capítulos manuais
+            state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, manuallyReadChapters);
+        });
+    }
 }
