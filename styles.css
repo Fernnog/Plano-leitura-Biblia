@@ -1383,3 +1383,89 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         height: 24px;
     }
 }
+
+/* --- Melhorias de UX para o Modal de Recálculo --- */
+
+/* Garante rolagem no mobile */
+.modal-content-scrollable {
+    max-height: 85vh; /* Ocupa no máximo 85% da altura da tela */
+    overflow-y: auto; /* Barra de rolagem se exceder */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Container da lista de confirmação manual */
+.chapter-check-list-container {
+    max-height: 250px; /* Altura fixa para a lista interna */
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    padding: 12px;
+    background-color: var(--background-light);
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); /* Grid responsivo */
+    gap: 10px;
+}
+
+/* Item individual da lista de confirmação */
+.manual-chapter-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    background: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.manual-chapter-item:hover {
+    background-color: rgba(var(--primary-action-rgb), 0.05);
+    border-color: var(--primary-action);
+}
+
+.manual-chapter-item input {
+    margin: 0 10px 0 0 !important; /* Sobrescreve estilo global */
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.manual-chapter-item label {
+    margin-bottom: 0;
+    cursor: pointer;
+    width: 100%;
+    color: var(--text-color-dark);
+}
+
+/* Rodapé do modal (botões) */
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    gap: 10px;
+}
+
+/* Texto de ajuda */
+.small-text {
+    font-size: 0.9em;
+    color: var(--text-color-muted);
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+    .chapter-check-list-container {
+        grid-template-columns: 1fr 1fr; /* 2 colunas no celular */
+    }
+    .modal-footer {
+        flex-direction: column-reverse; /* Botão confirmar em cima no mobile */
+    }
+    .modal-footer button {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
