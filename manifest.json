@@ -4,8 +4,8 @@
   "description": "Plano de leitura da Bíblia inteligente",
   "start_url": ".", // Ou apenas "/" se o index.html está na raiz
   "display": "standalone", // Faz parecer um app sem a barra de endereço do Chrome
-  "background_color": "#f8f9fa", // Cor de fundo da tela de splash (opcional)
-  "theme_color": "#006400", // Cor da barra de status/header do app (verde escuro do seu header)
+  "background_color": "#1B3A57", // Cor de fundo da tela de splash (Azul Marinho)
+  "theme_color": "#1B3A57", // Cor da barra de status/header do app (Azul Marinho)
   "icons": [
     {
       "src": "imagens/logo.png", // Caminho para o seu logo ATUAL
@@ -26,4 +26,4 @@
     }
     // Você pode adicionar mais tamanhos se quiser (ex: 144x144, 256x256)
   ]
-}
+    }
