@@ -76,7 +76,7 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Progresso Ideal',
                     data: chartData.idealLine,
-                    borderColor: 'rgba(0, 0, 0, 0.2)',
+                    borderColor: 'rgba(27, 58, 87, 0.2)', // Azul Marinho translúcido (Baseado no tema)
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     borderDash: [5, 5],
@@ -86,11 +86,11 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Seu Progresso Real',
                     data: chartData.actualProgress,
-                    borderColor: 'var(--primary-action)',
-                    backgroundColor: 'rgba(138, 43, 226, 0.1)',
+                    borderColor: '#1B3A57', // Azul Marinho Sólido (var --primary-action)
+                    backgroundColor: 'rgba(27, 58, 87, 0.1)', // Fundo Azul Marinho translúcido
                     borderWidth: 3,
                     pointRadius: 4,
-                    pointBackgroundColor: 'var(--primary-action)',
+                    pointBackgroundColor: '#C69C6D', // Pontos Dourados (var --accent-color)
                     fill: true,
                     tension: 0.1
                 }
