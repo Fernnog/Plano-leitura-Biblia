@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- ATUALIZAÇÃO: Meta tag para colorir a barra do navegador mobile com a nova cor Azul Marinho -->
+    <meta name="theme-color" content="#1B3A57">
     <title>Plano de Leitura da Bíblia (Firebase)</title>
 
     <!-- ***** Link para o Favicon ***** -->
@@ -19,12 +21,11 @@
 
 </head>
 <body>
-    <!-- INÍCIO DA ALTERAÇÃO: Splash Screen -->
+    <!-- Splash Screen -->
     <div id="splash-screen">
         <img src="logo.png" alt="Logotipo Plano de Leitura" class="splash-logo">
         <p class="splash-text">Carregando seu plano...</p>
     </div>
-    <!-- FIM DA ALTERAÇÃO: Splash Screen -->
 
     <header>
         <!-- ***** Imagem do Logo ***** -->
@@ -79,9 +80,7 @@
         <!-- Container para botões de criação de plano, visível após login -->
         <section id="plan-creation-actions" class="plan-creation-actions-container" style="display: none;">
             <button id="create-new-plan-button" class="button-primary">Criar Novo Plano (Genérico)</button>
-            <!-- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) -->
             <button id="explore-bible-button" class="button-secondary">Explorar a Bíblia</button>
-            <!-- FIM DA ALTERAÇÃO (PRIORIDADE 1) -->
             <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
             <button id="create-favorite-plan-button" class="button-special">Criar Plano Favorito Anual</button>
         </section>
@@ -380,7 +379,6 @@
             </div>
         </div>
 
-        <!-- INÍCIO DA ALTERAÇÃO (PRIORIDADE 1) -->
         <!-- Modal do Explorador de Livros -->
         <div id="bible-explorer-modal" class="modal" style="display: none;">
             <div class="modal-content modal-content-scrollable">
@@ -408,7 +406,6 @@
                 </div>
             </div>
         </div>
-        <!-- FIM DA ALTERAÇÃO (PRIORIDADE 1) -->
 
         <!-- ***** Modal de Versão (NOVO) ***** -->
         <div id="version-modal" class="modal" style="display: none;">
