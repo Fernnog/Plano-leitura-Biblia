@@ -2,28 +2,40 @@
   "name": "Meu plano pessoal de leitura da Bíblia",
   "short_name": "Plano leitura da Bíblia",
   "description": "Plano de leitura da Bíblia inteligente",
-  "start_url": ".", // Ou apenas "/" se o index.html está na raiz
-  "display": "standalone", // Faz parecer um app sem a barra de endereço do Chrome
-  "background_color": "#1B3A57", // Cor de fundo da tela de splash (Azul Marinho)
-  "theme_color": "#1B3A57", // Cor da barra de status/header do app (Azul Marinho)
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1B3A57",
+  "theme_color": "#1B3A57",
   "icons": [
     {
-      "src": "imagens/logo.png", // Caminho para o seu logo ATUAL
-      "sizes": "80x80",         // Tamanho APROXIMADO do seu logo atual (AJUSTE SE NECESSÁRIO)
-      "type": "image/png"
+      "src": "imagens/logo.png",
+      "sizes": "80x80",
+      "type": "image/png",
+      "purpose": "any" 
     },
     {
-      "src": "imagens/logo_192.png", // RECOMENDADO: Crie uma versão 192x192px do seu logo
+      "src": "imagens/logo_192.png", 
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable" // Ajuda o Android a adaptar o ícone
+      "purpose": "any"
     },
     {
-      "src": "imagens/logo_512.png", // RECOMENDADO: Crie uma versão 512x512px do seu logo
+      "src": "imagens/logo_512.png", 
       "sizes": "512x512",
       "type": "image/png",
-       "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "imagens/logo_maskable_192.png", 
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "imagens/logo_maskable_512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-    // Você pode adicionar mais tamanhos se quiser (ex: 144x144, 256x256)
   ]
-    }
+}
