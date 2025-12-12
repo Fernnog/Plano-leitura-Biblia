@@ -5,8 +5,11 @@
  */
 
 import { BIBLE_BOOKS_CHAPTERS, CANONICAL_BOOK_ORDER, BOOK_NAME_MAP } from '../config/bible-data.js';
-import { addUTCDays, getUTCDay } from './date-helpers.js'; // Helper essencial adicionado
+import { addUTCDays, getUTCDay } from './date-helpers.js';
 
+/**
+ * Gera uma lista ordenada de capítulos dentro de um intervalo contínuo.
+ */
 export function generateChaptersInRange(startBook, startChap, endBook, endChap) {
     const chapters = [];
     const startIndex = CANONICAL_BOOK_ORDER.indexOf(startBook);
@@ -31,6 +34,9 @@ export function generateChaptersInRange(startBook, startChap, endBook, endChap) 
     return chapters;
 }
 
+/**
+ * Analisa entrada de string (ex: "Gn 1-3") e retorna array de capítulos.
+ */
 export function parseChaptersInput(inputString) {
     const chapters = new Set();
     const parts = inputString.split(',').map(p => p.trim()).filter(Boolean);
@@ -110,8 +116,8 @@ export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDa
 }
 
 /**
- * [CORRIGIDO v1.0.5] Distribui capítulos baseados em uma configuração de carga semanal.
- * Utiliza getUTCDay para garantir alinhamento correto com o dia da semana.
+ * Distribui capítulos baseados em pesos (Ritmo Variável).
+ * Usa getUTCDay para garantir alinhamento correto com o dia da semana.
  */
 export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeights) {
     const planMap = {};
@@ -140,7 +146,7 @@ export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeig
         const dayOfWeek = getUTCDay(currentDate); 
         const countForToday = dayWeights[dayOfWeek] || 0; // Chave numérica 0-6
 
-        // DEBUG: Mostra a primeira semana
+        // DEBUG: Mostra a primeira semana para diagnóstico
         if (readingDayCounter <= 7) {
             console.log(`[DEBUG HELPER] Dia #${readingDayCounter} | Data: ${currentDate.toISOString().split('T')[0]} | DiaSemana (UTC): ${dayOfWeek} | Peso: ${countForToday}`);
         }
