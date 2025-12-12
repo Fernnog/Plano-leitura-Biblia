@@ -10,7 +10,7 @@ Este projeto é uma aplicação web interativa que permite aos usuários criar, 
 
 O projeto foi arquitetado com uma **estrutura de módulos JavaScript (ESM)**, focando em separação de responsabilidades, manutenibilidade e escalabilidade.
 
-**Versão Atual:** 1.0.4
+**Versão Atual:** 1.0.5
 
 ## Estrutura de Arquivos
 
@@ -44,21 +44,22 @@ O projeto é organizado na seguinte estrutura de diretórios, promovendo a separ
     │   └── plan-reassessment-ui.js # Lógica da UI para o Quadro de Carga Semanal
     │
     └── utils/ # Funções puras e utilitárias
-        ├── chapter-helpers.js # Lógica de geração, ordenação e distribuição ponderada de capítulos
-        ├── date-helpers.js # Funções para formatar e calcular datas
+        ├── chapter-helpers.js # Lógica de geração e distribuição ponderada (Math Engine)
+        ├── date-helpers.js # Funções para formatar e calcular datas (UTC Helpers)
         ├── plan-logic-helpers.js # Lógica para calcular a data efetiva de um dia de leitura
         ├── milestone-helpers.js # Cálculo de marcos de perseverança
         └── plan-calculator.js # Motor de recálculo matemático de datas e ritmos
 
-## Funcionalidades Principais [ATUALIZADO v1.0.4]
+## Funcionalidades Principais [ATUALIZADO v1.0.5]
 
 *   **Autenticação de Usuários:** Cadastro e login seguros usando Firebase Authentication.
 *   **Gerenciamento de Múltiplos Planos:** Crie, edite, gerencie e delete múltiplos planos de leitura em uma interface moderna baseada em cards.
-*   **Ritmo de Leitura Variável (NOVO v1.0.4):** Configure cargas de leitura específicas para cada dia da semana. Ex: Leia 5 capítulos aos domingos e apenas 1 às segundas-feiras. O sistema adapta o calendário automaticamente.
-*   **Recálculo de Plano Preciso (ATUALIZADO):**
+*   **Ritmo de Leitura Variável (CORRIGIDO v1.0.5):** Configure cargas de leitura específicas para cada dia da semana com precisão matemática. O sistema agora utiliza um algoritmo de distribuição ponderada que respeita estritamente seus pesos (ex: 5 caps no Dom, 1 cap na Seg).
+*   **Estabilidade Temporal (NOVO v1.0.5):** Implementação de helpers UTC robustos para garantir que os dias da semana sejam identificados corretamente, independente do fuso horário do dispositivo do usuário.
+*   **Recálculo de Plano Preciso:**
     *   Ajuste dinamicamente o ritmo de um plano ativo sem perder o progresso.
-    *   **Correção de Bug:** A opção "Manter ritmo original" agora respeita matematicamente a velocidade definida na criação do plano.
-    *   **Correção de Bug:** A opção "A partir do próximo dia de leitura" garante que o novo cronograma inicie estritamente no futuro, evitando sobreposições com o dia atual.
+    *   Opções para manter ritmo original, manter data final ou definir novo ritmo.
+    *   Wizard de confirmação manual para abater capítulos já lidos "extraoficialmente".
 *   **Reavaliação Inteligente (Drag & Drop):** Visualize a distribuição de capítulos de todos os seus planos em um "Quadro de Carga Semanal". Remaneje a carga de leitura entre os dias da semana arrastando os planos.
 *   **Sincronização de Datas:** Alinhe múltiplos planos para terminarem na mesma data de um plano de referência.
 *   **Navegação Rápida:** Um *dock* flutuante permite alternar instantaneamente entre os seus planos de leitura.
@@ -118,10 +119,10 @@ Para executar este projeto localmente, você precisará configurar seu próprio 
 1.  **Cadastro/Login:** Crie uma conta ou faça login para acessar seus planos.
 2.  **Criação de Planos:** Utilize os botões para criar planos genéricos, explorar a Bíblia ou gerar o conjunto favorito anual.
 3.  **Interface Principal:** Seus planos são cards interativos. Marque os capítulos lidos e clique em "Concluir Leituras e Avançar".
-4.  **Recálculo Avançado (Novo):**
+4.  **Recálculo Avançado (Funcionalidade Chave):**
     *   Clique no botão **"Recalcular"** dentro de um card de plano.
-    *   Escolha entre: manter o ritmo, manter a data final, definir um novo ritmo fixo ou **Ritmo Diferenciado**.
-    *   Se escolher **Ritmo Diferenciado**, defina a quantidade de capítulos para cada dia da semana (ex: Dom: 5, Seg: 1).
+    *   Escolha **Ritmo Diferenciado** para personalizar sua rotina.
+    *   Defina a quantidade de capítulos para cada dia da semana (ex: Dom: 5, Seg: 1). O sistema calculará a nova data de término baseando-se exatamente nestes pesos.
     *   Confirme se há capítulos que você já leu "extraoficialmente" no passo seguinte e aplique o recálculo.
 5.  **Reavaliar e Sincronizar:** Use o botão "Reavaliar Planos" para ver sua carga semanal ou sincronizar datas de término entre planos diferentes.
 6.  **Histórico e Estatísticas:** Acesse gráficos de progresso e histórico detalhado em cada card.
