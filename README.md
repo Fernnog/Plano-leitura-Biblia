@@ -1,6 +1,8 @@
 # Plano de Leitura da Bíblia Personalizado com Firebase
 
-![Logotipo do Plano de Leitura](logo.png)
+<p align="center">
+  <img src="logo.png" alt="Logotipo do Plano de Leitura" width="200">
+</p>
 
 ## Descrição
 
