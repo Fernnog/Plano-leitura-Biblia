@@ -269,7 +269,24 @@
                     <fieldset><legend>Escolha como proceder:</legend>
                         <label><input type="radio" name="recalc-option" value="extend_date" checked> Manter ritmo original (adiar data final).</label><br>
                         <label><input type="radio" name="recalc-option" value="increase_pace"> Manter data final original (aumentar ritmo).</label><br>
-                        <label><input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3"> caps/dia.</label>
+                        <label><input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3"> caps/dia.</label><br>
+                        <!-- NOVA OPÇÃO DE RITMO VARIÁVEL -->
+                        <label><input type="radio" name="recalc-option" value="variable_pace"> Ritmo Diferenciado (por dia da semana)</label>
+                        
+                        <!-- CONTAINER DE CONFIGURAÇÃO DO RITMO VARIÁVEL -->
+                        <div id="variable-pace-config" style="display: none; margin-top: 15px; padding: 15px; background: var(--background-light); border: 1px solid var(--border-color); border-radius: 8px;">
+                            <p style="font-size: 0.9em; margin-bottom: 10px; color: var(--text-color-muted);">Defina a quantidade de capítulos para cada dia:</p>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 10px;">
+                                <div class="day-input-wrapper"><small>Dom</small><input type="number" data-day="0" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Seg</small><input type="number" data-day="1" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Ter</small><input type="number" data-day="2" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Qua</small><input type="number" data-day="3" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Qui</small><input type="number" data-day="4" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Sex</small><input type="number" data-day="5" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper"><small>Sáb</small><input type="number" data-day="6" min="0" class="day-pace-input" placeholder="0"></div>
+                            </div>
+                            <small style="display:block; margin-top:10px; font-style:italic; font-size:0.8em;">Dias com 0 ou vazio serão ignorados no cálculo.</small>
+                        </div>
                     </fieldset>
                     <fieldset>
                         <legend>Data de Início do Recálculo</legend>
