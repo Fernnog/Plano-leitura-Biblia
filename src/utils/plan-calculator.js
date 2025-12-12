@@ -4,7 +4,7 @@
  */
 
 import { countReadingDaysBetween } from './date-helpers.js';
-import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js'; // Import atualizado
+import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js'; 
 import { getEffectiveDateForDay } from './plan-logic-helpers.js';
 
 function _getChaptersFromLog(plan) {
@@ -38,6 +38,7 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
 
     const remainingChapters = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter));
 
+    // Se já terminou tudo e não tem nada marcado hoje
     if (remainingChapters.length === 0 && checkedOnCurrentDay.length === 0) {
         return { recalculatedPlan: { ...plan }, newPace: 0 };
     }
@@ -68,12 +69,14 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
             }
 
             // (B) Reconstrói o Presente/Futuro
+            // Nota: remainingPlanMap tem chaves relativas "1", "2"... 
+            // "1" corresponde ao primeiro dia do recálculo (hoje ou amanhã, dependendo da config)
             Object.keys(remainingPlanMap).forEach((dayKeyRelative) => {
                 const relativeIndex = parseInt(dayKeyRelative) - 1; 
                 const newDayKey = plan.currentDay + relativeIndex;
                 let chaptersForDay = remainingPlanMap[dayKeyRelative];
 
-                // Reinjeta capítulos do dia atual no início
+                // Reinjeta capítulos do dia atual no início da lista do primeiro dia
                 if (relativeIndex === 0 && checkedOnCurrentDay.length > 0) {
                     const existingSet = new Set(chaptersForDay);
                     const uniqueCheck = checkedOnCurrentDay.filter(ch => !existingSet.has(ch));
@@ -83,7 +86,7 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
                 newPlanMap[newDayKey] = chaptersForDay;
             });
             
-            // Caso de borda
+            // Caso de borda: nada restante, mas algo marcado hoje
             if (remainingChapters.length === 0 && checkedOnCurrentDay.length > 0) {
                 newPlanMap[plan.currentDay] = checkedOnCurrentDay;
             }
@@ -109,18 +112,20 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
     const availableReadingDays = countReadingDaysBetween(todayStr, targetEndDate, plan.allowedDays);
 
     if (availableReadingDays < 1) {
-        return null;
+        return null; // Impossível terminar
     }
 
     newPace = remainingChapters.length / availableReadingDays;
     const remainingPlanMap = distributeChaptersOverReadingDays(remainingChapters, availableReadingDays);
     
+    // Preserva Passado
     for (let i = 1; i < plan.currentDay; i++) {
         if (plan.plan[i]) {
         newPlanMap[i] = plan.plan[i];
         }
     }
 
+    // Reconstrói Futuro
     Object.keys(remainingPlanMap).forEach((dayKey, index) => {
         const newDayKey = plan.currentDay + index;
         let chaptersForDay = remainingPlanMap[dayKey];
