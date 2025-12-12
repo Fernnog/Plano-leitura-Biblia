@@ -613,9 +613,10 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
 /**
  * [FUNÇÃO MODIFICADA]
  * Lida com o evento de clique do botão de confirmação do recálculo.
- * Agora suporta a confirmação manual de capítulos (lixo eletrônico).
+ * Agora suporta a confirmação manual de capítulos (lixo eletrônico), ritmo variável e
+ * correções de data de início.
  */
-async function handleRecalculate(option, newPaceValue, startDateOption, specificDate, manuallyReadChapters) {
+async function handleRecalculate(option, newPaceValue, startDateOption, specificDate, manuallyReadChapters, dayWeights) {
     const planId = document.getElementById('confirm-recalculate').dataset.planId;
     if (!appState.currentUser || !planId) return;
 
@@ -647,9 +648,12 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
 
         let baseDateForCalc = getCurrentUTCDateString();
         
+        // CORREÇÃO: Lógica de "Próximo dia de leitura" e "Hoje"
         switch (startDateOption) {
             case 'next_reading_day':
-                baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
+                // Começa a busca a partir de AMANHÃ para garantir que não selecione hoje mesmo que seja dia de leitura
+                const tomorrow = addUTCDays(new Date(getCurrentUTCDateString()), 1).toISOString().split('T')[0];
+                baseDateForCalc = getEffectiveDateForDay({ startDate: tomorrow, allowedDays: originalPlan.allowedDays }, 1);
                 break;
             case 'specific_date':
                 if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(getCurrentUTCDateString() + 'T00:00:00Z')) {
@@ -659,6 +663,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
                 break;
             case 'today':
             default:
+                // Mantém baseDateForCalc como hoje
                 break;
         }
 
@@ -675,11 +680,14 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
             case 'increase_pace':
                 targetEndDate = originalPlan.endDate;
                 break;
+            case 'variable_pace':
+                // Ritmo diferenciado: calcula data final baseada nos pesos semanais
+                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, null, baseDateForCalc, dayWeights);
+                break;
             case 'extend_date':
             default:
-                const originalTotalDays = Object.keys(originalPlan.plan).length;
-                const originalPace = originalTotalDays > 0 ? (originalPlan.totalChapters / originalTotalDays) : 1;
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, originalPace, baseDateForCalc);
+                // Passa null para que a função tente usar o chaptersPerDay original ou calcule a média total
+                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, null, baseDateForCalc);
                 break;
         }
 
@@ -687,7 +695,7 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
             throw new Error("Não foi possível calcular uma nova data final para a opção selecionada.");
         }
 
-        const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc);
+        const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc, dayWeights);
 
         if (!result) {
             const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
@@ -704,7 +712,8 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
             option: option,
             paceValue: option === 'new_pace' ? newPaceValue : null,
             startDateOption: startDateOption,
-            manualCleanupCount: manuallyReadChapters ? manuallyReadChapters.length : 0
+            manualCleanupCount: manuallyReadChapters ? manuallyReadChapters.length : 0,
+            variablePaceWeights: option === 'variable_pace' ? dayWeights : null
         });
 
         const planToSave = { ...recalculatedPlan };
@@ -760,7 +769,8 @@ function handleRecalculationPreview(planId, option, newPaceValue, startDateOptio
 
         let baseDateForCalc = getCurrentUTCDateString();
         if (startDateOption === 'next_reading_day') {
-            baseDateForCalc = getEffectiveDateForDay({ startDate: baseDateForCalc, allowedDays: originalPlan.allowedDays }, 1);
+            const tomorrow = addUTCDays(new Date(getCurrentUTCDateString()), 1).toISOString().split('T')[0];
+            baseDateForCalc = getEffectiveDateForDay({ startDate: tomorrow, allowedDays: originalPlan.allowedDays }, 1);
         } else if (startDateOption === 'specific_date') {
             if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(getCurrentUTCDateString() + 'T00:00:00Z')) {
                 return { newEndDate: 'Data Inválida', newPace: 'N/A' };
@@ -789,8 +799,12 @@ function handleRecalculationPreview(planId, option, newPaceValue, startDateOptio
                 break;
             case 'extend_date':
             default:
-                const originalTotalDays = Object.keys(originalPlan.plan).length;
-                const originalPace = originalTotalDays > 0 ? (originalPlan.totalChapters / originalTotalDays) : 1;
+                // Tenta usar o chaptersPerDay original se disponível, senão calcula média do total
+                let originalPace = originalPlan.chaptersPerDay;
+                if (!originalPace) {
+                     const originalTotalDays = Object.keys(originalPlan.plan).length;
+                     originalPace = originalTotalDays > 0 ? (originalPlan.totalChapters / originalTotalDays) : 1;
+                }
                 resultingPace = originalPace;
                 targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, resultingPace, baseDateForCalc);
                 break;
@@ -943,6 +957,7 @@ async function handleCreateFavoritePlanSet() {
                 startDate, endDate, allowedDays: config.allowedDays, readLog: {},
                 dailyChapterReadStatus: {}, googleDriveLink: null, recalculationBaseDay: null,
                 recalculationBaseDate: null,
+                chaptersPerDay: config.chaptersPerReadingDay
             };
             await planService.saveNewPlan(appState.currentUser.uid, planData);
         }
@@ -1040,8 +1055,9 @@ function initApplication() {
                 modalsUI.renderManualCheckList(plan);
             }
         },
-        onConfirmRecalculate: (option, newPace, startDateOption, specificDate, manuallyReadChapters) => {
-            handleRecalculate(option, newPace, startDateOption, specificDate, manuallyReadChapters);
+        // Callback atualizado para aceitar pesos de ritmo variável (dayWeights)
+        onConfirmRecalculate: (option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights) => {
+            handleRecalculate(option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights);
         },
         onPreviewRecalculate: (planId, option, newPace, startDateOption, specificDate) => {
             return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
