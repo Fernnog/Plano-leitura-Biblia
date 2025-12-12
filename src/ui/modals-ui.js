@@ -2,14 +2,16 @@
  * @file modals-ui.js
  * @description Módulo de UI para gerenciar os modais de sobreposição da aplicação.
  * Controla a abertura, fechamento, e população de conteúdo dos modais.
+ * VERSÃO 1.0.5 - Inclui lógica visual das Barras de Carga (Load Bars).
  */
 
 // Importa todos os elementos do DOM relacionados aos modais
 import {
-    // Recálculo e Wizard (ATUALIZADO)
+    // Recálculo e Wizard
     recalculateModal, recalculateErrorDiv, recalculateLoadingDiv,
     confirmRecalculateButton, newPaceInput, recalcSpecificDateInput,
     recalcStep1, recalcStep2, btnGotoStep2, btnBackStep1, manualCheckList,
+    dayPaceInputs, // Importado para os listeners de Variable Pace
     // Estatísticas
     statsModal, statsLoadingDiv, statsErrorDiv, statsContentDiv,
     statsActivePlanName, statsActivePlanProgress, statsTotalChapters,
@@ -27,20 +29,15 @@ import {
     versionModal, versionModalTitle, versionModalContent
 } from './dom-elements.js';
 
-// Importa funções e dados auxiliares
 import { CANONICAL_BOOK_ORDER, BIBLE_BOOKS_CHAPTERS } from '../config/bible-data.js';
-import {
-    formatUTCDateStringToBrasilian,
-    getCurrentUTCDateString,
-    countReadingDaysBetween
-} from '../utils/date-helpers.js';
+import { formatUTCDateStringToBrasilian, getCurrentUTCDateString } from '../utils/date-helpers.js';
 import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
 
 // --- Estado Interno e Callbacks ---
 let state = {
     callbacks: {
         onConfirmRecalculate: null,
-        onRequestStep2: null, // Novo callback para buscar dados do plano no Wizard
+        onRequestStep2: null,
     },
 };
 
@@ -49,22 +46,49 @@ const allModals = [
     recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal, versionModal
 ];
 
-// --- Variável para armazenar a instância do gráfico e evitar duplicatas ---
 let progressChartInstance = null;
 
-// --- Função privada para renderizar o gráfico de progresso ---
+// --- FUNÇÃO AUXILIAR: ATUALIZA BARRA DE CARGA (PRIORIDADE 2) ---
 /**
- * Renderiza ou atualiza o gráfico de progresso no modal de estatísticas.
+ * Atualiza visualmente a barra de carga (termômetro) baseada no valor do input.
  * @private
- * @param {object} chartData - Objeto contendo os dados para os datasets do gráfico.
+ * @param {HTMLInputElement} input - O input de número de capítulos.
  */
+function _updateLoadBar(input) {
+    const val = parseInt(input.value) || 0;
+    // Assume que existe um elemento com ID 'load-bar-{day}' conforme HTML definido
+    const barId = `load-bar-${input.dataset.day}`;
+    const bar = document.getElementById(barId);
+
+    if (!bar) return; // Segurança caso o HTML ainda não tenha sido atualizado
+
+    // Lógica de escala: 10 capítulos = 100% da barra (teto visual)
+    const percentage = Math.min(100, val * 10);
+    bar.style.width = `${percentage}%`;
+
+    // Define a cor baseada na intensidade (Heatmap)
+    // Remove classes anteriores para reavaliar
+    bar.classList.remove('load-safe', 'load-moderate', 'load-heavy');
+    
+    // Adiciona classe base
+    bar.classList.add('load-bar'); 
+
+    if (val >= 7) {
+        bar.classList.add('load-heavy');     // Vermelho
+    } else if (val >= 4) {
+        bar.classList.add('load-moderate');  // Amarelo/Dourado
+    } else if (val > 0) {
+        bar.classList.add('load-safe');      // Verde
+    }
+}
+
+// --- Função privada para renderizar o gráfico de progresso ---
 function _renderStatsChart(chartData) {
     const canvas = document.getElementById('progress-chart');
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
 
-    // Destrói a instância anterior do gráfico se ela existir.
     if (progressChartInstance) {
         progressChartInstance.destroy();
     }
@@ -76,7 +100,7 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Progresso Ideal',
                     data: chartData.idealLine,
-                    borderColor: 'rgba(27, 58, 87, 0.2)', // Azul Marinho translúcido (Baseado no tema)
+                    borderColor: 'rgba(27, 58, 87, 0.2)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
                     borderDash: [5, 5],
@@ -86,11 +110,11 @@ function _renderStatsChart(chartData) {
                 {
                     label: 'Seu Progresso Real',
                     data: chartData.actualProgress,
-                    borderColor: '#1B3A57', // Azul Marinho Sólido (var --primary-action)
-                    backgroundColor: 'rgba(27, 58, 87, 0.1)', // Fundo Azul Marinho translúcido
+                    borderColor: '#1B3A57',
+                    backgroundColor: 'rgba(27, 58, 87, 0.1)',
                     borderWidth: 3,
                     pointRadius: 4,
-                    pointBackgroundColor: '#C69C6D', // Pontos Dourados (var --accent-color)
+                    pointBackgroundColor: '#C69C6D',
                     fill: true,
                     tension: 0.1
                 }
@@ -146,7 +170,6 @@ export function hideLoading(modalId) {
 }
 
 export function showError(modalId, message) {
-    // Ajuste para o ID customizado do erro de recálculo se necessário
     let errorDivId = `${modalId.replace('-modal', '')}-error`;
     if (modalId === 'recalculate-modal') errorDivId = 'recalc-error';
     
@@ -168,14 +191,9 @@ export function hideError(modalId) {
 
 // --- Funções Específicas de População de Conteúdo ---
 
-/**
- * Exibe as informações da versão e changelog no novo modal.
- * @param {string} version - A string da versão atual (ex: '1.0.1').
- * @param {Array<object>} changelog - Um array com os itens do log de alterações.
- */
 export function displayVersionInfo(version, changelog) {
     versionModalTitle.innerHTML = `Novidades da Versão ${version}`;
-    versionModalContent.innerHTML = ''; // Limpa o conteúdo anterior
+    versionModalContent.innerHTML = '';
 
     if (changelog && changelog.length > 0) {
         changelog.forEach(item => {
@@ -194,10 +212,6 @@ export function displayVersionInfo(version, changelog) {
     open('version-modal');
 }
 
-/**
- * Exibe os dados de histórico de leitura no modal correspondente.
- * @param {object} readLog - O objeto de log de leitura do plano ativo.
- */
 export function displayHistory(readLog) {
     historyListDiv.innerHTML = '';
     hideError('history-modal');
@@ -225,10 +239,6 @@ export function displayHistory(readLog) {
     });
 }
 
-/**
- * Exibe as estatísticas calculadas e renderiza o gráfico de progresso no modal.
- * @param {object} statsData - Objeto com todos os dados das estatísticas, incluindo `chartData` e `planSummary`.
- */
 export function displayStats(statsData) {
     const statsForecastDate = document.getElementById('stats-forecast-date');
     const statsRecalculationsCount = document.getElementById('stats-recalculations-count');
@@ -266,11 +276,6 @@ export function displayStats(statsData) {
     statsContentDiv.style.display = 'block';
 }
 
-/**
- * Exibe o explorador da Bíblia com dados agregados de todos os planos.
- * @param {Map<string, {icon: string, name: string}[]>} booksToIconsMap - Mapa de nomes de livros para arrays de objetos {ícone, nome}.
- * @param {Set<string>} allChaptersInPlans - Um Set com todos os capítulos de todos os planos.
- */
 export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     explorerBookGrid.innerHTML = '';
     explorerGridView.style.display = 'block';
@@ -303,10 +308,6 @@ export function displayBibleExplorer(booksToIconsMap, allChaptersInPlans) {
     open('bible-explorer-modal');
 }
 
-/**
- * Função interna para mostrar os detalhes dos capítulos de um livro.
- * @private
- */
 function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailTitle.textContent = bookName;
     explorerChapterList.innerHTML = '';
@@ -327,11 +328,6 @@ function showChapterDetails(bookName, chaptersInPlan) {
     explorerDetailView.style.display = 'block';
 }
 
-/**
- * Popula e prepara o modal de sincronização de planos.
- * @param {Array<object>} plans - Lista de planos elegíveis para sincronização.
- * @param {Function} onConfirm - Callback a ser chamado na confirmação.
- */
 export function displaySyncOptions(plans, onConfirm) {
     const todayStr = getCurrentUTCDateString();
 
@@ -416,16 +412,11 @@ export function displaySyncOptions(plans, onConfirm) {
     open('sync-plans-modal');
 }
 
-/**
- * Reseta o formulário do modal de recálculo para o estado padrão (Passo 1).
- */
 export function resetRecalculateForm() {
-    // Reseta a opção de como proceder
     const extendOption = recalculateModal.querySelector('input[name="recalc-option"][value="extend_date"]');
     if (extendOption) extendOption.checked = true;
     newPaceInput.value = '3';
 
-    // Reseta a opção de data de início
     const todayOption = recalculateModal.querySelector('input[name="recalc-start-option"][value="today"]');
     if (todayOption) todayOption.checked = true;
     
@@ -435,15 +426,18 @@ export function resetRecalculateForm() {
         recalcSpecificDateInput.min = getCurrentUTCDateString();
     }
 
-    // [v1.0.5] Reseta visibilidade da configuração de ritmo variável
     const variablePaceConfig = document.getElementById('variable-pace-config');
     if (variablePaceConfig) variablePaceConfig.style.display = 'none';
     
-    // [v1.0.5] Reseta os inputs de dia para 0
-    const dayInputs = document.querySelectorAll('.day-pace-input');
-    if(dayInputs) dayInputs.forEach(input => input.value = '');
+    // Reseta inputs e barras visuais
+    if(dayPaceInputs) {
+        dayPaceInputs.forEach(input => {
+            input.value = '';
+            // Atualiza barra para estado vazio
+            _updateLoadBar(input); 
+        });
+    }
 
-    // Reseta a visualização do Wizard (Volta para o Passo 1)
     if (recalcStep1) recalcStep1.style.display = 'block';
     if (recalcStep2) recalcStep2.style.display = 'none';
     if (manualCheckList) manualCheckList.innerHTML = '';
@@ -451,30 +445,20 @@ export function resetRecalculateForm() {
     hideError('recalculate-modal');
 }
 
-/**
- * Renderiza a lista de capítulos para confirmação manual no Passo 2 do Wizard.
- * Filtra capítulos já lidos e mostra apenas os próximos pendentes.
- * @param {object} plan - O objeto do plano.
- */
 export function renderManualCheckList(plan) {
     if (!manualCheckList) return;
     manualCheckList.innerHTML = '';
     
-    // Identifica todos os capítulos que o sistema considera JÁ lidos
     const readSet = new Set();
-    
-    // 1. Do histórico confirmado
     Object.values(plan.readLog || {}).forEach(dayArr => {
         if(Array.isArray(dayArr)) dayArr.forEach(ch => readSet.add(ch));
     });
     
-    // 2. Dos checkboxes marcados no dia atual (ainda não confirmados no log)
     Object.keys(plan.dailyChapterReadStatus || {}).forEach(ch => {
         if(plan.dailyChapterReadStatus[ch]) readSet.add(ch);
     });
 
     const allChapters = plan.chaptersList || [];
-    // Filtra apenas o que falta ler e pega os primeiros 30 para não travar a UI
     const pendingChapters = allChapters.filter(ch => !readSet.has(ch)).slice(0, 30);
 
     if (pendingChapters.length === 0) {
@@ -485,7 +469,6 @@ export function renderManualCheckList(plan) {
     pendingChapters.forEach(chapter => {
         const div = document.createElement('div');
         div.className = 'manual-chapter-item';
-        // Checkbox começa desmarcado. O usuário marca se JÁ LEU este capítulo "extraoficialmente".
         div.innerHTML = `
             <label style="cursor:pointer; width:100%; display:flex; align-items:center; margin:0; font-weight:normal;">
                 <input type="checkbox" value="${chapter}" class="manual-chapter-check">
@@ -499,10 +482,6 @@ export function renderManualCheckList(plan) {
 
 // --- Inicialização ---
 
-/**
- * Inicializa o módulo de modais, configurando listeners de eventos genéricos.
- * @param {object} callbacks - Objeto com os callbacks para as ações dos modais.
- */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
@@ -530,7 +509,6 @@ export function init(callbacks) {
 
     // --- LÓGICA DO MODAL DE RECÁLCULO (WIZARD) ---
 
-    // [v1.0.5] Lógica para mostrar/esconder a configuração de ritmo variável
     const variablePaceConfig = document.getElementById('variable-pace-config');
     const radioOptions = document.getElementsByName('recalc-option');
     if (variablePaceConfig && radioOptions.length > 0) {
@@ -543,9 +521,17 @@ export function init(callbacks) {
                 }
             });
         });
+
+        // --- ATIVAÇÃO DOS LISTENERS DE INPUT PARA BARRAS DE CARGA (PRIORIDADE 2) ---
+        if (dayPaceInputs) {
+            dayPaceInputs.forEach(input => {
+                input.addEventListener('input', () => _updateLoadBar(input));
+                // Inicializa o estado (útil se o modal abrir já preenchido no futuro)
+                _updateLoadBar(input); 
+            });
+        }
     }
 
-    // Opções de data específica
     const recalcStartOptions = document.querySelectorAll('input[name="recalc-start-option"]');
     if (recalcStartOptions.length > 0 && recalcSpecificDateInput) {
         recalcStartOptions.forEach(radio => {
@@ -559,21 +545,15 @@ export function init(callbacks) {
         });
     }
 
-    // Botão "Próximo: Confirmar Capítulos" (Vai para o Passo 2)
     if (btnGotoStep2) {
         btnGotoStep2.addEventListener('click', () => {
             const planId = confirmRecalculateButton.dataset.planId;
-            
-            // Chama o callback para que o main.js forneça os dados do plano e renderize a lista
             state.callbacks.onRequestStep2?.(planId);
-            
-            // Alterna a visualização
             if (recalcStep1) recalcStep1.style.display = 'none';
             if (recalcStep2) recalcStep2.style.display = 'block';
         });
     }
 
-    // Botão "Voltar" (Volta para o Passo 1)
     if (btnBackStep1) {
         btnBackStep1.addEventListener('click', () => {
             if (recalcStep2) recalcStep2.style.display = 'none';
@@ -581,7 +561,6 @@ export function init(callbacks) {
         });
     }
 
-    // Botão "Confirmar Recálculo" (Finaliza o processo)
     if (confirmRecalculateButton) {
         confirmRecalculateButton.addEventListener('click', () => {
             const option = document.querySelector('input[name="recalc-option"]:checked').value;
@@ -589,21 +568,17 @@ export function init(callbacks) {
             const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
             const specificDate = recalcSpecificDateInput.value;
 
-            // [v1.0.5] Coleta os pesos do ritmo variável, se aplicável
             let dayWeights = {};
             if (option === 'variable_pace') {
                 const dayInputs = document.querySelectorAll('.day-pace-input');
                 dayInputs.forEach(input => {
                     const val = parseInt(input.value);
                     if (!isNaN(val) && val >= 0) {
-                        // Mapeia data-day (0=Dom...6=Sab) para o valor
                         dayWeights[input.dataset.day] = val;
                     }
                 });
-                console.log('[DEBUG v1.0.5] UI - Pesos capturados dos inputs:', dayWeights);
             }
 
-            // Coleta os capítulos marcados manualmente no passo 2
             let manuallyReadChapters = [];
             if (manualCheckList) {
                 manuallyReadChapters = Array.from(
@@ -611,9 +586,6 @@ export function init(callbacks) {
                 ).map(cb => cb.value);
             }
 
-            console.log('[DEBUG v1.0.5] UI - Enviando dados para o Main...');
-
-            // Chamada do callback com a lista de capítulos manuais E os pesos
             state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights);
         });
     }
