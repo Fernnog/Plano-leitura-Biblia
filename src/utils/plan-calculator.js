@@ -1,9 +1,12 @@
 /**
  * @file plan-calculator.js
  * @description Módulo central para lógicas de cálculo e recálculo de planos.
- * Contém funções puras para determinar novos ritmos e datas de término,
- * e para gerar estruturas de planos recalculados com preservação de estado visual.
+ * Contém funções puras para determinar novos ritmos e datas de término.
+ * VERSÃO 1.0.5 - Inclui validação de pesos e Tipagem JSDoc.
  */
+
+// Importa tipos para IntelliSense e validação (Prioridade 3)
+/** @typedef {import('../types/PlanTypes.js').Plan} Plan */
 
 import { countReadingDaysBetween } from './date-helpers.js';
 import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js';
@@ -14,7 +17,7 @@ import { getEffectiveDateForDay } from './plan-logic-helpers.js';
  * Agrega todos os capítulos lidos do log de leitura (histórico confirmado)
  * E do estado atual dos checkboxes (leitura não confirmada/avançada).
  * @private
- * @param {object} plan - O objeto do plano.
+ * @param {Plan} plan - O objeto do plano.
  * @returns {Set<string>} Um Set contendo todos os capítulos únicos considerados lidos.
  */
 function _getChaptersFromLog(plan) {
@@ -29,7 +32,6 @@ function _getChaptersFromLog(plan) {
     });
 
     // 2. Adiciona capítulos marcados no dia atual (dailyChapterReadStatus) - Presente Ativo
-    // Isso garante que o cálculo matemático abata esses capítulos da meta futura.
     const currentStatus = plan.dailyChapterReadStatus || {};
     Object.entries(currentStatus).forEach(([chapterName, isRead]) => {
         if (isRead === true) {
@@ -45,24 +47,17 @@ function _getChaptersFromLog(plan) {
  * Recalcula um plano para terminar em uma data final específica.
  * Preserva visualmente os capítulos marcados no dia atual.
  * 
- * @param {object} plan - O objeto do plano original.
+ * @param {Plan} plan - O objeto do plano original.
  * @param {string} targetEndDate - A data final desejada no formato "YYYY-MM-DD".
  * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
- * @param {object} options - [v1.0.5] Opções adicionais (ex: type='variable_pace', dayWeights).
- * @returns {{recalculatedPlan: object, newPace: number}|null}
+ * @param {object} options - Opções adicionais (ex: type='variable_pace', dayWeights).
+ * @returns {{recalculatedPlan: Plan, newPace: number|string}|null}
  */
 export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, options = {}) {
-    // --- CÓDIGO DE DEBUG INSERIDO v1.0.5 ---
-    console.log('[DEBUG v1.0.5] CALCULATOR - Iniciando cálculo.');
-    console.log('[DEBUG v1.0.5] CALCULATOR - Options recebidas:', options);
-    // ---------------------------------------
-
     // 1. Obtém o conjunto de tudo que já foi lido (Histórico + Checkbox Atual)
     const chaptersReadSet = _getChaptersFromLog(plan);
     
     // 2. Identifica capítulos especificamente marcados no DIA ATUAL.
-    // Precisamos dessa lista separada para reinjetá-la no novo plano,
-    // caso contrário, eles sumiriam da tela pois já estão no 'chaptersReadSet'.
     const currentDayStr = plan.currentDay.toString();
     const scheduledForToday = plan.plan[currentDayStr] || [];
     const checkedOnCurrentDay = scheduledForToday.filter(chapter => 
@@ -81,42 +76,36 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
     let calculatedEndDate = targetEndDate;
     let newPace = 0;
 
-    // --- LÓGICA DE DISTRIBUIÇÃO PONDERADA (v1.0.5) ---
+    // --- LÓGICA DE DISTRIBUIÇÃO PONDERADA (v1.0.5 - PRIORIDADE 1) ---
     if (options && options.type === 'variable_pace') {
-        console.log('[DEBUG v1.0.5] CALCULATOR - Entrando no fluxo de Ritmo Variável.');
         
+        // PROTEÇÃO DE LÓGICA: Valida se os pesos foram fornecidos corretamente
         if (!options.dayWeights || Object.keys(options.dayWeights).length === 0) {
-             console.error('[DEBUG v1.0.5] ERRO: dayWeights não encontrado ou vazio nas opções!');
-             return null;
+             console.error('[ERRO CRÍTICO] Tentativa de recálculo variável sem pesos definidos.');
+             // Retorna null para sinalizar erro à UI, evitando estado inconsistente
+             return null; 
         }
 
-        // Usa a nova função de distribuição ponderada
-        // NOTA: todayStr aqui serve como a data base para iniciar a distribuição
+        // Usa a função de distribuição ponderada
         const distResult = distributeChaptersWeighted(remainingChapters, todayStr, options.dayWeights);
-        
-        console.log('[DEBUG v1.0.5] CALCULATOR - Resultado da distribuição:', distResult);
         
         // O restante do plano (futuro) vem da distribuição ponderada
         const remainingPlanMap = distResult.planMap;
         calculatedEndDate = distResult.endDate;
         newPace = 'Variável'; // Ritmo não é um número fixo
 
-        // Mesclagem com o passado (A) e presente (B) - Lógica compartilhada abaixo
-        // Precisamos adaptar a estrutura retornada pelo distributeChaptersWeighted para chaves numéricas sequenciais
-        // assumindo que a função retorna chaves "1", "2", "3"... relativos ao início do recálculo
-
         // (A) Preserva o Passado
         for (let i = 1; i < plan.currentDay; i++) {
             if (plan.plan[i]) {
-            newPlanMap[i] = plan.plan[i];
+                newPlanMap[i] = plan.plan[i];
             }
         }
 
         // (B) Reconstrói o Presente e Futuro
         Object.keys(remainingPlanMap).forEach((dayKeyRelative, index) => {
-            // dayKeyRelative é "1", "2", etc.
-            // Precisamos somar ao currentDay para obter a chave absoluta no plano geral
-            const newDayKey = plan.currentDay + index; // Ex: Se currentDay é 50, o dia relativo 1 vira 50
+            // dayKeyRelative é "1", "2", etc. relativo ao início do recálculo.
+            // Somamos ao currentDay para obter a chave absoluta.
+            const newDayKey = plan.currentDay + index; 
             let chaptersForDay = remainingPlanMap[dayKeyRelative];
 
             // Reinjeta capítulos marcados no dia atual (se for o primeiro dia da nova série)
@@ -138,32 +127,25 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
         const availableReadingDays = countReadingDaysBetween(todayStr, targetEndDate, plan.allowedDays);
 
         if (availableReadingDays < 1) {
-            // Impossível terminar a tempo com os dias disponíveis.
-            return null;
+            return null; // Impossível terminar a tempo
         }
 
-        // Calcula o novo ritmo necessário
         newPace = remainingChapters.length / availableReadingDays;
         
-        // 4. Distribui os capítulos RESTANTES nos dias disponíveis
         const remainingPlanMap = distributeChaptersOverReadingDays(remainingChapters, availableReadingDays);
         
-        // A. Preserva o Passado (dias anteriores ao atual)
+        // A. Preserva o Passado
         for (let i = 1; i < plan.currentDay; i++) {
             if (plan.plan[i]) {
-            newPlanMap[i] = plan.plan[i];
+                newPlanMap[i] = plan.plan[i];
             }
         }
 
         // B. Reconstrói o Presente e o Futuro
-        // O remainingPlanMap é indexado de 1 a N. Precisamos mapear para CurrentDay a CurrentDay+N.
         Object.keys(remainingPlanMap).forEach((dayKey, index) => {
             const newDayKey = plan.currentDay + index;
             let chaptersForDay = remainingPlanMap[dayKey];
 
-            // [CORREÇÃO CRÍTICA DE INTEGRIDADE VISUAL]
-            // Se estamos montando o dia atual (index 0), recolocamos os capítulos
-            // que o usuário já marcou no topo da lista.
             if (index === 0 && checkedOnCurrentDay.length > 0) {
                 chaptersForDay = [...checkedOnCurrentDay, ...chaptersForDay];
             }
@@ -171,7 +153,7 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
             newPlanMap[newDayKey] = chaptersForDay;
         });
 
-        // C. Caso de Borda:
+        // C. Caso de Borda
         if (remainingChapters.length === 0 && checkedOnCurrentDay.length > 0) {
             newPlanMap[plan.currentDay] = checkedOnCurrentDay;
         }
@@ -191,9 +173,8 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
 
 /**
  * Calcula a data de término de um plano com base em um ritmo específico (caps/dia).
- * Utiliza a lógica atualizada de contagem de capítulos lidos.
  * 
- * @param {object} plan - O objeto do plano original.
+ * @param {Plan} plan - O objeto do plano original.
  * @param {number} pace - O ritmo desejado (capítulos por dia de leitura).
  * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
  * @returns {string|null} A nova data de término calculada.
@@ -201,11 +182,10 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
 export function calculateEndDateFromPace(plan, pace, todayStr) {
     if (!pace || pace < 0) return null;
 
-    // Usa a nova lógica que considera checkboxes ativos
     const chaptersReadSet = _getChaptersFromLog(plan);
     const remainingChaptersCount = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter)).length;
     
-    if (remainingChaptersCount <= 0) return plan.endDate; // Já concluído.
+    if (remainingChaptersCount <= 0) return plan.endDate;
 
     const requiredReadingDays = pace > 0 ? Math.ceil(remainingChaptersCount / pace) : 0;
     
