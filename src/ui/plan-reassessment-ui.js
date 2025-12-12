@@ -1,39 +1,30 @@
 /**
  * @file plan-reassessment-ui.js
- * @description Módulo de UI para gerenciar o Quadro de Carga Semanal, permitindo
- * que o usuário visualize a distribuição de seus planos e inicie a reavaliação.
- * INCLUI FUNCIONALIDADE DE DRAG & DROP PARA DESKTOP E TOUCH E VISUALIZAÇÃO DE CARGA.
+ * @description Módulo de UI para gerenciar o Quadro de Carga Semanal.
  */
 
-// --- Importações de Elementos do DOM ---
 import {
     planReassessmentSection,
     closeReassessmentButton,
     reassessmentGrid,
     reassessmentLegendList,
-    // INÍCIO DA ALTERAÇÃO: Importado o novo botão
     syncPlansButton,
-    // FIM DA ALTERAÇÃO
 } from './dom-elements.js';
 
-// --- Estado Interno e Callbacks ---
+import { addUTCDays, getUTCDay, getCurrentUTCDateString } from '../utils/date-helpers.js';
+
 let state = {
     callbacks: {
         onClose: null,
         onPlanSelect: null,
         onUpdatePlanDays: null,
-        // INÍCIO DA ALTERAÇÃO: Adicionado o novo callback
         onSyncRequest: null,
-        // FIM DA ALTERAÇÃO
     },
 };
 
-// --- Funções Privadas de Renderização ---
-
 /**
- * Renderiza a grade de dias e a legenda com base nos planos do usuário.
- * @private
- * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
+ * [ATUALIZADO v1.0.5] Renderiza a grade baseada na PROJEÇÃO REAL DOS PRÓXIMOS 7 DIAS.
+ * Em vez de média, olha o que está agendado no 'planMap' para as datas futuras.
  */
 function _renderGridAndLegend(allUserPlans) {
     reassessmentGrid.innerHTML = '';
@@ -44,53 +35,86 @@ function _renderGridAndLegend(allUserPlans) {
         return;
     }
 
-    const weeklyLoad = {};
+    const weeklyLoad = {}; // { 0: [...], 1: [...] } - 0=Dom
     const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const activePlansForLegend = new Map();
-    const CHAPTER_OVERLOAD_THRESHOLD = 20; // Limite para alerta de sobrecarga
+    const CHAPTER_OVERLOAD_THRESHOLD = 20;
 
-    // 1. Calcular a "carga" de capítulos para cada plano
+    // Inicializa a estrutura semanal
+    for (let i = 0; i < 7; i++) weeklyLoad[i] = [];
+
+    // Data de referência (Hoje)
+    const todayStr = getCurrentUTCDateString();
+    const todayDate = new Date(todayStr + 'T00:00:00Z');
+
     allUserPlans.forEach(plan => {
-        const totalReadingDays = Object.keys(plan.plan || {}).length;
-        if (totalReadingDays === 0) return; // Ignora planos vazios
-
-        const avgChapters = Math.ceil(plan.totalChapters / totalReadingDays);
-        if (avgChapters < 1) return;
-
-        (plan.allowedDays || []).forEach(dayIndex => {
-            if (dayIndex >= 0 && dayIndex <= 6) {
-                if (!weeklyLoad[dayIndex]) {
-                    weeklyLoad[dayIndex] = [];
-                }
-                weeklyLoad[dayIndex].push({
-                    id: plan.id,
-                    icon: plan.icon || '📖',
-                    chapters: avgChapters
-                });
-            }
-        });
-        
+        // Popula legenda
         if (!activePlansForLegend.has(plan.id)) {
             activePlansForLegend.set(plan.id, { icon: plan.icon || '📖', name: plan.name || 'Plano sem nome' });
         }
+
+        const isCompleted = plan.currentDay > Object.keys(plan.plan || {}).length;
+        if (isCompleted) return;
+
+        // DEBUG VISUAL
+        if (plan.recalculationHistory && plan.recalculationHistory.length > 0) {
+            console.log(`[DEBUG UI] Analisando Plano Recalculado: ${plan.name}`);
+        }
+
+        // Simulação dos próximos 7 dias calendário a partir de hoje
+        // Precisamos encontrar qual "readingDay" do plano corresponde a qual data calendário
+        
+        let currentPlanDay = plan.currentDay;
+        // Data base para projeção. Se o plano foi recalculado HOJE, o dia corrente do plano é HOJE.
+        // Se o plano segue fluxo normal, precisamos ver se HOJE é um dia de leitura válido.
+        
+        // Estratégia Simplificada de Projeção Visual:
+        // Itera os próximos 7 dias do calendário. Se for um dia permitido, consome um dia do plano.
+        
+        let projectionDate = new Date(todayDate);
+        let projectionPlanDay = currentPlanDay;
+        const totalPlanDays = Object.keys(plan.plan).length;
+
+        for (let offset = 0; offset < 7; offset++) {
+            const dayOfWeekIndex = getUTCDay(projectionDate); // 0-6
+            
+            // Verifica se é dia de leitura (se allowedDays vazio, todos são)
+            const allowed = !plan.allowedDays || plan.allowedDays.length === 0 || plan.allowedDays.includes(dayOfWeekIndex);
+
+            if (allowed && projectionPlanDay <= totalPlanDays) {
+                const chaptersForDay = plan.plan[projectionPlanDay.toString()] || [];
+                const count = chaptersForDay.length;
+
+                if (count > 0) {
+                    weeklyLoad[dayOfWeekIndex].push({
+                        id: plan.id,
+                        icon: plan.icon || '📖',
+                        chapters: count
+                    });
+                }
+                projectionPlanDay++;
+            }
+            // Avança data
+            projectionDate = addUTCDays(projectionDate, 1);
+        }
     });
 
-    // 2. Renderizar as colunas da grade no DOM
+    // Renderiza Colunas
     daysOfWeek.forEach((dayName, index) => {
         const dayColumn = document.createElement('div');
         dayColumn.className = 'reassessment-day-column';
-        dayColumn.dataset.day = index; // Adiciona o data-day para identificação fácil
+        dayColumn.dataset.day = index; 
         
         let entriesHTML = '';
         let totalChaptersThisDay = 0;
 
-        if (weeklyLoad[index]) {
+        if (weeklyLoad[index].length > 0) {
             weeklyLoad[index].sort((a, b) => b.chapters - a.chapters);
 
             weeklyLoad[index].forEach(entry => {
                 totalChaptersThisDay += entry.chapters;
                 entriesHTML += `
-                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" draggable="true" title="Arraste para remanejar o plano">
+                    <div class="reassessment-plan-entry" data-plan-id="${entry.id}" draggable="true">
                         <span class="plan-icon">${entry.icon}</span>
                         <span class="chapter-count">${entry.chapters} cap.</span>
                     </div>
@@ -98,7 +122,6 @@ function _renderGridAndLegend(allUserPlans) {
             });
         }
         
-        // Verifica se há sobrecarga e adiciona a classe correspondente
         if (totalChaptersThisDay > CHAPTER_OVERLOAD_THRESHOLD) {
             dayColumn.classList.add('overload');
         }
@@ -108,7 +131,7 @@ function _renderGridAndLegend(allUserPlans) {
         reassessmentGrid.appendChild(dayColumn);
     });
 
-    // 3. Renderizar a legenda dos planos ativos
+    // Legenda
     if (activePlansForLegend.size > 0) {
         activePlansForLegend.forEach(planData => {
             reassessmentLegendList.innerHTML += `
@@ -119,23 +142,15 @@ function _renderGridAndLegend(allUserPlans) {
             `;
         });
     } else {
-        reassessmentLegendList.innerHTML = '<p>Nenhum plano com ícone e nome para exibir na legenda.</p>';
+        reassessmentLegendList.innerHTML = '<p>Nenhum plano ativo.</p>';
     }
 }
 
-// --- Funções Públicas (API do Módulo) ---
-
-/**
- * Inicializa o módulo, configurando os listeners para clique, Drag & Drop e sincronização.
- * @param {object} callbacks - Objeto contendo os callbacks { onClose, onPlanSelect, onUpdatePlanDays, onSyncRequest }.
- */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
     closeReassessmentButton.addEventListener('click', () => state.callbacks.onClose?.());
-    // INÍCIO DA ALTERAÇÃO: Adicionado o listener para o botão de sincronização
     syncPlansButton.addEventListener('click', () => state.callbacks.onSyncRequest?.());
-    // FIM DA ALTERAÇÃO
 
     reassessmentGrid.addEventListener('click', (event) => {
         const planEntry = event.target.closest('.reassessment-plan-entry');
@@ -144,7 +159,7 @@ export function init(callbacks) {
         }
     });
 
-    // --- LÓGICA DE DRAG & DROP (DESKTOP) ---
+    // --- LÓGICA DRAG & DROP DESKTOP ---
     let draggedItem = null;
 
     reassessmentGrid.addEventListener('dragstart', (e) => {
@@ -193,7 +208,7 @@ export function init(callbacks) {
         }
     });
     
-    // --- LÓGICA DE DRAG & DROP (TOUCH) ---
+    // --- LÓGICA DRAG & DROP TOUCH ---
     let touchDraggedItem = null;
     let ghostElement = null;
     let lastTouchTargetColumn = null;
@@ -260,25 +275,15 @@ export function init(callbacks) {
     });
 }
 
-/**
- * Renderiza o conteúdo do quadro de reavaliação com os dados mais recentes.
- * @param {Array<object>} allUserPlans - A lista completa de planos do usuário.
- */
 export function render(allUserPlans) {
     _renderGridAndLegend(allUserPlans);
 }
 
-/**
- * Mostra a seção de reavaliação de planos.
- */
 export function show() {
     planReassessmentSection.style.display = 'block';
     window.scrollTo(0, 0);
 }
 
-/**
- * Esconde a seção de reavaliação de planos.
- */
 export function hide() {
     planReassessmentSection.style.display = 'none';
 }
