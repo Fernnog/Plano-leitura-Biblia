@@ -10,8 +10,6 @@ import {
     recalculateModal, recalculateErrorDiv, recalculateLoadingDiv,
     confirmRecalculateButton, newPaceInput, recalcSpecificDateInput,
     recalcStep1, recalcStep2, btnGotoStep2, btnBackStep1, manualCheckList,
-    // [NOVO] Elementos para Ritmo Diferenciado
-    variablePaceConfig, dayPaceInputs,
     // Estatísticas
     statsModal, statsLoadingDiv, statsErrorDiv, statsContentDiv,
     statsActivePlanName, statsActivePlanProgress, statsTotalChapters,
@@ -427,12 +425,6 @@ export function resetRecalculateForm() {
     if (extendOption) extendOption.checked = true;
     newPaceInput.value = '3';
 
-    // [NOVO] Reseta a UI de ritmo variável
-    if (variablePaceConfig) variablePaceConfig.style.display = 'none';
-    if (dayPaceInputs) {
-        dayPaceInputs.forEach(input => input.value = ''); // Limpa os inputs
-    }
-
     // Reseta a opção de data de início
     const todayOption = recalculateModal.querySelector('input[name="recalc-start-option"][value="today"]');
     if (todayOption) todayOption.checked = true;
@@ -442,6 +434,14 @@ export function resetRecalculateForm() {
         recalcSpecificDateInput.value = '';
         recalcSpecificDateInput.min = getCurrentUTCDateString();
     }
+
+    // [v1.0.5] Reseta visibilidade da configuração de ritmo variável
+    const variablePaceConfig = document.getElementById('variable-pace-config');
+    if (variablePaceConfig) variablePaceConfig.style.display = 'none';
+    
+    // [v1.0.5] Reseta os inputs de dia para 0
+    const dayInputs = document.querySelectorAll('.day-pace-input');
+    if(dayInputs) dayInputs.forEach(input => input.value = '');
 
     // Reseta a visualização do Wizard (Volta para o Passo 1)
     if (recalcStep1) recalcStep1.style.display = 'block';
@@ -530,28 +530,16 @@ export function init(callbacks) {
 
     // --- LÓGICA DO MODAL DE RECÁLCULO (WIZARD) ---
 
-    // [NOVO] Lógica para Opção de Ritmo Diferenciado
-    const recalcOptions = document.querySelectorAll('input[name="recalc-option"]');
-    if (recalcOptions.length > 0) {
-        recalcOptions.forEach(radio => {
+    // [v1.0.5] Lógica para mostrar/esconder a configuração de ritmo variável
+    const variablePaceConfig = document.getElementById('variable-pace-config');
+    const radioOptions = document.getElementsByName('recalc-option');
+    if (variablePaceConfig && radioOptions.length > 0) {
+        radioOptions.forEach(radio => {
             radio.addEventListener('change', (e) => {
-                const isVariable = e.target.value === 'variable_pace';
-                
-                // Toggle de visibilidade do container
-                if (variablePaceConfig) {
-                    variablePaceConfig.style.display = isVariable ? 'block' : 'none';
-                    
-                    // [UX IMPROVEMENT] Pré-preenchimento Inteligente
-                    // Se o usuário selecionar ritmo variável, preenchemos os inputs vazios
-                    // com o valor do ritmo médio atual (ou 3 como fallback), para facilitar a edição.
-                    if (isVariable) {
-                        const currentBasePace = parseInt(newPaceInput.value, 10) || 3;
-                        dayPaceInputs.forEach(input => {
-                            if (input.value === '') {
-                                input.value = currentBasePace;
-                            }
-                        });
-                    }
+                if (e.target.value === 'variable_pace') {
+                    variablePaceConfig.style.display = 'block';
+                } else {
+                    variablePaceConfig.style.display = 'none';
                 }
             });
         });
@@ -601,17 +589,18 @@ export function init(callbacks) {
             const startDateOption = document.querySelector('input[name="recalc-start-option"]:checked').value;
             const specificDate = recalcSpecificDateInput.value;
 
-            // [NOVO] Coleta os pesos dos dias para o Ritmo Diferenciado
-            let dayWeights = null;
+            // [v1.0.5] Coleta os pesos do ritmo variável, se aplicável
+            let dayWeights = {};
             if (option === 'variable_pace') {
-                dayWeights = {};
-                dayPaceInputs.forEach(input => {
-                    const val = parseInt(input.value, 10);
-                    const dayIndex = input.dataset.day; // 0=Dom, 1=Seg...
+                const dayInputs = document.querySelectorAll('.day-pace-input');
+                dayInputs.forEach(input => {
+                    const val = parseInt(input.value);
                     if (!isNaN(val) && val >= 0) {
-                        dayWeights[dayIndex] = val;
+                        // Mapeia data-day (0=Dom...6=Sab) para o valor
+                        dayWeights[input.dataset.day] = val;
                     }
                 });
+                console.log('[DEBUG v1.0.5] UI - Pesos capturados dos inputs:', dayWeights);
             }
 
             // Coleta os capítulos marcados manualmente no passo 2
@@ -622,7 +611,9 @@ export function init(callbacks) {
                 ).map(cb => cb.value);
             }
 
-            // Chamada do callback com a lista de capítulos manuais e os pesos dos dias
+            console.log('[DEBUG v1.0.5] UI - Enviando dados para o Main...');
+
+            // Chamada do callback com a lista de capítulos manuais E os pesos
             state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights);
         });
     }
