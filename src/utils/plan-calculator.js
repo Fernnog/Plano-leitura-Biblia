@@ -1,3 +1,5 @@
+// src/utils/plan-calculator.js
+
 /**
  * @file plan-calculator.js
  * @description Módulo central para lógicas de cálculo e recálculo de planos.
@@ -6,7 +8,7 @@
  */
 
 import { countReadingDaysBetween } from './date-helpers.js';
-import { distributeChaptersOverReadingDays } from './chapter-helpers.js';
+import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js';
 import { getEffectiveDateForDay } from './plan-logic-helpers.js';
 
 /**
@@ -48,9 +50,10 @@ function _getChaptersFromLog(plan) {
  * @param {object} plan - O objeto do plano original.
  * @param {string} targetEndDate - A data final desejada no formato "YYYY-MM-DD".
  * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
+ * @param {object} [dayWeights] - Objeto opcional com pesos por dia da semana {0: qtd, 1: qtd...} para distribuição variável.
  * @returns {{recalculatedPlan: object, newPace: number}|null}
  */
-export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
+export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, dayWeights) {
     // 1. Obtém o conjunto de tudo que já foi lido (Histórico + Checkbox Atual)
     const chaptersReadSet = _getChaptersFromLog(plan);
     
@@ -71,6 +74,53 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
         return { recalculatedPlan: { ...plan }, newPace: 0 };
     }
 
+    // Lógica para Ritmo Variável (Variable Pace)
+    if (dayWeights) {
+        // Usa a função especializada de distribuição ponderada
+        const distResult = distributeChaptersWeighted(remainingChapters, todayStr, dayWeights);
+        const remainingPlanMap = distResult.planMap;
+        
+        // Recalcula a data final real baseada na distribuição
+        const realEndDate = distResult.endDate;
+        
+        const newPlanMap = {};
+
+        // A. Preserva o Passado
+        for (let i = 1; i < plan.currentDay; i++) {
+            if (plan.plan[i]) {
+               newPlanMap[i] = plan.plan[i];
+            }
+        }
+
+        // B. Reconstrói Presente/Futuro
+        Object.keys(remainingPlanMap).forEach((dayKey, index) => {
+            const newDayKey = plan.currentDay + index;
+            let chaptersForDay = remainingPlanMap[dayKey];
+
+            if (index === 0 && checkedOnCurrentDay.length > 0) {
+                chaptersForDay = [...checkedOnCurrentDay, ...chaptersForDay];
+            }
+
+            newPlanMap[newDayKey] = chaptersForDay;
+        });
+        
+        // C. Caso de Borda (apenas marcado hoje, nada restante)
+        if (remainingChapters.length === 0 && checkedOnCurrentDay.length > 0) {
+            newPlanMap[plan.currentDay] = checkedOnCurrentDay;
+        }
+
+        const updatedPlan = {
+            ...plan,
+            plan: newPlanMap,
+            endDate: realEndDate, 
+            recalculationBaseDay: plan.currentDay,
+            recalculationBaseDate: todayStr,
+        };
+
+        return { recalculatedPlan: updatedPlan, newPace: 'variable' };
+    }
+
+    // Lógica Padrão (Distribuição Uniforme)
     const availableReadingDays = countReadingDaysBetween(todayStr, targetEndDate, plan.allowedDays);
 
     if (availableReadingDays < 1) {
@@ -129,24 +179,48 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr) {
 }
 
 /**
- * Calcula a data de término de um plano com base em um ritmo específico (caps/dia).
- * Utiliza a lógica atualizada de contagem de capítulos lidos.
+ * Calcula a data de término de um plano com base em um ritmo específico (caps/dia) ou pesos variáveis.
+ * Utiliza a lógica atualizada de contagem de capítulos lidos e respeita o ritmo original do plano.
  * 
  * @param {object} plan - O objeto do plano original.
- * @param {number} pace - O ritmo desejado (capítulos por dia de leitura).
+ * @param {number|null} pace - O ritmo desejado. Se null, tenta usar plan.chaptersPerDay.
  * @param {string} todayStr - A string da data atual no formato "YYYY-MM-DD".
+ * @param {object} [dayWeights] - Objeto opcional com pesos por dia para cálculo variável.
  * @returns {string|null} A nova data de término calculada.
  */
-export function calculateEndDateFromPace(plan, pace, todayStr) {
-    if (!pace || pace < 0) return null;
-
+export function calculateEndDateFromPace(plan, pace, todayStr, dayWeights) {
     // Usa a nova lógica que considera checkboxes ativos
     const chaptersReadSet = _getChaptersFromLog(plan);
-    const remainingChaptersCount = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter)).length;
+    const remainingChapters = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter));
+    const remainingChaptersCount = remainingChapters.length;
     
     if (remainingChaptersCount <= 0) return plan.endDate; // Já concluído.
 
-    const requiredReadingDays = pace > 0 ? Math.ceil(remainingChaptersCount / pace) : 0;
+    // 1. Lógica para Ritmo Variável
+    if (dayWeights) {
+        const distResult = distributeChaptersWeighted(remainingChapters, todayStr, dayWeights);
+        return distResult.endDate;
+    }
+
+    // 2. Lógica para Ritmo Uniforme
+    let effectivePace = pace;
+
+    // CORREÇÃO "Manter Ritmo Original": 
+    // Se pace não foi fornecido (null/undefined), tentamos usar a configuração original do plano (plan.chaptersPerDay).
+    // Se não existir, calculamos a média histórica total (fallback).
+    if (!effectivePace) {
+        if (plan.chaptersPerDay && plan.chaptersPerDay > 0) {
+            effectivePace = plan.chaptersPerDay;
+        } else {
+            // Fallback: Média baseada no total original
+            const originalTotalDays = Object.keys(plan.plan).length;
+            effectivePace = originalTotalDays > 0 ? (plan.totalChapters / originalTotalDays) : 1;
+        }
+    }
+
+    if (effectivePace <= 0) return null;
+
+    const requiredReadingDays = Math.ceil(remainingChaptersCount / effectivePace);
     
     const planDataForEndDateCalc = {
         startDate: todayStr,
