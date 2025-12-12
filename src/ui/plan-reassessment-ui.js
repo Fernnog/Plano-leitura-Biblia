@@ -66,10 +66,6 @@ function _renderGridAndLegend(allUserPlans) {
         
         let currentPlanDay = plan.currentDay;
         // Data base para projeção. Se o plano foi recalculado HOJE, o dia corrente do plano é HOJE.
-        // Se o plano segue fluxo normal, precisamos ver se HOJE é um dia de leitura válido.
-        
-        // Estratégia Simplificada de Projeção Visual:
-        // Itera os próximos 7 dias do calendário. Se for um dia permitido, consome um dia do plano.
         
         let projectionDate = new Date(todayDate);
         let projectionPlanDay = currentPlanDay;
