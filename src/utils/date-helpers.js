@@ -16,27 +16,16 @@ export function getCurrentUTCDateString() {
 /**
  * Calcula o ID da semana UTC para uma determinada data.
  * O ID é no formato "YYYY-WNN" (ex: "2023-W35").
- * A LÓGICA FOI AJUSTADA PARA CONSIDERAR O DOMINGO COMO O PRIMEIRO DIA DA SEMANA.
  * @param {Date} [date=new Date()] - A data para a qual o ID da semana será calculado.
  * @returns {string} O ID da semana UTC.
  */
 export function getUTCWeekId(date = new Date()) {
-    // Cria uma cópia da data em UTC para não modificar a original e garantir consistência
     const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-
-    // 1. Encontra o domingo que inicia a semana desta data.
-    // Esta lógica é idêntica à getUTCWeekStartDate para garantir consistência.
-    const dayOfWeek = d.getUTCDay(); // 0 para Domingo, 1 para Segunda...
-    d.setUTCDate(d.getUTCDate() - dayOfWeek); // Retrocede a data para o domingo.
+    const dayOfWeek = d.getUTCDay(); 
+    d.setUTCDate(d.getUTCDate() - dayOfWeek); 
 
     const year = d.getUTCFullYear();
-
-    // 2. Calcula o início do ano.
     const yearStart = new Date(Date.UTC(year, 0, 1));
-    
-    // 3. Calcula a diferença em dias entre o domingo da nossa semana e o início do ano.
-    // A soma +1 é para incluir o primeiro dia. O resultado é dividido por 7.
-    // Math.ceil arredonda para cima, nos dando o número da semana (1-indexed).
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     
     return `${year}-W${weekNo.toString().padStart(2, '0')}`;
@@ -48,7 +37,7 @@ export function getUTCWeekId(date = new Date()) {
  * @returns {Date} Um objeto Date representando o início da semana em UTC.
  */
 export function getUTCWeekStartDate(date = new Date()) {
-    const currentDayOfWeek = date.getUTCDay(); // 0 para Domingo, 1 para Segunda...
+    const currentDayOfWeek = date.getUTCDay(); 
     const diff = date.getUTCDate() - currentDayOfWeek;
     return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), diff));
 }
@@ -60,7 +49,6 @@ export function getUTCWeekStartDate(date = new Date()) {
  * @returns {number} O número de dias entre as datas. Pode ser negativo.
  */
 export function dateDiffInDays(dateStr1, dateStr2) {
-    // Adiciona T00:00:00Z para garantir que as datas sejam interpretadas como UTC
     const date1 = new Date(dateStr1 + 'T00:00:00Z');
     const date2 = new Date(dateStr2 + 'T00:00:00Z');
     
@@ -129,4 +117,16 @@ export function countReadingDaysBetween(startDateStr, endDateStr, allowedDaysOfW
     }
     
     return readingDaysCount;
+}
+
+/**
+ * Retorna o dia da semana em UTC (0 = Domingo, 6 = Sábado).
+ * Aceita objeto Date ou string de data.
+ * @param {Date|string} dateObj - A data para verificar.
+ * @returns {number} O dia da semana (0-6).
+ */
+export function getUTCDay(dateObj) {
+    if (!dateObj) return 0;
+    const d = (typeof dateObj === 'string') ? new Date(dateObj) : dateObj;
+    return d.getUTCDay();
 }
