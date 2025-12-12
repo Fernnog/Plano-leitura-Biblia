@@ -277,13 +277,41 @@
                         <div id="variable-pace-config" style="display: none; margin-top: 15px; padding: 15px; background: var(--background-light); border: 1px solid var(--border-color); border-radius: 8px;">
                             <p style="font-size: 0.9em; margin-bottom: 10px; color: var(--text-color-muted);">Defina a quantidade de capítulos para cada dia:</p>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 10px;">
-                                <div class="day-input-wrapper"><small>Dom</small><input type="number" data-day="0" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Seg</small><input type="number" data-day="1" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Ter</small><input type="number" data-day="2" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Qua</small><input type="number" data-day="3" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Qui</small><input type="number" data-day="4" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Sex</small><input type="number" data-day="5" min="0" class="day-pace-input" placeholder="0"></div>
-                                <div class="day-input-wrapper"><small>Sáb</small><input type="number" data-day="6" min="0" class="day-pace-input" placeholder="0"></div>
+                                <div class="day-input-wrapper">
+                                    <small>Dom</small>
+                                    <input type="number" data-day="0" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-0"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Seg</small>
+                                    <input type="number" data-day="1" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-1"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Ter</small>
+                                    <input type="number" data-day="2" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-2"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Qua</small>
+                                    <input type="number" data-day="3" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-3"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Qui</small>
+                                    <input type="number" data-day="4" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-4"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Sex</small>
+                                    <input type="number" data-day="5" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-5"></div></div>
+                                </div>
+                                <div class="day-input-wrapper">
+                                    <small>Sáb</small>
+                                    <input type="number" data-day="6" min="0" class="day-pace-input" placeholder="0">
+                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-6"></div></div>
+                                </div>
                             </div>
                             <small style="display:block; margin-top:10px; font-style:italic; font-size:0.8em;">Dias com 0 ou vazio serão ignorados no cálculo.</small>
                         </div>
