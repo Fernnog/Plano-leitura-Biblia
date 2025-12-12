@@ -94,20 +94,24 @@ export const plansDisplaySection = document.getElementById('plans-display-sectio
 
 // --- Modais ---
 
-// Modal de Recálculo (ATUALIZADO PARA O WIZARD)
+// Modal de Recálculo (ATUALIZADO PARA O WIZARD E RITMO VARIÁVEL)
 export const recalculateModal = document.getElementById('recalculate-modal');
-export const recalculateErrorDiv = document.getElementById('recalc-error'); // ID ajustado conforme HTML novo
+export const recalculateErrorDiv = document.getElementById('recalc-error'); 
 export const recalculateLoadingDiv = document.getElementById('recalculate-loading');
 export const newPaceInput = document.getElementById('new-pace-input');
 export const confirmRecalculateButton = document.getElementById('confirm-recalculate');
 export const recalcSpecificDateInput = document.getElementById('recalc-specific-date-input');
 
-// Elementos do Wizard de Recálculo (NOVOS)
+// Elementos do Wizard de Recálculo 
 export const recalcStep1 = document.getElementById('recalc-step-1');
 export const recalcStep2 = document.getElementById('recalc-step-2');
 export const btnGotoStep2 = document.getElementById('btn-goto-step-2');
 export const btnBackStep1 = document.getElementById('btn-back-step-1');
 export const manualCheckList = document.getElementById('manual-check-list');
+
+// [NOVO] Elementos para Ritmo Diferenciado (Variable Pace)
+export const variablePaceConfig = document.getElementById('variable-pace-config');
+export const dayPaceInputs = document.querySelectorAll('.day-pace-input');
 
 // Modal de Estatísticas
 export const statsModal = document.getElementById('stats-modal');
