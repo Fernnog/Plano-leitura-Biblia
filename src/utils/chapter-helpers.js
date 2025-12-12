@@ -4,26 +4,14 @@
  * distribuir e manipular listas de capítulos da Bíblia.
  */
 
-// Importa os dados da Bíblia, que são a dependência principal deste módulo.
 import { BIBLE_BOOKS_CHAPTERS, CANONICAL_BOOK_ORDER, BOOK_NAME_MAP } from '../config/bible-data.js';
-// Importação dos helpers de data necessários para a distribuição ponderada
-import { addUTCDays, getUTCDay } from './date-helpers.js';
+import { addUTCDays, getUTCDay } from './date-helpers.js'; // Helper essencial adicionado
 
-/**
- * Gera uma lista ordenada de capítulos dentro de um intervalo contínuo.
- * @param {string} startBook - O nome do livro inicial.
- * @param {number} startChap - O número do capítulo inicial.
- * @param {string} endBook - O nome do livro final.
- * @param {number} endChap - O número do capítulo final.
- * @returns {Array<string>} Uma lista de capítulos (ex: ["Gênesis 1", "Gênesis 2"]).
- * @throws {Error} Lança um erro se os parâmetros de entrada forem inválidos.
- */
 export function generateChaptersInRange(startBook, startChap, endBook, endChap) {
     const chapters = [];
     const startIndex = CANONICAL_BOOK_ORDER.indexOf(startBook);
     const endIndex = CANONICAL_BOOK_ORDER.indexOf(endBook);
 
-    // Validações de entrada
     if (startIndex === -1 || endIndex === -1) throw new Error("Livro inicial ou final inválido.");
     if (startIndex > endIndex) throw new Error("O livro inicial deve vir antes do livro final.");
     if (isNaN(startChap) || startChap < 1 || startChap > BIBLE_BOOKS_CHAPTERS[startBook]) throw new Error(`Capítulo inicial inválido para ${startBook}.`);
@@ -43,12 +31,6 @@ export function generateChaptersInRange(startBook, startChap, endBook, endChap) 
     return chapters;
 }
 
-/**
- * Analisa uma string de entrada do usuário e a converte em uma lista ordenada de capítulos.
- * Suporta formatos como: "Gênesis 1-3, Êxodo 5, Salmos 119", "1 Coríntios".
- * @param {string} inputString - A string de entrada.
- * @returns {Array<string>} Uma lista única e ordenada de capítulos.
- */
 export function parseChaptersInput(inputString) {
     const chapters = new Set();
     const parts = inputString.split(',').map(p => p.trim()).filter(Boolean);
@@ -75,26 +57,19 @@ export function parseChaptersInput(inputString) {
         const endChapter = match[3] ? parseInt(match[3], 10) : null;
         const maxChapters = BIBLE_BOOKS_CHAPTERS[bookName];
 
-        if (startChapter === null && endChapter === null) { // Livro inteiro
+        if (startChapter === null && endChapter === null) { 
             for (let i = 1; i <= maxChapters; i++) chapters.add(`${bookName} ${i}`);
-        } else if (startChapter !== null && endChapter === null) { // Capítulo único
+        } else if (startChapter !== null && endChapter === null) { 
             if (startChapter >= 1 && startChapter <= maxChapters) chapters.add(`${bookName} ${startChapter}`);
-        } else if (startChapter !== null && endChapter !== null) { // Intervalo de capítulos
+        } else if (startChapter !== null && endChapter !== null) { 
             if (startChapter >= 1 && endChapter >= startChapter && endChapter <= maxChapters) {
                 for (let i = startChapter; i <= endChapter; i++) chapters.add(`${bookName} ${i}`);
             }
         }
     });
-    
-    // Converte o Set para Array e ordena canonicamente
     return sortChaptersCanonically(Array.from(chapters));
 }
 
-/**
- * Gera uma lista de todos os capítulos para uma lista de nomes de livros.
- * @param {Array<string>} bookList - Uma lista de nomes de livros (ex: ["Gênesis", "Êxodo"]).
- * @returns {Array<string>} Uma lista ordenada de todos os capítulos dos livros fornecidos.
- */
 export function generateChaptersForBookList(bookList) {
     const chapters = [];
     if (!Array.isArray(bookList)) return chapters;
@@ -110,12 +85,6 @@ export function generateChaptersForBookList(bookList) {
     return sortChaptersCanonically(chapters);
 }
 
-/**
- * Distribui uma lista de capítulos de forma uniforme por um número de dias de leitura.
- * @param {Array<string>} chaptersToRead - A lista de capítulos a ser distribuída.
- * @param {number} totalReadingDays - O número de dias para distribuir os capítulos.
- * @returns {Object<string, Array<string>>} Um mapa onde a chave é o número do dia (como string) e o valor é um array de capítulos.
- */
 export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays) {
     const planMap = {};
     const totalChapters = chaptersToRead?.length || 0;
@@ -141,56 +110,49 @@ export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDa
 }
 
 /**
- * [CORRIGIDO] Distribui capítulos baseados em uma configuração de carga semanal (Ritmo Variável).
- * Usa helpers de data para garantir consistência e possui fallback de segurança.
- * 
- * @param {Array<string>} chaptersToRead - Lista de capítulos restantes.
- * @param {string} startDateStr - Data de início (YYYY-MM-DD).
- * @param {object} dayWeights - Objeto {0: qtd, 1: qtd...} onde chave é dia da semana (0=Dom).
- * @returns {object} { planMap, endDate } - O mapa do plano e a data final calculada.
+ * [CORRIGIDO v1.0.5] Distribui capítulos baseados em uma configuração de carga semanal.
+ * Utiliza getUTCDay para garantir alinhamento correto com o dia da semana.
  */
 export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeights) {
     const planMap = {};
     
-    // Verificação básica de entrada
     if (!chaptersToRead || chaptersToRead.length === 0) {
         return { planMap, endDate: startDateStr };
     }
 
-    // Validação de segurança: previne loop infinito se configuração vier zerada ou inválida
+    // Validação de segurança
     const totalWeight = Object.values(dayWeights).reduce((a, b) => a + (parseInt(b) || 0), 0);
-    let effectiveWeights = dayWeights;
-    
     if (totalWeight <= 0) {
-        console.warn("Pesos de dia inválidos ou zerados. Usando fallback de 1 cap/dia.");
-        // Fallback: peso 1 para todos os dias
-        effectiveWeights = {0:1, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1}; 
+        console.warn("Pesos inválidos. Usando fallback de 1 cap/dia.");
+        dayWeights = {0:1, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1}; 
     }
 
     let currentDate = new Date(startDateStr + 'T00:00:00Z');
     let chapterIndex = 0;
     let readingDayCounter = 1;
     const totalChapters = chaptersToRead.length;
-
-    // Loop de segurança
     let safetyLoop = 0; 
     const MAX_LOOPS = 20000; 
 
-    while (chapterIndex < totalChapters && safetyLoop < MAX_LOOPS) {
-        // Usa o helper importado para obter o dia (0-6)
-        const dayOfWeek = getUTCDay(currentDate); 
-        const countForToday = effectiveWeights[dayOfWeek] || 0;
+    console.log(`[DEBUG HELPER] Início Distribuição. Total Caps: ${totalChapters}. Pesos:`, dayWeights);
 
-        // Se houver leitura configurada para este dia da semana
+    while (chapterIndex < totalChapters && safetyLoop < MAX_LOOPS) {
+        const dayOfWeek = getUTCDay(currentDate); 
+        const countForToday = dayWeights[dayOfWeek] || 0; // Chave numérica 0-6
+
+        // DEBUG: Mostra a primeira semana
+        if (readingDayCounter <= 7) {
+            console.log(`[DEBUG HELPER] Dia #${readingDayCounter} | Data: ${currentDate.toISOString().split('T')[0]} | DiaSemana (UTC): ${dayOfWeek} | Peso: ${countForToday}`);
+        }
+
         if (countForToday > 0) {
             const endIndex = Math.min(chapterIndex + countForToday, totalChapters);
             const chaptersSlice = chaptersToRead.slice(chapterIndex, endIndex);
             
-            // Atribui os capítulos ao dia sequencial do plano (ex: dia "1", "2")
+            // Chave sequencial "1", "2"... relativa ao início
             planMap[readingDayCounter.toString()] = chaptersSlice;
             chapterIndex = endIndex;
             
-            // Se terminamos todos os capítulos hoje, retornamos
             if (chapterIndex >= totalChapters) {
                 return { 
                     planMap, 
@@ -200,52 +162,38 @@ export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeig
             readingDayCounter++;
         }
 
-        // Avança para o próximo dia calendário usando o helper
+        // Avança dia calendário
         currentDate = addUTCDays(currentDate, 1);
         safetyLoop++;
     }
 
-    // Retorno de segurança caso o loop exceda o limite ou termine
     return { 
         planMap, 
         endDate: currentDate.toISOString().split('T')[0] 
     };
 }
 
-/**
- * Lógica de intercalação customizada para o plano "A Promessa Revelada".
- * @param {object} bookBlocks - Objeto com `profetasMaiores` e `novoTestamento`.
- * @param {number} [chaptersPerBlockAT=15] - Número de capítulos do AT a serem lidos em bloco.
- * @returns {Array<string>} A lista de capítulos intercalada.
- */
 export function generateIntercalatedChapters(bookBlocks, chaptersPerBlockAT = 15) {
     const finalList = [];
     const ntBooks = [...bookBlocks.novoTestamento];
-    
-    // Gera listas completas de capítulos para cada bloco
     const allNTChapters = generateChaptersForBookList(ntBooks);
     const allATChapters = generateChaptersForBookList(bookBlocks.profetasMaiores);
 
     let ntIndex = 0;
     let atIndex = 0;
-
-    // Começa com o primeiro livro do NT (Mateus)
     const firstNTBook = ntBooks[0];
     const firstNTBookChapters = BIBLE_BOOKS_CHAPTERS[firstNTBook];
     for (let i = 0; i < firstNTBookChapters; i++) {
         finalList.push(allNTChapters[ntIndex++]);
     }
 
-    // Loop principal de intercalação
     while (ntIndex < allNTChapters.length || atIndex < allATChapters.length) {
-        // Adiciona um bloco do AT
         const atBlockEnd = Math.min(atIndex + chaptersPerBlockAT, allATChapters.length);
         for (let i = atIndex; i < atBlockEnd; i++) {
             finalList.push(allATChapters[i]);
         }
         atIndex = atBlockEnd;
 
-        // Adiciona o próximo livro completo do NT
         if (ntIndex < allNTChapters.length) {
             const currentBookName = allNTChapters[ntIndex].split(' ').slice(0, -1).join(' ');
             while (ntIndex < allNTChapters.length) {
@@ -254,7 +202,7 @@ export function generateIntercalatedChapters(bookBlocks, chaptersPerBlockAT = 15
                 finalList.push(nextChapter);
                 ntIndex++;
                 if (nextBookName !== currentBookName) {
-                    break; // Terminou de adicionar o livro, sai do loop interno
+                    break;
                 }
             }
         }
@@ -262,16 +210,11 @@ export function generateIntercalatedChapters(bookBlocks, chaptersPerBlockAT = 15
     return finalList;
 }
 
-/**
- * Ordena um array de capítulos (ex: ["João 3", "Gênesis 1"]) na ordem canônica da Bíblia.
- * @param {Array<string>} chaptersArray - O array de capítulos a ser ordenado.
- * @returns {Array<string>} O array de capítulos ordenado.
- */
 export function sortChaptersCanonically(chaptersArray) {
     return chaptersArray.sort((a, b) => {
         const matchA = a.match(/^(.*)\s+(\d+)$/);
         const matchB = b.match(/^(.*)\s+(\d+)$/);
-        if (!matchA || !matchB) return 0; // Não deve acontecer com dados válidos
+        if (!matchA || !matchB) return 0; 
 
         const bookA = matchA[1];
         const chapA = parseInt(matchA[2], 10);
@@ -282,23 +225,17 @@ export function sortChaptersCanonically(chaptersArray) {
         const indexB = CANONICAL_BOOK_ORDER.indexOf(bookB);
 
         if (indexA !== indexB) {
-            return indexA - indexB; // Ordena pelo índice do livro
+            return indexA - indexB; 
         }
-        return chapA - chapB; // Se os livros são os mesmos, ordena pelo capítulo
+        return chapA - chapB; 
     });
 }
 
-/**
- * Analisa uma lista de capítulos e a resume, agrupando por livro e compactando os números.
- * @param {Array<string>} chaptersList - A lista de capítulos (ex: ["Gênesis 1", "Gênesis 2", "Êxodo 5"]).
- * @returns {Map<string, string>} Um mapa com o nome do livro como chave e o resumo dos capítulos como valor.
- */
 export function summarizeChaptersByBook(chaptersList) {
     const bookSummary = new Map();
     if (!chaptersList || chaptersList.length === 0) return bookSummary;
 
     const sortedChapters = sortChaptersCanonically([...chaptersList]);
-    
     let currentBook = null;
     let chapterNumbers = [];
 
@@ -322,22 +259,13 @@ export function summarizeChaptersByBook(chaptersList) {
         }
         chapterNumbers.push(chapNum);
     });
-
-    flushCurrentBook(); // Garante que o último livro seja processado
-
+    flushCurrentBook(); 
     return bookSummary;
 }
 
-/**
- * Função interna para compactar um array de números em uma string (ex: [1,2,3,5] => "1-3, 5").
- * @private
- * @param {Array<number>} numbers - Array de números de capítulo.
- * @returns {string} A string compactada.
- */
 function _compactChapterNumbers(numbers) {
     if (numbers.length === 0) return '';
-    
-    numbers.sort((a, b) => a - b); // Garante que os números estejam ordenados
+    numbers.sort((a, b) => a - b); 
     let result = '';
     let rangeStart = numbers[0];
 
