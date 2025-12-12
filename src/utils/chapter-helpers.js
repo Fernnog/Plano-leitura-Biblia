@@ -6,6 +6,8 @@
 
 // Importa os dados da Bíblia, que são a dependência principal deste módulo.
 import { BIBLE_BOOKS_CHAPTERS, CANONICAL_BOOK_ORDER, BOOK_NAME_MAP } from '../config/bible-data.js';
+// Importação dos helpers de data necessários para a distribuição ponderada
+import { addUTCDays, getUTCDay } from './date-helpers.js';
 
 /**
  * Gera uma lista ordenada de capítulos dentro de um intervalo contínuo.
@@ -139,8 +141,8 @@ export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDa
 }
 
 /**
- * [NOVO] Distribui capítulos baseados em uma configuração de carga semanal (Ritmo Variável).
- * Esta função leva em conta o dia da semana da data de início para aplicar os pesos corretos.
+ * [CORRIGIDO] Distribui capítulos baseados em uma configuração de carga semanal (Ritmo Variável).
+ * Usa helpers de data para garantir consistência e possui fallback de segurança.
  * 
  * @param {Array<string>} chaptersToRead - Lista de capítulos restantes.
  * @param {string} startDateStr - Data de início (YYYY-MM-DD).
@@ -150,9 +152,19 @@ export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDa
 export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeights) {
     const planMap = {};
     
-    // Verificação de segurança
+    // Verificação básica de entrada
     if (!chaptersToRead || chaptersToRead.length === 0) {
         return { planMap, endDate: startDateStr };
+    }
+
+    // Validação de segurança: previne loop infinito se configuração vier zerada ou inválida
+    const totalWeight = Object.values(dayWeights).reduce((a, b) => a + (parseInt(b) || 0), 0);
+    let effectiveWeights = dayWeights;
+    
+    if (totalWeight <= 0) {
+        console.warn("Pesos de dia inválidos ou zerados. Usando fallback de 1 cap/dia.");
+        // Fallback: peso 1 para todos os dias
+        effectiveWeights = {0:1, 1:1, 2:1, 3:1, 4:1, 5:1, 6:1}; 
     }
 
     let currentDate = new Date(startDateStr + 'T00:00:00Z');
@@ -160,40 +172,40 @@ export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeig
     let readingDayCounter = 1;
     const totalChapters = chaptersToRead.length;
 
-    // Loop de segurança para evitar infinito caso pesos sejam todos 0 (embora a UI deva prevenir)
+    // Loop de segurança
     let safetyLoop = 0; 
-    const MAX_LOOPS = 15000; // ~40 anos, suficiente
+    const MAX_LOOPS = 20000; 
 
     while (chapterIndex < totalChapters && safetyLoop < MAX_LOOPS) {
-        const dayOfWeek = currentDate.getUTCDay(); // 0 (Dom) a 6 (Sáb)
-        const countForToday = dayWeights[dayOfWeek] || 0;
+        // Usa o helper importado para obter o dia (0-6)
+        const dayOfWeek = getUTCDay(currentDate); 
+        const countForToday = effectiveWeights[dayOfWeek] || 0;
 
         // Se houver leitura configurada para este dia da semana
         if (countForToday > 0) {
             const endIndex = Math.min(chapterIndex + countForToday, totalChapters);
             const chaptersSlice = chaptersToRead.slice(chapterIndex, endIndex);
             
+            // Atribui os capítulos ao dia sequencial do plano (ex: dia "1", "2")
             planMap[readingDayCounter.toString()] = chaptersSlice;
-            
             chapterIndex = endIndex;
             
-            // Se terminamos todos os capítulos hoje, paramos e retornamos esta data como final
+            // Se terminamos todos os capítulos hoje, retornamos
             if (chapterIndex >= totalChapters) {
                 return { 
                     planMap, 
                     endDate: currentDate.toISOString().split('T')[0] 
                 };
             }
-            
             readingDayCounter++;
         }
 
-        // Avança para o próximo dia calendário
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        // Avança para o próximo dia calendário usando o helper
+        currentDate = addUTCDays(currentDate, 1);
         safetyLoop++;
     }
 
-    // Retorna o que foi calculado (se atingir max loops, retorna até onde foi)
+    // Retorno de segurança caso o loop exceda o limite ou termine
     return { 
         planMap, 
         endDate: currentDate.toISOString().split('T')[0] 
