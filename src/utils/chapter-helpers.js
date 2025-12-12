@@ -139,6 +139,68 @@ export function distributeChaptersOverReadingDays(chaptersToRead, totalReadingDa
 }
 
 /**
+ * [NOVO] Distribui capítulos baseados em uma configuração de carga semanal (Ritmo Variável).
+ * Esta função leva em conta o dia da semana da data de início para aplicar os pesos corretos.
+ * 
+ * @param {Array<string>} chaptersToRead - Lista de capítulos restantes.
+ * @param {string} startDateStr - Data de início (YYYY-MM-DD).
+ * @param {object} dayWeights - Objeto {0: qtd, 1: qtd...} onde chave é dia da semana (0=Dom).
+ * @returns {object} { planMap, endDate } - O mapa do plano e a data final calculada.
+ */
+export function distributeChaptersWeighted(chaptersToRead, startDateStr, dayWeights) {
+    const planMap = {};
+    
+    // Verificação de segurança
+    if (!chaptersToRead || chaptersToRead.length === 0) {
+        return { planMap, endDate: startDateStr };
+    }
+
+    let currentDate = new Date(startDateStr + 'T00:00:00Z');
+    let chapterIndex = 0;
+    let readingDayCounter = 1;
+    const totalChapters = chaptersToRead.length;
+
+    // Loop de segurança para evitar infinito caso pesos sejam todos 0 (embora a UI deva prevenir)
+    let safetyLoop = 0; 
+    const MAX_LOOPS = 15000; // ~40 anos, suficiente
+
+    while (chapterIndex < totalChapters && safetyLoop < MAX_LOOPS) {
+        const dayOfWeek = currentDate.getUTCDay(); // 0 (Dom) a 6 (Sáb)
+        const countForToday = dayWeights[dayOfWeek] || 0;
+
+        // Se houver leitura configurada para este dia da semana
+        if (countForToday > 0) {
+            const endIndex = Math.min(chapterIndex + countForToday, totalChapters);
+            const chaptersSlice = chaptersToRead.slice(chapterIndex, endIndex);
+            
+            planMap[readingDayCounter.toString()] = chaptersSlice;
+            
+            chapterIndex = endIndex;
+            
+            // Se terminamos todos os capítulos hoje, paramos e retornamos esta data como final
+            if (chapterIndex >= totalChapters) {
+                return { 
+                    planMap, 
+                    endDate: currentDate.toISOString().split('T')[0] 
+                };
+            }
+            
+            readingDayCounter++;
+        }
+
+        // Avança para o próximo dia calendário
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        safetyLoop++;
+    }
+
+    // Retorna o que foi calculado (se atingir max loops, retorna até onde foi)
+    return { 
+        planMap, 
+        endDate: currentDate.toISOString().split('T')[0] 
+    };
+}
+
+/**
  * Lógica de intercalação customizada para o plano "A Promessa Revelada".
  * @param {object} bookBlocks - Objeto com `profetasMaiores` e `novoTestamento`.
  * @param {number} [chaptersPerBlockAT=15] - Número de capítulos do AT a serem lidos em bloco.
