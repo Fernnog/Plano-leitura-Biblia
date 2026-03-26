@@ -3,9 +3,25 @@
 @file app-config.js
 @description Contém configurações globais da aplicação, como versão e changelog.
 */
-export const APP_VERSION = '1.0.5';
+export const APP_VERSION = '1.0.6';
 
-export const VERSION_CHANGELOG = [
+export const VERSION_CHANGELOG =[
+    {
+        type: '✨ Novidade',
+        description: '<strong>Meus Grifos:</strong> Criado um painel exclusivo, acessível direto no card do plano, para visualizar instantaneamente todos os seus versículos destacados, organizados por capítulo, sem precisar concluir a leitura do dia.'
+    },
+    {
+        type: '🐞 Correção',
+        description: '<strong>Salvamento de Grifos:</strong> Resolvido o problema que impedia o salvamento seguro dos versículos. Agora as marcações são sincronizadas corretamente com a nuvem e não recarregam a página inesperadamente.'
+    },
+    {
+        type: '💅 Design',
+        description: '<strong>Botão de Destaque:</strong> O botão de marcar versículos foi totalmente redesenhado. Sai o ícone de pincel e entra um arco amarelo neon moderno, limpo e minimalista.'
+    },
+    {
+        type: '🐞 Correção',
+        description: '<strong>Modal de Marcação:</strong> O botão de fechar ("X") da janela de grifos foi consertado e agora funciona perfeitamente, permitindo cancelar a ação sem ser obrigado a salvar.'
+    },
     {
         type: '🐞 Correção',
         description: '<strong>Ritmo Diferenciado (Fix):</strong> Correção crítica na lógica matemática de distribuição. Agora o sistema aplica e salva corretamente os pesos definidos para cada dia da semana (ex: carga pesada no Domingo, leve na Segunda).'
