@@ -4,35 +4,35 @@
   "description": "Plano de leitura da Bíblia inteligente",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#1B3A57",
+  "background_color": "#F9F7F2",
   "theme_color": "#1B3A57",
   "icons": [
     {
       "src": "imagens/logo.png",
       "sizes": "80x80",
       "type": "image/png",
-      "purpose": "any" 
+      "purpose": "any"
     },
     {
-      "src": "imagens/logo_192.png", 
+      "src": "imagens/logo_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "imagens/logo_512.png", 
+      "src": "imagens/logo_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "imagens/logo_maskable_192.png", 
+      "src": "imagens/logo_maskable_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "imagens/logo_maskable_512.png", 
+      "src": "imagens/logo_maskable_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
