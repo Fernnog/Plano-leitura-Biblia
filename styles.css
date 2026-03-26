@@ -1574,3 +1574,29 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         margin: 5px 0;
     }
 }
+
+.highlights-list-container {
+    max-height: 55vh;
+    overflow-y: auto;
+    text-align: left;
+    padding-right: 10px;
+}
+
+.highlight-chapter-group {
+    background-color: var(--background-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: var(--box-shadow-sm);
+}
+
+.highlight-chapter-title {
+    color: var(--primary-action);
+    font-weight: 700;
+    font-size: 1.1em;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 5px;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
