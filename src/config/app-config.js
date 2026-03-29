@@ -3,9 +3,17 @@
 @file app-config.js
 @description Contém configurações globais da aplicação, como versão e changelog.
 */
-export const APP_VERSION = '1.0.6';
+export const APP_VERSION = '1.0.7';
 
 export const VERSION_CHANGELOG =[
+    {
+        type: '✨ Novidade',
+        description: '<strong>Limpeza Inteligente de Grifos:</strong> Ao marcar um versículo como passado para a Bíblia física, ele agora desaparece instantaneamente da sua tela e é apagado permanentemente da memória (Garbage Collector), mantendo seu aplicativo mais leve e focado.'
+    },
+    {
+        type: '📱 Melhoria',
+        description: '<strong>Instalação do App (Tablets):</strong> Implementação de um Service Worker estrutural que destrava a opção de instalar o aplicativo diretamente na tela inicial de tablets (como Lenovo) e outros dispositivos rigorosos.'
+    },
     {
         type: '✨ Novidade',
         description: '<strong>Meus Grifos:</strong> Criado um painel exclusivo, acessível direto no card do plano, para visualizar instantaneamente todos os seus versículos destacados, organizados por capítulo, sem precisar concluir a leitura do dia.'
