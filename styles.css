@@ -525,76 +525,11 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 }
 .plan-card .daily-reading-header-display p { margin: 0; }
 .plan-card .daily-reading-chapters-list-display { padding: 10px 20px 20px 20px; margin: 0 0 25px 0; background-color: var(--background-card); border-left: 6px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); color: var(--text-color-dark); border-radius: 0 0 var(--base-border-radius) var(--base-border-radius); box-shadow: var(--box-shadow-sm); }
-
-/* --- AQUI COMEÇAM AS ALTERAÇÕES PARA ANÁLISE IA --- */
-.plan-card .daily-chapter-item { 
-    position: relative; 
-    display: flex; 
-    align-items: center; 
-    padding: 10px 0; 
-    border-bottom: 1px dashed var(--border-color); 
-    font-size: 1.05em; 
-    gap: 8px; /* Adicionado gap conforme o plano */
-}
+.plan-card .daily-chapter-item { position: relative; display: flex; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border-color); font-size: 1.05em; }
 .plan-card .daily-chapter-item:last-child { border-bottom: none; padding-bottom: 0; }
-.plan-card .daily-chapter-item input[type="checkbox"] { 
-    width: 20px; 
-    height: 20px; 
-    margin-right: 0; /* Removido para evitar espaçamento duplo com o gap */
-    accent-color: var(--primary-action); 
-    cursor: pointer; 
-    flex-shrink: 0; 
-}
-.plan-card .daily-chapter-item label { 
-    margin-bottom: 0; 
-    font-weight: normal; 
-    color: var(--text-color-dark); 
-    flex-grow: 1; 
-    cursor: pointer; 
-}
-
-/* --- Novos estilos para Análise Exegética (IA) --- */
-.chapter-separator {
-    width: 1px;
-    height: 24px;
-    background-color: var(--border-color);
-    margin: 0 5px;
-}
-
-.ai-strongs-btn {
-    background-color: rgba(217, 70, 239, 0.1); 
-    border: 1px solid #D946EF; 
-    border-radius: 6px;
-    width: 28px;
-    height: 24px;
-    min-height: unset;
-    padding: 0;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
-    color: #D946EF; 
-}
-
-.ai-strongs-btn:hover {
-    background-color: #D946EF;
-    color: #ffffff; 
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(217, 70, 239, 0.4);
-}
-
-.ai-result-container {
-    background-color: var(--background-light);
-    border-left: 4px solid #D946EF;
-    padding: 15px;
-    border-radius: 0 var(--base-border-radius) var(--base-border-radius) 0;
-    font-size: 0.95em;
-    margin-top: 15px;
-}
-/* --- FIM DAS ALTERAÇÕES PARA IA --- */
-
+.plan-card .daily-chapter-item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 15px; accent-color: var(--primary-action); cursor: pointer; flex-shrink: 0; }
+.plan-card .daily-chapter-item label { margin-bottom: 0; font-weight: normal; color: var(--text-color-dark); flex-grow: 1; cursor: pointer; }
+.plan-card .daily-chapter-item input[type="checkbox"]:checked + label { text-decoration: line-through; color: var(--text-color-muted); }
 .plan-card .plan-actions { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .plan-card .plan-actions button { flex-grow: 1; min-width: 150px; }
 
@@ -1410,7 +1345,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
      .plan-card .daily-reading-header-display { padding: 12px 15px; }
      .plan-card .daily-reading-chapters-list-display { padding: 8px 15px 15px 15px; }
      .plan-card .daily-chapter-item { padding: 8px 0; font-size: 1em; }
-     .plan-card .daily-chapter-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 0; } /* Ajustado para o gap */
+     .plan-card .daily-chapter-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 12px; }
 
     .reassessment-grid-container {
         grid-template-columns: 1fr; 
@@ -1456,7 +1391,7 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     .plan-card .daily-reading-header-display { padding: 10px 15px; font-size: 1em; }
     .plan-card .daily-reading-chapters-list-display { padding: 5px 15px 15px 15px; }
     .plan-card .daily-chapter-item { padding: 6px 0; font-size: 0.95em; }
-    .plan-card .daily-chapter-item input[type="checkbox"] { width: 16px; height: 16px; margin-right: 0; } /* Ajustado para o gap */
+    .plan-card .daily-chapter-item input[type="checkbox"] { width: 16px; height: 16px; margin-right: 10px; }
     .overdue-reading-item, .upcoming-reading-item { padding: 12px; }
     .overdue-date, .upcoming-date { font-size: 1em; }
     .perseverance-header h2 { font-size: 1.3em; }
@@ -1716,4 +1651,3 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-top: 0;
     margin-bottom: 12px;
 }
-
