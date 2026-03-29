@@ -10,10 +10,9 @@
 
 // --- 1. IMPORTAÇÕES DE MÓDULOS ---
 
-// Serviços (Comunicação com o Backend e IA)
+// Serviços (Comunicação com o Backend)
 import * as authService from './services/authService.js';
 import * as planService from './services/planService.js';
-import { aiService } from './services/aiService.js'; // NOVO: Serviço de IA integrado
 
 // Módulos de UI (Manipulação do DOM)
 import * as authUI from './ui/auth-ui.js';
@@ -930,7 +929,7 @@ function handleShowStats(planId) {
 function handleShowHistory(planId) {
     const plan = appState.userPlans.find(p => p.id === planId);
     if (!plan) return;
-    modalsUI.displayHistory(plan); 
+    modalsUI.displayHistory(plan); // Atualizado para passar o plano inteiro e permitir ler versesToHighlight
     modalsUI.open('history-modal');
 }
 
@@ -981,50 +980,18 @@ async function handleSaveHighlight(planId, chapterName, versesStr) {
 }
 
 async function handleToggleVerseDone(planId, chapterName, verseIndex, isDone) {
-    // MARCADOR 2: Verifica se a função foi acionada no main.js
-    console.log(`[DEBUG - MAIN] handleToggleVerseDone iniciado. Plan: ${planId}, Chap: ${chapterName}, Index: ${verseIndex}, isDone: ${isDone}`);
-    
-    if (!appState.currentUser) {
-        console.warn("[DEBUG - MAIN] Abortado: Usuário não autenticado.");
-        return;
-    }
-    
+    if (!appState.currentUser) return;
     try {
+        // Simulação de chamada de serviço. Necessário criar no planService.
+        await planService.toggleHighlightDoneStatus(appState.currentUser.uid, planId, chapterName, verseIndex, isDone);
+        
+        // Atualização em memória
         const plan = appState.userPlans.find(p => p.id === planId);
-        if (!plan || !plan.versesToHighlight || !plan.versesToHighlight[chapterName]) {
-            console.error("[DEBUG - MAIN] Erro: Plano ou capítulo não encontrado na memória do app.");
-            return;
+        if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName]) {
+            plan.versesToHighlight[chapterName][verseIndex].done = isDone;
         }
-
-        console.log(`[DEBUG - MAIN] Array original do capítulo ANTES da limpeza:`, JSON.parse(JSON.stringify(plan.versesToHighlight[chapterName])));
-
-        // Atualiza a memória para marcar como feito
-        plan.versesToHighlight[chapterName][verseIndex].done = isDone;
-
-        // GARBAGE COLLECTOR
-        const pendingVerses = plan.versesToHighlight[chapterName].filter(v => !v.done);
-        plan.versesToHighlight[chapterName] = pendingVerses;
-
-        console.log(`[DEBUG - MAIN] Array DEPOIS da limpeza (o que vai pro banco):`, pendingVerses);
-
-        if (pendingVerses.length === 0) {
-            console.log(`[DEBUG - MAIN] Capítulo zerado. Deletando a chave '${chapterName}' da memória.`);
-            delete plan.versesToHighlight[chapterName];
-        }
-
-        console.log(`[DEBUG - MAIN] Enviando dados para o Firebase (planService)...`);
-        
-        // Salva o novo array limpo no banco
-        await planService.updateChapterHighlights(appState.currentUser.uid, planId, chapterName, pendingVerses);
-        
-        console.log(`[DEBUG - MAIN] Sucesso! Banco atualizado. Redesenhando a interface.`);
-
-        // Atualiza a interface instantaneamente
-        modalsUI.displayMyHighlights(plan);
-
     } catch (error) {
-        // MARCADOR 3: Captura erros na comunicação com o banco de dados
-        console.error("[DEBUG - MAIN] Erro CRÍTICO capturado no catch:", error);
+        console.error("Erro ao alterar o status do versículo:", error);
         alert(`Não foi possível salvar a alteração: ${error.message}`);
     }
 }
@@ -1044,7 +1011,7 @@ async function handleCreateFavoritePlanSet() {
                 chaptersList: chaptersToRead, totalChapters: chaptersToRead.length, currentDay: 1,
                 startDate, endDate, allowedDays: config.allowedDays, readLog: {},
                 dailyChapterReadStatus: {}, googleDriveLink: null, recalculationBaseDay: null,
-                recalculationBaseDate: null, versesToHighlight: {} 
+                recalculationBaseDate: null, versesToHighlight: {} // Nova propriedade opcional
             };
             await planService.saveNewPlan(appState.currentUser.uid, planData);
         }
@@ -1117,45 +1084,16 @@ function initApplication() {
         },
         onShowStats: handleShowStats,
         onShowHistory: handleShowHistory,
-        onOpenHighlightModal: handleOpenHighlightModal, 
+        onOpenHighlightModal: handleOpenHighlightModal, // INJEÇÃO NOVA DA REGRA DE NEGÓCIO
         onShowHighlights: (planId) => {
             const plan = appState.userPlans.find(p => p.id === planId);
             if (plan) {
+                // Certifique-se de que a função foi implementada em modals-ui.js
                 modalsUI.displayMyHighlights(plan); 
                 modalsUI.open('my-highlights-modal');
             }
-        },
-        // NOVO: Integração com IA para Análise Exegética
-        onAnalyzeAI: async (planId, chapterName) => {
-            // 1. Abre o modal e mostra loading
-            document.getElementById('ai-chapter-name').textContent = chapterName;
-            document.getElementById('ai-result-content').textContent = '';
-            document.getElementById('ai-error').style.display = 'none';
-            document.getElementById('ai-loading').style.display = 'block';
-            document.getElementById('ai-strongs-modal').style.display = 'flex';
-
-            try {
-                // 2. Chama a IA
-                const resultText = await aiService.analyzeChapterWithStrongs(chapterName);
-                
-                // 3. Exibe o resultado
-                document.getElementById('ai-loading').style.display = 'none';
-                document.getElementById('ai-result-content').textContent = resultText;
-            } catch (error) {
-                document.getElementById('ai-loading').style.display = 'none';
-                document.getElementById('ai-error').textContent = `Erro IA: ${error.message}`;
-                document.getElementById('ai-error').style.display = 'block';
-            }
         }
     });
-
-    // Event listener auxiliar para fechar o modal da IA (caso não esteja no modalsUI)
-    const aiModalCloseBtn = document.querySelector('#ai-strongs-modal .close-button');
-    if (aiModalCloseBtn) {
-        aiModalCloseBtn.addEventListener('click', () => {
-            document.getElementById('ai-strongs-modal').style.display = 'none';
-        });
-    }
     
     perseverancePanelUI.init();
     weeklyTrackerUI.init();
@@ -1185,8 +1123,8 @@ function initApplication() {
         onPreviewRecalculate: (planId, option, newPace, startDateOption, specificDate) => {
             return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
         },
-        onSaveHighlight: handleSaveHighlight, 
-        onToggleVerseDone: handleToggleVerseDone 
+        onSaveHighlight: handleSaveHighlight, // INJEÇÃO NOVA DA REGRA DE NEGÓCIO
+        onToggleVerseDone: handleToggleVerseDone // INJEÇÃO NOVA DA REGRA DE NEGÓCIO
     });
     
     console.log("Aplicação modular inicializada com nova arquitetura de UI. v1.1.0");
