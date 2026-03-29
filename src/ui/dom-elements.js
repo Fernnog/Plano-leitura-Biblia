@@ -94,7 +94,7 @@ export const plansDisplaySection = document.getElementById('plans-display-sectio
 
 // --- Modais ---
 
-// Modal de Recálculo 
+// Modal de Recálculo (ATUALIZADO PARA O WIZARD E RITMO VARIÁVEL)
 export const recalculateModal = document.getElementById('recalculate-modal');
 export const recalculateErrorDiv = document.getElementById('recalc-error'); 
 export const recalculateLoadingDiv = document.getElementById('recalculate-loading');
@@ -109,7 +109,7 @@ export const btnGotoStep2 = document.getElementById('btn-goto-step-2');
 export const btnBackStep1 = document.getElementById('btn-back-step-1');
 export const manualCheckList = document.getElementById('manual-check-list');
 
-// Elementos para Ritmo Diferenciado (Variable Pace)
+// [NOVO] Elementos para Ritmo Diferenciado (Variable Pace)
 export const variablePaceConfig = document.getElementById('variable-pace-config');
 export const dayPaceInputs = document.querySelectorAll('.day-pace-input');
 
@@ -148,7 +148,7 @@ export const highlightPlanIdInput = document.getElementById('highlight-plan-id')
 export const highlightVersesInput = document.getElementById('highlight-verses-input');
 export const saveHighlightButton = document.getElementById('save-highlight-button');
 
-// --- Modal de Meus Grifos ---
+// --- Modal de Meus Grifos (NOVO) ---
 export const myHighlightsModal = document.getElementById('my-highlights-modal');
 export const myHighlightsList = document.getElementById('my-highlights-list');
 
@@ -177,10 +177,3 @@ export const versionCard = document.getElementById('version-card');
 export const versionModal = document.getElementById('version-modal');
 export const versionModalTitle = document.getElementById('version-modal-title');
 export const versionModalContent = document.getElementById('version-modal-content');
-
-// --- Modal de Análise Exegética (IA) [NOVO] ---
-export const aiStrongsModal = document.getElementById('ai-strongs-modal');
-export const aiChapterName = document.getElementById('ai-chapter-name');
-export const aiErrorDiv = document.getElementById('ai-error');
-export const aiLoadingDiv = document.getElementById('ai-loading');
-export const aiResultContent = document.getElementById('ai-result-content');
