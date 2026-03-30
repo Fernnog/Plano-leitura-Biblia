@@ -10,10 +10,9 @@
 
 // --- 1. IMPORTAÇÕES DE MÓDULOS ---
 
-// Serviços (Comunicação com o Backend e IA)
+// Serviços (Comunicação com o Backend)
 import * as authService from './services/authService.js';
 import * as planService from './services/planService.js';
-import { aiService } from './services/aiService.js'; // INJEÇÃO NOVA DA IA
 
 // Módulos de UI (Manipulação do DOM)
 import * as authUI from './ui/auth-ui.js';
@@ -1092,35 +1091,6 @@ function initApplication() {
                 // Certifique-se de que a função foi implementada em modals-ui.js
                 modalsUI.displayMyHighlights(plan); 
                 modalsUI.open('my-highlights-modal');
-            }
-        },
-        onAnalyzeAI: async (planId, chapterName) => { // INJEÇÃO DO EVENTO DE IA
-            // 1. Abre o modal e mostra loading
-            const nameEl = document.getElementById('ai-chapter-name');
-            const resultEl = document.getElementById('ai-result-content');
-            const errorEl = document.getElementById('ai-error');
-            const loadingEl = document.getElementById('ai-loading');
-            const modalEl = document.getElementById('ai-strongs-modal');
-
-            if (nameEl) nameEl.textContent = chapterName;
-            if (resultEl) resultEl.textContent = '';
-            if (errorEl) errorEl.style.display = 'none';
-            if (loadingEl) loadingEl.style.display = 'block';
-            if (modalEl) modalEl.style.display = 'flex';
-
-            try {
-                // 2. Chama a IA
-                const resultText = await aiService.analyzeChapterWithStrongs(chapterName);
-                
-                // 3. Exibe o resultado
-                if (loadingEl) loadingEl.style.display = 'none';
-                if (resultEl) resultEl.textContent = resultText;
-            } catch (error) {
-                if (loadingEl) loadingEl.style.display = 'none';
-                if (errorEl) {
-                    errorEl.textContent = `Erro IA: ${error.message}`;
-                    errorEl.style.display = 'block';
-                }
             }
         }
     });
