@@ -21,9 +21,8 @@ let state = {
         onRecalculate: null,
         onShowStats: null,
         onShowHistory: null,
-        onOpenHighlightModal: null, 
-        onShowHighlights: null, 
-        onAnalyzeAI: null, // NOVO: Callback para iniciar análise exegética com IA
+        onOpenHighlightModal: null, // NOVO: Callback para abrir o modal de versículos
+        onShowHighlights: null, // NOVO: Callback para abrir o painel exclusivo Meus Grifos
     },
 };
 
@@ -99,7 +98,7 @@ function _renderDailyReading(plan, effectiveDate) {
         headerHTML = `<div class="daily-reading-header-display"><p style="margin-bottom: 5px;"><strong style="color: var(--primary-action); font-size: 1.1em;">${formattedDate}</strong><span style="font-size: 0.9em; color: var(--text-color-muted); margin-left: 10px;">(Dia ${currentDay} de ${totalReadingDaysInPlan})</span></p></div>`;
     }
 
-    // Lista de Capítulos (MODIFICADO: Inclui botão IA e separador)
+    // Lista de Capítulos (MODIFICADO: Botão neon sem ícone com lógica de tooltip e destaque)
     let chaptersHTML = '';
     if (chaptersForToday.length > 0 && !isCompleted) {
         chaptersHTML = chaptersForToday.map((chapter, index) => {
@@ -117,17 +116,8 @@ function _renderDailyReading(plan, effectiveDate) {
                             data-action="highlightVerse" 
                             data-chapter="${chapter}" 
                             data-tooltip="${hasHighlights ? 'Ver/Editar Grifos' : 'Marcar versículo'}"></button>
-                    
                     <input type="checkbox" id="${chapterId}" data-chapter-name="${chapter}" ${isChecked ? 'checked' : ''}>
                     <label for="${chapterId}">${chapter}</label>
-                    
-                    <div class="chapter-separator"></div>
-                    <button class="ai-strongs-btn" data-action="analyzeAI" data-chapter="${chapter}" title="Análise Original (Strong)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 22h4M6 22V2m0 0h6a4 4 0 0 1 4 4v0a4 4 0 0 1-4 4H6"></path>
-                            <text x="5" y="16" font-family="sans-serif" font-weight="bold" font-size="12" fill="currentColor" stroke="none">IA</text>
-                        </svg>
-                    </button>
                 </div>
             `;
         }).join('');
@@ -211,18 +201,12 @@ export function init(callbacks) {
         if (action === 'recalculate') state.callbacks.onRecalculate?.(planId);
         if (action === 'showStats') state.callbacks.onShowStats?.(planId);
         if (action === 'showHistory') state.callbacks.onShowHistory?.(planId);
-        if (action === 'showHighlights') state.callbacks.onShowHighlights?.(planId); 
+        if (action === 'showHighlights') state.callbacks.onShowHighlights?.(planId); // NOVO
         
         // NOVO: Callback para abrir o modal de marcação de versículos
         if (action === 'highlightVerse') {
             const chapterName = button.dataset.chapter;
             state.callbacks.onOpenHighlightModal?.(planId, chapterName);
-        }
-
-        // NOVO: Callback para iniciar a Análise Exegética (IA)
-        if (action === 'analyzeAI') {
-            const chapterName = button.dataset.chapter;
-            state.callbacks.onAnalyzeAI?.(planId, chapterName);
         }
     });
 

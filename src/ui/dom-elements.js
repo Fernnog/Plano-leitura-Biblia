@@ -177,10 +177,3 @@ export const versionCard = document.getElementById('version-card');
 export const versionModal = document.getElementById('version-modal');
 export const versionModalTitle = document.getElementById('version-modal-title');
 export const versionModalContent = document.getElementById('version-modal-content');
-
-// --- Modal de Análise Exegética (IA Gemini) ---
-export const aiStrongsModal = document.getElementById('ai-strongs-modal');
-export const aiChapterName = document.getElementById('ai-chapter-name');
-export const aiErrorDiv = document.getElementById('ai-error');
-export const aiLoadingDiv = document.getElementById('ai-loading');
-export const aiResultContent = document.getElementById('ai-result-content');
