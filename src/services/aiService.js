@@ -3,7 +3,7 @@ import { CONFIG } from '../config/app-config.js'; // Ajuste conforme seu config
 class GeminiService {
     constructor() {
         this.config = {
-            model: 'gemini-flash-latest', // Nome atualizado do modelo
+            model: 'gemini-1.5-flash-latest', // Nome atualizado do modelo
             storageKeyApi: 'biblia_plan_gemini_key'
         };
     }
