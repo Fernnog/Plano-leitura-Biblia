@@ -43,7 +43,7 @@ let state = {
         onConfirmRecalculate: null,
         onRequestStep2: null,
         onSaveHighlight: null, // Callback adicionado para highlights
-        onToggleVerseDone: null // Callback adicionado para marcar grifos como lidos
+        onDeleteVerseHighlight: null // Substituiu o onToggleVerseDone
     },
 };
 
@@ -569,20 +569,18 @@ export function init(callbacks) {
         });
     }
 
-    // [NOVO] Intercepta os cliques nos checkboxes da lista de grifos para rastreamento
+    // [NOVO] Intercepta os cliques nos checkboxes da lista de grifos para rastreamento de exclusão
     if (myHighlightsList) {
         myHighlightsList.addEventListener('change', (e) => {
             if (e.target.classList.contains('verse-highlight-check')) {
                 const planId = e.target.dataset.planId;
                 const chapterName = e.target.dataset.chapter;
                 const verseIndex = parseInt(e.target.dataset.verseIndex, 10);
-                const isDone = e.target.checked;
 
-                // MARCADOR 1: Verifica se o clique foi registrado no HTML
-                console.log(`[DEBUG - UI] Checkbox clicado! PlanID: ${planId}, Capítulo: ${chapterName}, Index: ${verseIndex}, isDone: ${isDone}`);
-
-                // Dispara o callback para o main.js
-                state.callbacks.onToggleVerseDone?.(planId, chapterName, verseIndex, isDone);
+                // Como a exclusão é imediata, só disparamos se a caixa for marcada
+                if(e.target.checked) {
+                    state.callbacks.onDeleteVerseHighlight?.(planId, chapterName, verseIndex);
+                }
             }
         });
     }
