@@ -223,36 +223,27 @@ export async function updateChapterHighlights(userId, planId, chapterName, highl
 }
 
 /**
- * Altera o status de conclusão (done) de um grifo específico no banco de dados.
- * @param {string} userId - O UID do usuário.
- * @param {string} planId - O ID do plano.
- * @param {string} chapterName - O nome do capítulo (ex: "Êxodo 8").
- * @param {number} verseIndex - O índice do versículo dentro do array.
- * @param {boolean} isDone - O novo status (true para lido, false para pendente).
+ * Remove permanentemente um grifo do banco de dados.
  */
-export async function toggleHighlightDoneStatus(userId, planId, chapterName, verseIndex, isDone) {
+export async function removeHighlight(userId, planId, chapterName, verseIndex) {
     if (!userId || !planId) throw new Error("userId e planId são obrigatórios.");
     
     const planDocRef = doc(db, 'users', userId, 'plans', planId);
-
-    // 1. Busca o documento atual para resgatar o array de grifos
     const planSnap = await getDoc(planDocRef);
-    if (!planSnap.exists()) {
-        throw new Error("Plano não encontrado para atualização de grifo.");
-    }
+
+    if (!planSnap.exists()) throw new Error("Plano não encontrado.");
 
     const planData = planSnap.data();
     const chapterHighlights = planData.versesToHighlight?.[chapterName];
 
-    // Valida se o array existe e se o índice é válido
     if (!chapterHighlights || verseIndex < 0 || verseIndex >= chapterHighlights.length) {
         throw new Error("Versículo não localizado nos dados salvos.");
     }
 
-    // 2. Altera o status no item específico
-    chapterHighlights[verseIndex].done = isDone;
+    // Corta (remove) o item do array na posição específica
+    chapterHighlights.splice(verseIndex, 1);
 
-    // 3. Devolve o array inteiro atualizado para o Firestore (Usando Dot Notation)
+    // Atualiza o banco de dados enviando o array atualizado (agora menor)
     const updatePayload = {
         [`versesToHighlight.${chapterName}`]: chapterHighlights
     };
