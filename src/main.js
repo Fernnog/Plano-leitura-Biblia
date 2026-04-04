@@ -5,7 +5,7 @@
  * @description Ponto de entrada principal e orquestrador da aplicação.
  * Gerencia o estado da aplicação, lida com a lógica de negócios e coordena
  * a comunicação entre os serviços (Firebase) e os módulos de UI.
- * VERSÃO 1.1.0 - Inclui funcionalidade de Marcação de Versículos (Highlights).
+ * VERSÃO 1.1.0 - Inclui funcionalidade de Marcação de Versículos (Highlights) com Exclusão Automática.
  */
 
 // --- 1. IMPORTAÇÕES DE MÓDULOS ---
@@ -979,36 +979,39 @@ async function handleSaveHighlight(planId, chapterName, versesStr) {
     }
 }
 
-async function handleToggleVerseDone(planId, chapterName, verseIndex, isDone) {
+async function handleDeleteVerseHighlight(planId, chapterName, verseIndex) {
     if (!appState.currentUser) return;
 
-    // --- 1. OPTIMISTIC UI UPDATE (Atualização Otimista) ---
-    // Salva o estado anterior para possível rollback
-    let previousState = null;
     const plan = appState.userPlans.find(p => p.id === planId);
-    
+    let deletedItem = null;
+
+    // --- 1. ATUALIZAÇÃO OTIMISTA (A mágica de sumir na hora) ---
     if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName]) {
-        previousState = plan.versesToHighlight[chapterName][verseIndex].done;
-        // Atualiza a memória instantaneamente antes da resposta do servidor
-        plan.versesToHighlight[chapterName][verseIndex].done = isDone;
-        // Se houvesse uma função de re-renderização específica de grifos aqui, a chamaríamos.
-        // Como os grifos já têm um listener nativo no checkbox (DOM), o clique já atualizou visualmente.
+        // Remove da memória e guarda caso precisemos desfazer a ação (Rollback)
+        deletedItem = plan.versesToHighlight[chapterName].splice(verseIndex, 1)[0];
+        
+        // Se o capítulo ficar sem nenhum grifo, limpamos a chave para não deixar lixo na memória
+        if (plan.versesToHighlight[chapterName].length === 0) {
+            delete plan.versesToHighlight[chapterName];
+        }
+
+        // Atualiza a tela imediatamente para o item sumir
+        modalsUI.displayMyHighlights(plan);
     }
 
     // --- 2. CHAMADA AO SERVIDOR (Firebase) ---
     try {
-        await planService.toggleHighlightDoneStatus(appState.currentUser.uid, planId, chapterName, verseIndex, isDone);
+        await planService.removeHighlight(appState.currentUser.uid, planId, chapterName, verseIndex);
     } catch (error) {
-        console.error("Erro ao alterar o status do versículo:", error);
-        toastUI.showToast(`Não foi possível salvar a alteração: ${error.message}`, 'error');
+        console.error("Erro ao remover o versículo:", error);
+        toastUI.showToast(`Não foi possível remover: ${error.message}`, 'error');
         
         // --- 3. ROLLBACK EM CASO DE FALHA ---
-        if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName] && previousState !== null) {
-            // Reverte o dado em memória
-            plan.versesToHighlight[chapterName][verseIndex].done = previousState;
+        if (plan && deletedItem) {
+            if (!plan.versesToHighlight[chapterName]) plan.versesToHighlight[chapterName] = [];
             
-            // Como ocorreu erro e queremos corrigir a tela, forçamos a re-renderização da aba "Meus Grifos"
-            // Isso desmarcará o checkbox que o usuário havia clicado.
+            // Devolve o item pro array na mesma posição
+            plan.versesToHighlight[chapterName].splice(verseIndex, 0, deletedItem);
             modalsUI.displayMyHighlights(plan);
         }
     }
@@ -1141,7 +1144,7 @@ function initApplication() {
             return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
         },
         onSaveHighlight: handleSaveHighlight, 
-        onToggleVerseDone: handleToggleVerseDone 
+        onDeleteVerseHighlight: handleDeleteVerseHighlight // <- Evento alterado conforme plano
     });
     
     console.log("Aplicação modular inicializada com nova arquitetura de UI. v1.1.0");
