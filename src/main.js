@@ -981,18 +981,36 @@ async function handleSaveHighlight(planId, chapterName, versesStr) {
 
 async function handleToggleVerseDone(planId, chapterName, verseIndex, isDone) {
     if (!appState.currentUser) return;
+
+    // --- 1. OPTIMISTIC UI UPDATE (Atualização Otimista) ---
+    // Salva o estado anterior para possível rollback
+    let previousState = null;
+    const plan = appState.userPlans.find(p => p.id === planId);
+    
+    if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName]) {
+        previousState = plan.versesToHighlight[chapterName][verseIndex].done;
+        // Atualiza a memória instantaneamente antes da resposta do servidor
+        plan.versesToHighlight[chapterName][verseIndex].done = isDone;
+        // Se houvesse uma função de re-renderização específica de grifos aqui, a chamaríamos.
+        // Como os grifos já têm um listener nativo no checkbox (DOM), o clique já atualizou visualmente.
+    }
+
+    // --- 2. CHAMADA AO SERVIDOR (Firebase) ---
     try {
-        // Simulação de chamada de serviço. Necessário criar no planService.
         await planService.toggleHighlightDoneStatus(appState.currentUser.uid, planId, chapterName, verseIndex, isDone);
-        
-        // Atualização em memória
-        const plan = appState.userPlans.find(p => p.id === planId);
-        if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName]) {
-            plan.versesToHighlight[chapterName][verseIndex].done = isDone;
-        }
     } catch (error) {
         console.error("Erro ao alterar o status do versículo:", error);
         toastUI.showToast(`Não foi possível salvar a alteração: ${error.message}`, 'error');
+        
+        // --- 3. ROLLBACK EM CASO DE FALHA ---
+        if (plan && plan.versesToHighlight && plan.versesToHighlight[chapterName] && previousState !== null) {
+            // Reverte o dado em memória
+            plan.versesToHighlight[chapterName][verseIndex].done = previousState;
+            
+            // Como ocorreu erro e queremos corrigir a tela, forçamos a re-renderização da aba "Meus Grifos"
+            // Isso desmarcará o checkbox que o usuário havia clicado.
+            modalsUI.displayMyHighlights(plan);
+        }
     }
 }
 
