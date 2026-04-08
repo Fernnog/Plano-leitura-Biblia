@@ -1093,10 +1093,26 @@ async function handleCreateFavoritePlanSet() {
     }
 }
 
+// --- NOVA FUNÇÃO: REGISTRO DO SERVICE WORKER ---
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then((registration) => {
+                    console.log('PWA: Service Worker registrado com sucesso.');
+                })
+                .catch((error) => {
+                    console.error('PWA: Falha ao registrar o Service Worker:', error);
+                });
+        });
+    }
+}
 
 // --- 6. INICIALIZAÇÃO DA APLICAÇÃO ---
 
 function initApplication() {
+    registerServiceWorker(); // Inicia o motor do PWA
+    
     authService.onAuthStateChanged(handleAuthStateChange);
 
     splashScreenUI.init(); 
