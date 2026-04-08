@@ -1,11 +1,27 @@
 // src/config/app-config.js
 /**
-@file app-config.js
-@description Contém configurações globais da aplicação, como versão e changelog.
-*/
-export const APP_VERSION = '1.0.8';
+ * @file app-config.js
+ * @description Contém configurações globais da aplicação, como versão e changelog.
+ */
+export const APP_VERSION = '1.0.9';
 
-export const VERSION_CHANGELOG =[
+export const VERSION_CHANGELOG = [
+    {
+        type: '💅 Design',
+        description: '<strong>Novo Design em Pílula (Toasts):</strong> As notificações flutuantes foram remodeladas. Agora possuem um formato elegante de pílula super arredondada e flutuam centralizadas na parte inferior da tela, transmitindo um visual muito mais moderno.'
+    },
+    {
+        type: '✨ Novidade',
+        description: '<strong>Saudação Inteligente:</strong> Ao abrir o app, um novo sistema varre seus planos de leitura e exibe uma notificação personalizada. Ele avisará gentilmente se suas leituras estão em dia ou se há atrasos que precisem de recálculo.'
+    },
+    {
+        type: '✨ Novidade',
+        description: '<strong>Celebração de Metas:</strong> A cada capítulo lido, o aplicativo agora celebra com você instantaneamente! E ao concluir todos os capítulos programados para o dia, uma notificação especial de "Meta Diária Alcançada" (🎯) surge na tela.'
+    },
+    {
+        type: '📱 Melhoria',
+        description: '<strong>Ícones Dinâmicos (Toasts):</strong> As mensagens do sistema ficaram mais interativas, apresentando ícones automáticos de acordo com o contexto da notificação (alertas de atraso, sucesso em leituras, erros, etc).'
+    },
     {
         type: '✨ Novidade',
         description: '<strong>Novo Sistema de Notificações (Toasts):</strong> Substituímos os antigos alertas cinzas do navegador por mensagens modernas, elegantes e flutuantes. Elas aparecem suavemente no canto da tela e desaparecem sozinhas, sem travar sua navegação.'
