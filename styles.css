@@ -1330,36 +1330,34 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
 /* --- Sistema de Notificações (Toasts) --- */
 .toast-container {
     position: fixed;
-    bottom: 90px; /* Acima do botão flutuante */
-    right: 20px;
+    bottom: 100px; /* Garante que fique acima do paginador flutuante */
+    left: 50%;
+    transform: translateX(-50%); /* Centraliza perfeitamente o eixo X */
     z-index: 9999;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    pointer-events: none; /* Para não bloquear cliques na tela embaixo dele */
+    pointer-events: none; /* Não bloqueia cliques na tela de fundo */
+    align-items: center; /* Centraliza os filhos (toasts) */
+    width: 100%; /* Permite o uso de toda a área se necessário, mantendo filhos ao centro */
 }
 
 .toast-message {
-    /* Estética solicitada */
-    background-color: #4A3623; /* Marrom escuro harmonioso com o Dourado (--accent-color) */
-    color: var(--text-color-light); /* Letra clara */
-    border-radius: var(--base-border-radius); /* Bordas arredondadas (8px) */
-    border-left: 4px solid var(--accent-color); /* Detalhe dourado na lateral */
-    
-    /* Layout e Sombras */
-    padding: 12px 20px;
+    background-color: #4A3623; /* Marrom escuro harmonioso */
+    color: var(--text-color-light);
+    border-radius: 30px; /* Bordas super arredondadas (Pílula) */
+    border: 1px solid var(--accent-color); /* Contorno sutil em toda a borda */
+    padding: 10px 24px;
     font-size: 0.95em;
     font-weight: 500;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); /* Sombra mais destacada */
     display: flex;
     align-items: center;
     gap: 10px;
-    max-width: 300px;
-    
-    /* Animação */
-    animation: slideInToast 0.3s ease-out forwards;
-    pointer-events: auto; /* Permite interagir com o toast se necessário */
-    cursor: pointer; /* Feedback visual para a sugestão de click-to-dismiss */
+    max-width: 90%; /* Evita quebra ruim no mobile */
+    animation: slideInToast 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; /* Animação elástica */
+    pointer-events: auto;
+    cursor: pointer;
 }
 
 .toast-message.fade-out {
@@ -1494,19 +1492,6 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         width: 12px; 
         height: 12px; 
         margin-right: 8px; 
-    }
-
-    /* Responsividade para celulares - Toasts */
-    .toast-container {
-        bottom: 80px;
-        left: 20px; /* Ocupa a tela toda mobile */
-        right: 20px;
-        align-items: center;
-    }
-    .toast-message { 
-        max-width: 100%; 
-        width: 100%; 
-        justify-content: center; 
     }
 }
 
