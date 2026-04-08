@@ -5,16 +5,18 @@ export function showToast(message, type = 'success', duration = 3000) {
     const toast = document.createElement('div');
     toast.className = `toast-message ${type === 'error' ? 'toast-error' : ''}`;
     
-    // Ícone dinâmico
-    const icon = type === 'error' ? '⚠️' : '✨';
+    // Suporte ampliado de ícones baseados no tipo do Toast
+    let icon = '✨'; // Padrão
+    if (type === 'error') icon = '⚠️';
+    if (type === 'warning') icon = '🔔';
+    if (type === 'info') icon = 'ℹ️';
+
     toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
 
     container.appendChild(toast);
 
-    // Remove o toast após o tempo definido
     setTimeout(() => {
         toast.classList.add('fade-out');
-        // Remove do DOM após a animação de saída (400ms)
         setTimeout(() => toast.remove(), 400);
     }, duration);
 }
