@@ -218,6 +218,26 @@ async function loadInitialUserData(user) {
             }
         });
         headerUI.hideLoading();
+
+        // --- NOVO GATILHO: Status ao Carregar a Página ---
+        setTimeout(() => {
+            let hasOverdue = false;
+            const todayStr = getCurrentUTCDateString();
+            
+            appState.userPlans.forEach(plan => {
+                const totalDays = Object.keys(plan.plan || {}).length;
+                if (plan.currentDay <= totalDays) {
+                    const firstEffectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
+                    if (firstEffectiveDateStr && firstEffectiveDateStr < todayStr) hasOverdue = true;
+                }
+            });
+
+            if (hasOverdue) {
+                toastUI.showToast("🔔 Você possui leituras em atraso. Confira a reavaliação se precisar!", "warning", 5000);
+            } else if (appState.userPlans.length > 0) {
+                toastUI.showToast("✨ Tudo em dia! Excelente jornada de leitura.", "success", 4000);
+            }
+        }, 1000); // Aguarda a interface terminar de ser pintada
     }
 }
 
@@ -388,6 +408,21 @@ async function handleChapterToggle(planId, chapterName, isRead) {
         if (planToUpdate) {
             if (!planToUpdate.dailyChapterReadStatus) planToUpdate.dailyChapterReadStatus = {};
             planToUpdate.dailyChapterReadStatus[chapterName] = isRead;
+            
+            // --- NOVO GATILHO: Capítulo Lido e Meta Diária ---
+            if (isRead) {
+                toastUI.showToast(`✔️ ${chapterName} lido!`, 'success', 2000);
+
+                const currentDayStr = planToUpdate.currentDay.toString();
+                const chaptersForToday = planToUpdate.plan[currentDayStr] || [];
+                const allRead = chaptersForToday.length > 0 && chaptersForToday.every(ch => planToUpdate.dailyChapterReadStatus[ch]);
+
+                if (allRead) {
+                    setTimeout(() => {
+                        toastUI.showToast(`🎯 Meta diária alcançada: ${planToUpdate.name}!`, 'success', 4000);
+                    }, 800); // Delay sutil para não sobrepor instantaneamente com o anterior
+                }
+            }
         }
         
         const todayStr = getCurrentUTCDateString();
