@@ -36,7 +36,8 @@ import {
     generateIntercalatedChapters,
     distributeChaptersOverReadingDays,
     sortChaptersCanonically,
-    summarizeChaptersByBook
+    summarizeChaptersByBook,
+    generateProportionalBalancedPlan
 } from './utils/chapter-helpers.js';
 import { 
     getCurrentUTCDateString, 
@@ -1055,11 +1056,21 @@ async function handleDeleteVerseHighlight(planId, chapterName, verseIndex) {
 async function handleCreateFavoritePlanSet() {
     try {
         for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
-            const chaptersToRead = config.intercalate
-                ? generateIntercalatedChapters(config.bookBlocks)
-                : generateChaptersForBookList(config.books);
-            const totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
-            const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+            let chaptersToRead, totalReadingDays, planMap;
+
+            if (config.isTwoYearBalanced) {
+                const balancedResult = generateProportionalBalancedPlan();
+                planMap = balancedResult.planMap;
+                chaptersToRead = balancedResult.chaptersList;
+                totalReadingDays = balancedResult.totalReadingDays;
+            } else {
+                chaptersToRead = config.intercalate
+                    ? generateIntercalatedChapters(config.bookBlocks)
+                    : generateChaptersForBookList(config.books);
+                totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
+                planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
+            }
+
             const startDate = getCurrentUTCDateString();
             const endDate = getEffectiveDateForDay({ startDate, allowedDays: config.allowedDays }, totalReadingDays);
             const planData = {

@@ -31,5 +31,6 @@ export const SELECTABLE_ICONS = [
 export const FAVORITE_PLAN_ICONS = {
     "A Jornada dos Patriarcas": "⛺", // Tenda
     "A Sinfonia Celestial": "🎶",     // Notas Musicais
-    "A Promessa Revelada": "📜"      // Pergaminho
+    "A Promessa Revelada": "📜",      // Pergaminho
+    "A Jornada Paciente (2 Anos)": "🕰️" // Relógio (novo plano)
 };

@@ -4,8 +4,18 @@
  * distribuir e manipular listas de capítulos da Bíblia.
  */
 
-import { BIBLE_BOOKS_CHAPTERS, CANONICAL_BOOK_ORDER, BOOK_NAME_MAP } from '../config/bible-data.js';
+import { BIBLE_BOOKS_CHAPTERS, CANONICAL_BOOK_ORDER, BOOK_NAME_MAP, OT_BOOKS_LIST, NT_BOOKS_LIST } from '../config/bible-data.js';
 import { addUTCDays, getUTCDay } from './date-helpers.js';
+
+/**
+ * Definição estática de livros pesados para performance e balanceamento de carga diária.
+ */
+const HEAVY_BOOKS = new Set([
+    "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", 
+    "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", 
+    "Jó", "Salmos", "Provérbios", "Isaías", "Jeremias", "Ezequiel", "Daniel",
+    "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios", "Apocalipse"
+]);
 
 /**
  * Gera uma lista ordenada de capítulos dentro de um intervalo contínuo.
@@ -290,4 +300,74 @@ function _compactChapterNumbers(numbers) {
         }
     }
     return result;
+}
+
+/**
+ * Gera um plano balanceado intercalando Antigo e Novo Testamento
+ * focado em equidade de progresso (terminam juntos) e limite de carga diária.
+ */
+export function generateProportionalBalancedPlan() {
+    const atChapters = generateChaptersForBookList(OT_BOOKS_LIST);
+    const ntChapters = generateChaptersForBookList(NT_BOOKS_LIST);
+    
+    const planMap = {};
+    const chaptersList = [];
+    
+    const getWeight = (chapterStr) => {
+        const bookName = chapterStr.match(/^(.*)\s+\d+$/)[1];
+        return HEAVY_BOOKS.has(bookName) ? 2 : 1;
+    };
+
+    let atIdx = 0;
+    let ntIdx = 0;
+    let day = 1;
+    const MAX_DAILY_WEIGHT = 3; // Limite de conforto do usuário
+
+    while (atIdx < atChapters.length || ntIdx < ntChapters.length) {
+        planMap[day] = [];
+        let currentDayWeight = 0;
+
+        // Tenta preencher o dia respeitando a capacidade máxima
+        while (currentDayWeight < MAX_DAILY_WEIGHT && (atIdx < atChapters.length || ntIdx < ntChapters.length)) {
+            // Calcula o percentual de conclusão para sincronizar perfeitamente
+            const progressAT = atIdx / atChapters.length;
+            const progressNT = ntIdx / ntChapters.length;
+
+            let nextChapter = null;
+            let isPullingAT = false;
+
+            // Prioriza o testamento que está "atrasado" na porcentagem
+            if (progressAT <= progressNT && atIdx < atChapters.length) {
+                nextChapter = atChapters[atIdx];
+                isPullingAT = true;
+            } else if (ntIdx < ntChapters.length) {
+                nextChapter = ntChapters[ntIdx];
+            } else {
+                nextChapter = atChapters[atIdx];
+                isPullingAT = true;
+            }
+
+            const weight = getWeight(nextChapter);
+
+            // Se estourar o balde do dia (e já tiver algo lido), quebra e deixa pro dia seguinte
+            if (currentDayWeight + weight > MAX_DAILY_WEIGHT && currentDayWeight > 0) {
+                break; 
+            }
+
+            // Confirma a extração do capítulo
+            planMap[day].push(nextChapter);
+            chaptersList.push(nextChapter);
+            currentDayWeight += weight;
+
+            if (isPullingAT) atIdx++;
+            else ntIdx++;
+        }
+        day++;
+    }
+
+    return {
+        planMap,
+        chaptersList,
+        totalReadingDays: day - 1
+    };
 }

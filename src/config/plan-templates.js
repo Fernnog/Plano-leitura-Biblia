@@ -54,5 +54,12 @@ export const FAVORITE_ANNUAL_PLAN_CONFIG = [
         allowedDays: [2, 5, 0], // Ter, Sex, Dom
         chaptersPerReadingDay: 3,
         intercalate: true // Sinalizador especial para a lógica de criação saber que deve intercalar os blocos.
+    },
+    {
+        name: "A Jornada Paciente (2 Anos)",
+        // A geração é tratada no helper dinâmico
+        allowedDays: [0, 1, 2, 3, 4, 5, 6], // Ritmo calmo, todos os dias
+        chaptersPerReadingDay: 'Dinâmico',
+        isTwoYearBalanced: true 
     }
 ];

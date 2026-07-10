@@ -109,3 +109,11 @@ CANONICAL_BOOK_ORDER.forEach(book => {
         BOOK_NAME_MAP.set(lowerNoSpace, book);
     }
 });
+
+/**
+ * Listas estáticas e imutáveis dos livros do Antigo e Novo Testamento.
+ * Derivadas de CANONICAL_BOOK_ORDER para evitar hardcoding de índices vulneráveis.
+ * @type {Array<string>}
+ */
+export const OT_BOOKS_LIST = CANONICAL_BOOK_ORDER.slice(0, 39);
+export const NT_BOOKS_LIST = CANONICAL_BOOK_ORDER.slice(39);
