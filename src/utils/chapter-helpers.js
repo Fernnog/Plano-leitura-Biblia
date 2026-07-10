@@ -307,104 +307,113 @@ function _compactChapterNumbers(numbers) {
  * focado em equidade de progresso (terminam juntos) e limite de carga diária.
  */
 export function generateProportionalBalancedPlan() {
-    const atChapters = generateChaptersForBookList(OT_BOOKS_LIST);
-    const ntChapters = generateChaptersForBookList(NT_BOOKS_LIST);
+    // 1. Definição das Trilhas baseadas na sugestão de alívio cognitivo
+    const track1Books = [
+        "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", 
+        "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", 
+        "Esdras", "Neemias", "Ester", "Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel"
+    ];
+    const track2Books = ["Mateus", "Marcos", "Lucas", "João", "Atos"];
     
+    // Trilha de Alívio: Sabedoria, Profetas Menores e Epístolas
+    const track3Books = [
+        "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares", 
+        "Oséias", "Joel", "Amós", "Obadias", "Jonas", "Miquéias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", 
+        "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses", 
+        "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo", "Tito", "Filemom", 
+        "Hebreus", "Tiago", "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+    ];
+
+    const t1Chapters = generateChaptersForBookList(track1Books);
+    const t2Chapters = generateChaptersForBookList(track2Books);
+    const t3Chapters = generateChaptersForBookList(track3Books);
+
+    // 2. Intercala Trilha 1 (AT) e Trilha 2 (NT) em uma única "Linha do Tempo Principal"
+    // Isso garante que AT e NT principais caminhem juntos e terminem no mesmo dia.
+    const mainTimeline = [];
+    let t1Idx = 0, t2Idx = 0;
+    const totalMain = t1Chapters.length + t2Chapters.length;
+    
+    for (let i = 0; i < totalMain; i++) {
+        const p1 = t1Chapters.length > 0 ? (t1Idx / t1Chapters.length) : 1;
+        const p2 = t2Chapters.length > 0 ? (t2Idx / t2Chapters.length) : 1;
+        
+        if (p1 <= p2 && t1Idx < t1Chapters.length) {
+            mainTimeline.push(t1Chapters[t1Idx++]);
+        } else if (t2Idx < t2Chapters.length) {
+            mainTimeline.push(t2Chapters[t2Idx++]);
+        } else {
+            mainTimeline.push(t1Chapters[t1Idx++]);
+        }
+    }
+
+    // 3. Distribuição em exatos 730 dias (2 Anos)
+    const TARGET_DAYS = 730;
     const planMap = {};
     const chaptersList = [];
     
-    const getWeight = (chapterStr) => {
-        const bookName = chapterStr.match(/^(.*)\s+\d+$/)[1];
-        return HEAVY_BOOKS.has(bookName) ? 2 : 1;
-    };
+    let mainIdx = 0;
+    let t3Idx = 0;
+    
+    let mainAcc = 0.0;
+    let t3Acc = 0.0;
+    
+    // Ritmos (Pace): O Main renderá ~1 cap por dia. O T3 renderá ~0.6 cap por dia.
+    const mainPace = mainTimeline.length / TARGET_DAYS; 
+    const t3Pace = t3Chapters.length / TARGET_DAYS; 
 
-    // 1. Calcula a carga total exata da Bíblia baseada nos pesos
-    let totalWeight = 0;
-    atChapters.forEach(ch => totalWeight += getWeight(ch));
-    ntChapters.forEach(ch => totalWeight += getWeight(ch));
-
-    // 2. Define o alvo de dias e calcula o Ritmo Diário necessário (Pace)
-    const TARGET_DAYS = 730; // Alvo cravado de 2 anos
-    const dailyWeightPace = totalWeight / TARGET_DAYS;
-
-    let atIdx = 0;
-    let ntIdx = 0;
-    let day = 1;
-    let weightAccumulator = 0.0;
-
-    while (atIdx < atChapters.length || ntIdx < ntChapters.length) {
+    for (let day = 1; day <= TARGET_DAYS; day++) {
         planMap[day] = [];
-        weightAccumulator += dailyWeightPace;
         
-        let safetyCount = 0; // Previne loops infinitos
-
-        // Consome capítulos enquanto o acumulador daquele dia permitir
-        while ((atIdx < atChapters.length || ntIdx < ntChapters.length) && safetyCount < 10) {
-            const progressAT = atIdx / atChapters.length;
-            const progressNT = ntIdx / ntChapters.length;
-
-            let nextChapter = null;
-            let isPullingAT = false;
-
-            if (progressAT <= progressNT && atIdx < atChapters.length) {
-                nextChapter = atChapters[atIdx];
-                isPullingAT = true;
-            } else if (ntIdx < ntChapters.length) {
-                nextChapter = ntChapters[ntIdx];
-            } else {
-                nextChapter = atChapters[atIdx];
-                isPullingAT = true;
-            }
-
-            const weight = getWeight(nextChapter);
-
-            // Se temos "crédito de leitura" acumulado, lemos o capítulo
-            if (weightAccumulator >= (weight - 0.001)) {
-                planMap[day].push(nextChapter);
-                chaptersList.push(nextChapter);
-                weightAccumulator -= weight;
-                
-                if (isPullingAT) atIdx++;
-                else ntIdx++;
-                
-                safetyCount++;
-            } else {
-                break; // Crédito acabou, deixa o próximo para amanhã
-            }
+        // Puxa da linha narrativa densa (Máx 1 por dia na esmagadora maioria das vezes)
+        mainAcc += mainPace;
+        while (mainAcc >= 0.999 && mainIdx < mainTimeline.length) {
+            const ch = mainTimeline[mainIdx++];
+            planMap[day].push(ch);
+            chaptersList.push(ch);
+            mainAcc -= 1.0;
         }
-
-        // Failsafe: Garante que nenhum dia fique com 0 capítulos
+        
+        // Puxa da trilha de alívio para complementar o dia (Entra em ~60% dos dias)
+        t3Acc += t3Pace;
+        while (t3Acc >= 0.999 && t3Idx < t3Chapters.length) {
+            const ch = t3Chapters[t3Idx++];
+            planMap[day].push(ch);
+            chaptersList.push(ch);
+            t3Acc -= 1.0;
+        }
+        
+        // Segurança: Impede que exista um dia sem leitura
         if (planMap[day].length === 0) {
-             const progressAT = atIdx / atChapters.length;
-             const progressNT = ntIdx / ntChapters.length;
-             let nextChapter = null;
-             let isPullingAT = false;
-             
-             if (progressAT <= progressNT && atIdx < atChapters.length) {
-                 nextChapter = atChapters[atIdx];
-                 isPullingAT = true;
-             } else if (ntIdx < ntChapters.length) {
-                 nextChapter = ntChapters[ntIdx];
-             } else {
-                 nextChapter = atChapters[atIdx];
-                 isPullingAT = true;
-             }
-             
-             const weight = getWeight(nextChapter);
-             planMap[day].push(nextChapter);
-             chaptersList.push(nextChapter);
-             weightAccumulator -= weight; // Pode ficar negativo, recupera no dia seguinte
-             
-             if (isPullingAT) atIdx++; 
-             else ntIdx++;
+            if (mainIdx < mainTimeline.length) {
+                const ch = mainTimeline[mainIdx++];
+                planMap[day].push(ch);
+                chaptersList.push(ch);
+                mainAcc -= 1.0;
+            } else if (t3Idx < t3Chapters.length) {
+                const ch = t3Chapters[t3Idx++];
+                planMap[day].push(ch);
+                chaptersList.push(ch);
+                t3Acc -= 1.0;
+            }
         }
-
-        day++;
+    }
+    
+    // Limpeza final caso sobrem capítulos por arredondamento matemático
+    while (mainIdx < mainTimeline.length) {
+        const ch = mainTimeline[mainIdx++];
+        planMap[TARGET_DAYS].push(ch);
+        chaptersList.push(ch);
+    }
+    while (t3Idx < t3Chapters.length) {
+         const ch = t3Chapters[t3Idx++];
+         planMap[TARGET_DAYS].push(ch);
+         chaptersList.push(ch);
     }
 
     return {
         planMap,
         chaptersList,
-        totalReadingDays: day - 1
+        totalReadingDays: TARGET_DAYS
     };
 }
