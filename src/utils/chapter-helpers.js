@@ -318,25 +318,34 @@ export function generateProportionalBalancedPlan() {
         return HEAVY_BOOKS.has(bookName) ? 2 : 1;
     };
 
+    // 1. Calcula a carga total exata da Bíblia baseada nos pesos
+    let totalWeight = 0;
+    atChapters.forEach(ch => totalWeight += getWeight(ch));
+    ntChapters.forEach(ch => totalWeight += getWeight(ch));
+
+    // 2. Define o alvo de dias e calcula o Ritmo Diário necessário (Pace)
+    const TARGET_DAYS = 730; // Alvo cravado de 2 anos
+    const dailyWeightPace = totalWeight / TARGET_DAYS;
+
     let atIdx = 0;
     let ntIdx = 0;
     let day = 1;
-    const MAX_DAILY_WEIGHT = 3; // Limite de conforto do usuário
+    let weightAccumulator = 0.0;
 
     while (atIdx < atChapters.length || ntIdx < ntChapters.length) {
         planMap[day] = [];
-        let currentDayWeight = 0;
+        weightAccumulator += dailyWeightPace;
+        
+        let safetyCount = 0; // Previne loops infinitos
 
-        // Tenta preencher o dia respeitando a capacidade máxima
-        while (currentDayWeight < MAX_DAILY_WEIGHT && (atIdx < atChapters.length || ntIdx < ntChapters.length)) {
-            // Calcula o percentual de conclusão para sincronizar perfeitamente
+        // Consome capítulos enquanto o acumulador daquele dia permitir
+        while ((atIdx < atChapters.length || ntIdx < ntChapters.length) && safetyCount < 10) {
             const progressAT = atIdx / atChapters.length;
             const progressNT = ntIdx / ntChapters.length;
 
             let nextChapter = null;
             let isPullingAT = false;
 
-            // Prioriza o testamento que está "atrasado" na porcentagem
             if (progressAT <= progressNT && atIdx < atChapters.length) {
                 nextChapter = atChapters[atIdx];
                 isPullingAT = true;
@@ -349,19 +358,47 @@ export function generateProportionalBalancedPlan() {
 
             const weight = getWeight(nextChapter);
 
-            // Se estourar o balde do dia (e já tiver algo lido), quebra e deixa pro dia seguinte
-            if (currentDayWeight + weight > MAX_DAILY_WEIGHT && currentDayWeight > 0) {
-                break; 
+            // Se temos "crédito de leitura" acumulado, lemos o capítulo
+            if (weightAccumulator >= (weight - 0.001)) {
+                planMap[day].push(nextChapter);
+                chaptersList.push(nextChapter);
+                weightAccumulator -= weight;
+                
+                if (isPullingAT) atIdx++;
+                else ntIdx++;
+                
+                safetyCount++;
+            } else {
+                break; // Crédito acabou, deixa o próximo para amanhã
             }
-
-            // Confirma a extração do capítulo
-            planMap[day].push(nextChapter);
-            chaptersList.push(nextChapter);
-            currentDayWeight += weight;
-
-            if (isPullingAT) atIdx++;
-            else ntIdx++;
         }
+
+        // Failsafe: Garante que nenhum dia fique com 0 capítulos
+        if (planMap[day].length === 0) {
+             const progressAT = atIdx / atChapters.length;
+             const progressNT = ntIdx / ntChapters.length;
+             let nextChapter = null;
+             let isPullingAT = false;
+             
+             if (progressAT <= progressNT && atIdx < atChapters.length) {
+                 nextChapter = atChapters[atIdx];
+                 isPullingAT = true;
+             } else if (ntIdx < ntChapters.length) {
+                 nextChapter = ntChapters[ntIdx];
+             } else {
+                 nextChapter = atChapters[atIdx];
+                 isPullingAT = true;
+             }
+             
+             const weight = getWeight(nextChapter);
+             planMap[day].push(nextChapter);
+             chaptersList.push(nextChapter);
+             weightAccumulator -= weight; // Pode ficar negativo, recupera no dia seguinte
+             
+             if (isPullingAT) atIdx++; 
+             else ntIdx++;
+        }
+
         day++;
     }
 
