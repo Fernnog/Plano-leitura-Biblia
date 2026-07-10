@@ -307,103 +307,101 @@ function _compactChapterNumbers(numbers) {
  * focado em equidade de progresso (terminam juntos) e limite de carga diária.
  */
 export function generateProportionalBalancedPlan() {
-    // 1. Definição das Trilhas baseadas na sugestão de alívio cognitivo
+    // 1. Definição das 3 Trilhas Independentes
+    // Trilha 1: Base Narrativa e Profética do Velho Testamento (686 capítulos)
     const track1Books = [
         "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio", "Josué", "Juízes", 
         "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis", "1 Crônicas", "2 Crônicas", 
-        "Esdras", "Neemias", "Ester", "Isaías", "Jeremias", "Lamentações", "Ezequiel", "Daniel"
+        "Esdras", "Neemias", "Ester", "Isaías", "Jeremias", "Lamentações", "Ezequiel", 
+        "Daniel", "Oséias", "Joel", "Amós", "Obadias", "Jonas", "Miquéias", "Naum", 
+        "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias"
     ];
-    const track2Books = ["Mateus", "Marcos", "Lucas", "João", "Atos"];
     
-    // Trilha de Alívio: Sabedoria, Profetas Menores e Epístolas
+    // Trilha 2: O Novo Testamento Completo (260 capítulos)
+    const track2Books = [
+        "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios", "2 Coríntios", 
+        "Gálatas", "Efésios", "Filipenses", "Colossenses", "1 Tessalonicenses", "2 Tessalonicenses", 
+        "1 Timóteo", "2 Timóteo", "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro", 
+        "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+    ];
+    
+    // Trilha 3: Sabedoria e Poesia para alívio (243 capítulos)
     const track3Books = [
-        "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares", 
-        "Oséias", "Joel", "Amós", "Obadias", "Jonas", "Miquéias", "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias", 
-        "Romanos", "1 Coríntios", "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses", 
-        "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo", "Tito", "Filemom", 
-        "Hebreus", "Tiago", "1 Pedro", "2 Pedro", "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+        "Jó", "Salmos", "Provérbios", "Eclesiastes", "Cantares"
     ];
 
     const t1Chapters = generateChaptersForBookList(track1Books);
     const t2Chapters = generateChaptersForBookList(track2Books);
     const t3Chapters = generateChaptersForBookList(track3Books);
 
-    // 2. Intercala Trilha 1 (AT) e Trilha 2 (NT) em uma única "Linha do Tempo Principal"
-    // Isso garante que AT e NT principais caminhem juntos e terminem no mesmo dia.
-    const mainTimeline = [];
-    let t1Idx = 0, t2Idx = 0;
-    const totalMain = t1Chapters.length + t2Chapters.length;
-    
-    for (let i = 0; i < totalMain; i++) {
-        const p1 = t1Chapters.length > 0 ? (t1Idx / t1Chapters.length) : 1;
-        const p2 = t2Chapters.length > 0 ? (t2Idx / t2Chapters.length) : 1;
-        
-        if (p1 <= p2 && t1Idx < t1Chapters.length) {
-            mainTimeline.push(t1Chapters[t1Idx++]);
-        } else if (t2Idx < t2Chapters.length) {
-            mainTimeline.push(t2Chapters[t2Idx++]);
-        } else {
-            mainTimeline.push(t1Chapters[t1Idx++]);
-        }
-    }
-
-    // 3. Distribuição em exatos 730 dias (2 Anos)
+    // 2. Distribuição Matemática em Motores Paralelos para 730 dias (2 Anos)
     const TARGET_DAYS = 730;
     const planMap = {};
     const chaptersList = [];
     
-    let mainIdx = 0;
-    let t3Idx = 0;
+    let t1Idx = 0, t2Idx = 0, t3Idx = 0;
     
-    let mainAcc = 0.0;
-    let t3Acc = 0.0;
-    
-    // Ritmos (Pace): O Main renderá ~1 cap por dia. O T3 renderá ~0.6 cap por dia.
-    const mainPace = mainTimeline.length / TARGET_DAYS; 
-    const t3Pace = t3Chapters.length / TARGET_DAYS; 
+    // Paces (Velocidade necessária para terminar cada trilha em exatos 730 dias)
+    const t1Pace = t1Chapters.length / TARGET_DAYS; // ~0.94 cap/dia
+    const t2Pace = t2Chapters.length / TARGET_DAYS; // ~0.35 cap/dia
+    const t3Pace = t3Chapters.length / TARGET_DAYS; // ~0.33 cap/dia
+
+    // Acumuladores de Ritmo. T1 e T2 começam engatilhados (1.0) pro Dia 1 ter AT + NT.
+    let t1Acc = 1.0; 
+    let t2Acc = 1.0; 
+    let t3Acc = 0.0; // Sabedoria entra naturalmente nos dias seguintes
 
     for (let day = 1; day <= TARGET_DAYS; day++) {
         planMap[day] = [];
         
-        // Puxa da linha narrativa densa (Máx 1 por dia na esmagadora maioria das vezes)
-        mainAcc += mainPace;
-        while (mainAcc >= 0.999 && mainIdx < mainTimeline.length) {
-            const ch = mainTimeline[mainIdx++];
+        // Motor 1: Roda a Trilha do Velho Testamento
+        t1Acc += t1Pace;
+        while (t1Acc >= 1.0 && t1Idx < t1Chapters.length) {
+            const ch = t1Chapters[t1Idx++];
             planMap[day].push(ch);
             chaptersList.push(ch);
-            mainAcc -= 1.0;
+            t1Acc -= 1.0;
         }
         
-        // Puxa da trilha de alívio para complementar o dia (Entra em ~60% dos dias)
+        // Motor 2: Roda a Trilha do Novo Testamento
+        t2Acc += t2Pace;
+        while (t2Acc >= 1.0 && t2Idx < t2Chapters.length) {
+            const ch = t2Chapters[t2Idx++];
+            planMap[day].push(ch);
+            chaptersList.push(ch);
+            t2Acc -= 1.0;
+        }
+        
+        // Motor 3: Roda a Trilha de Sabedoria / Salmos
         t3Acc += t3Pace;
-        while (t3Acc >= 0.999 && t3Idx < t3Chapters.length) {
+        while (t3Acc >= 1.0 && t3Idx < t3Chapters.length) {
             const ch = t3Chapters[t3Idx++];
             planMap[day].push(ch);
             chaptersList.push(ch);
             t3Acc -= 1.0;
         }
         
-        // Segurança: Impede que exista um dia sem leitura
+        // Failsafe de Segurança (Garante que nunca existirá um dia de leitura vazio)
         if (planMap[day].length === 0) {
-            if (mainIdx < mainTimeline.length) {
-                const ch = mainTimeline[mainIdx++];
+            if (t1Idx < t1Chapters.length) {
+                const ch = t1Chapters[t1Idx++];
                 planMap[day].push(ch);
                 chaptersList.push(ch);
-                mainAcc -= 1.0;
-            } else if (t3Idx < t3Chapters.length) {
-                const ch = t3Chapters[t3Idx++];
-                planMap[day].push(ch);
-                chaptersList.push(ch);
-                t3Acc -= 1.0;
+                t1Acc -= 1.0;
             }
         }
     }
     
-    // Limpeza final caso sobrem capítulos por arredondamento matemático
-    while (mainIdx < mainTimeline.length) {
-        const ch = mainTimeline[mainIdx++];
+    // Limpeza final de arredondamento matemático para o último dia (Dia 730)
+    while (t1Idx < t1Chapters.length) {
+        const ch = t1Chapters[t1Idx++];
         planMap[TARGET_DAYS].push(ch);
         chaptersList.push(ch);
+    }
+    while (t2Idx < t2Chapters.length) {
+         const ch = t2Chapters[t2Idx++];
+         planMap[TARGET_DAYS].push(ch);
+         chaptersList.push(ch);
     }
     while (t3Idx < t3Chapters.length) {
          const ch = t3Chapters[t3Idx++];
