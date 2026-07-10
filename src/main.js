@@ -1054,8 +1054,66 @@ async function handleDeleteVerseHighlight(planId, chapterName, verseIndex) {
 }
 
 async function handleCreateFavoritePlanSet() {
+    // 1. Criação dinâmica do Painel de Escolha (Modal)
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 10000; opacity: 0; transition: opacity 0.3s ease;
+    `;
+
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: var(--bg-color, #ffffff); color: var(--text-color, #333333);
+        padding: 30px; border-radius: 16px; width: 90%; max-width: 400px;
+        text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transform: scale(0.95); transition: transform 0.3s ease; border: 1px solid rgba(0,0,0,0.1);
+    `;
+
+    dialog.innerHTML = `
+        <h3 style="margin: 0 0 10px 0; font-size: 1.4rem;">Escolha sua Jornada</h3>
+        <p style="margin: 0 0 25px 0; font-size: 0.95rem; opacity: 0.8;">Qual formato de leitura você deseja iniciar?</p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button id="btn-create-1yr" style="background: var(--primary-color, #4A90E2); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; transition: filter 0.2s;">
+                📅 Clássica Anual (3 Planos)
+            </button>
+            <button id="btn-create-2yr" style="background: var(--secondary-color, #2ECC71); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; transition: filter 0.2s;">
+                ⚔️ A Jornada Perseverante
+            </button>
+            <button id="btn-cancel-create" style="background: transparent; color: inherit; border: none; padding: 10px; cursor: pointer; margin-top: 5px; opacity: 0.7;">
+                Cancelar
+            </button>
+        </div>
+    `;
+
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        dialog.style.transform = 'scale(1)';
+    });
+
+    const userChoice = await new Promise((resolve) => {
+        document.getElementById('btn-create-1yr').onclick = () => resolve('1yr');
+        document.getElementById('btn-create-2yr').onclick = () => resolve('2yr');
+        document.getElementById('btn-cancel-create').onclick = () => resolve(null);
+    });
+
+    overlay.style.opacity = '0';
+    dialog.style.transform = 'scale(0.95)';
+    setTimeout(() => document.body.removeChild(overlay), 300);
+
+    if (!userChoice) return; // Usuário cancelou
+
+    // 2. Execução da criação baseada na escolha
     try {
-        for (const config of FAVORITE_ANNUAL_PLAN_CONFIG) {
+        const plansToCreate = FAVORITE_ANNUAL_PLAN_CONFIG.filter(config => 
+            userChoice === '2yr' ? config.isTwoYearBalanced : !config.isTwoYearBalanced
+        );
+
+        for (const config of plansToCreate) {
             let chaptersToRead, totalReadingDays, planMap;
 
             if (config.isTwoYearBalanced) {
@@ -1086,7 +1144,9 @@ async function handleCreateFavoritePlanSet() {
         if (updatedPlans.length > 0) {
             await planService.setActivePlan(appState.currentUser.uid, updatedPlans[0].id);
         }
-        toastUI.showToast("Conjunto de planos favoritos criado com sucesso!", 'success');
+        
+        toastUI.showToast(userChoice === '2yr' ? "A Jornada Perseverante iniciada com sucesso!" : "Planos Anuais criados com sucesso!", 'success');
+        
         await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, {

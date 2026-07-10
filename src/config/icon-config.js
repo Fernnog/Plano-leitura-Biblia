@@ -32,5 +32,5 @@ export const FAVORITE_PLAN_ICONS = {
     "A Jornada dos Patriarcas": "⛺", // Tenda
     "A Sinfonia Celestial": "🎶",     // Notas Musicais
     "A Promessa Revelada": "📜",      // Pergaminho
-    "A Jornada Paciente (2 Anos)": "🕰️" // Relógio (novo plano)
+    "A Jornada Perseverante": "⚔️"   // Espada (plano de 2 anos)
 };
