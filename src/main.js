@@ -1109,25 +1109,17 @@ async function handleCreateFavoritePlanSet() {
 
     // 2. Execução da criação baseada na escolha
     try {
-        const plansToCreate = FAVORITE_ANNUAL_PLAN_CONFIG.filter(config => 
-            userChoice === '2yr' ? config.isTwoYearBalanced : !config.isTwoYearBalanced
-        );
+        // Importa a nova configuração dinâmica baseada na escolha
+        const { PERSEVERANCE_PLAN_CONFIG } = await import('./config/plan-templates.js');
+        const plansToCreate = userChoice === '2yr' ? PERSEVERANCE_PLAN_CONFIG : FAVORITE_ANNUAL_PLAN_CONFIG;
 
         for (const config of plansToCreate) {
-            let chaptersToRead, totalReadingDays, planMap;
-
-            if (config.isTwoYearBalanced) {
-                const balancedResult = generateProportionalBalancedPlan();
-                planMap = balancedResult.planMap;
-                chaptersToRead = balancedResult.chaptersList;
-                totalReadingDays = balancedResult.totalReadingDays;
-            } else {
-                chaptersToRead = config.intercalate
-                    ? generateIntercalatedChapters(config.bookBlocks)
-                    : generateChaptersForBookList(config.books);
-                totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
-                planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
-            }
+            const chaptersToRead = config.intercalate
+                ? generateIntercalatedChapters(config.bookBlocks)
+                : generateChaptersForBookList(config.books);
+            
+            const totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
+            const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
 
             const startDate = getCurrentUTCDateString();
             const endDate = getEffectiveDateForDay({ startDate, allowedDays: config.allowedDays }, totalReadingDays);

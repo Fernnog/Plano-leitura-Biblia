@@ -29,8 +29,9 @@ export const SELECTABLE_ICONS = [
  * @type {Object<string, string>}
  */
 export const FAVORITE_PLAN_ICONS = {
-    "A Jornada dos Patriarcas": "⛺", // Tenda
-    "A Sinfonia Celestial": "🎶",     // Notas Musicais
-    "A Promessa Revelada": "📜",      // Pergaminho
-    "A Jornada Perseverante": "⚔️"   // Espada (plano de 2 anos)
+    "A Jornada dos Patriarcas": "⛺", 
+    "A Jornada Histórica": "⛺",      
+    "A Sinfonia Celestial": "🎶",     
+    "A Promessa Revelada": "📜",      
+    "As Cartas e Profetas": "🕊️"     
 };
