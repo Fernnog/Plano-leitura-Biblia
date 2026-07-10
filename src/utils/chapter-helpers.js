@@ -228,8 +228,9 @@ export function generateIntercalatedChapters(bookBlocks, chaptersPerBlockAT = 15
 
 export function sortChaptersCanonically(chaptersArray) {
     return chaptersArray.sort((a, b) => {
-        const matchA = a.match(/^(.*)\s+(\d+)$/);
-        const matchB = b.match(/^(.*)\s+(\d+)$/);
+        // Regex atualizado para ignorar o sufixo " (Releitura)" ao ordenar
+        const matchA = a.match(/^(.*?)\s+(\d+)(?:\s+\(.*\))?$/);
+        const matchB = b.match(/^(.*?)\s+(\d+)(?:\s+\(.*\))?$/);
         if (!matchA || !matchB) return 0; 
 
         const bookA = matchA[1];
@@ -263,7 +264,8 @@ export function summarizeChaptersByBook(chaptersList) {
     }
 
     sortedChapters.forEach(chapterString => {
-        const match = chapterString.match(/^(.*)\s+(\d+)$/);
+        // Regex atualizado para ignorar o sufixo " (Releitura)" no resumo do painel de estatísticas
+        const match = chapterString.match(/^(.*?)\s+(\d+)(?:\s+\(.*\))?$/);
         if (!match) return;
 
         const bookName = match[1];

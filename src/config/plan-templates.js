@@ -79,8 +79,9 @@ export const PERSEVERANCE_PLAN_CONFIG = [
         books: [
             "Mateus", "Marcos", "Lucas", "João", "Atos"
         ],
-        allowedDays: [2, 4, 0], // Ter, Qui, Dom (3 dias/sem) -> Termina em ~9 meses
-        chaptersPerReadingDay: 1
+        allowedDays: [2, 4, 0], // Ter, Qui, Dom (3 dias/sem)
+        chaptersPerReadingDay: 1,
+        repeat: 2 // Lê 2 vezes sequencialmente para preencher o período de 2 anos
     },
     {
         name: "A Sinfonia Celestial", // Sabedoria e Poesia

@@ -1114,9 +1114,19 @@ async function handleCreateFavoritePlanSet() {
         const plansToCreate = userChoice === '2yr' ? PERSEVERANCE_PLAN_CONFIG : FAVORITE_ANNUAL_PLAN_CONFIG;
 
         for (const config of plansToCreate) {
-            const chaptersToRead = config.intercalate
+            let chaptersToRead = config.intercalate
                 ? generateIntercalatedChapters(config.bookBlocks)
                 : generateChaptersForBookList(config.books);
+            
+            // Permite leitura cíclica (ex: Ler os Evangelhos 2x no mesmo plano)
+            if (config.repeat && config.repeat > 1) {
+                const originalChapters = [...chaptersToRead];
+                for (let i = 2; i <= config.repeat; i++) {
+                    const suffix = i === 2 ? " (Releitura)" : ` (Releitura ${i})`;
+                    const repeatedChapters = originalChapters.map(ch => `${ch}${suffix}`);
+                    chaptersToRead = chaptersToRead.concat(repeatedChapters);
+                }
+            }
             
             const totalReadingDays = Math.ceil(chaptersToRead.length / config.chaptersPerReadingDay);
             const planMap = distributeChaptersOverReadingDays(chaptersToRead, totalReadingDays);
