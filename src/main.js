@@ -563,32 +563,42 @@ function handleEditPlanRequest(planId) {
 
 // --- 4. FUNÇÕES DE RECÁLCULO, SINCRONIZAÇÃO E REAVALIAÇÃO ---
 
+let settingsChangedDuringModalOpen = false;
+
 function handleOpenSettings() {
-    const currentSettings = appState.userInfo?.settings ?? { autoRecalcShortDelay: false };
+    settingsChangedDuringModalOpen = false;
+    const currentSettings = appState.userInfo?.settings ?? {
+        autoRecalcShortDelay: false,
+        shortDelayThresholdDays: 1
+    };
     modalsUI.openSettingsModal(currentSettings);
 }
 
-async function handleToggleSetting(settingKey, isEnabled, inputElement) {
+function handleCloseSettings() {
+    if (settingsChangedDuringModalOpen && appState.userInfo?.settings?.autoRecalcShortDelay) {
+        settingsChangedDuringModalOpen = false;
+        checkAndPromptShortDelayPlans(true);
+    }
+}
+
+async function handleToggleSetting(settingKey, settingValue, inputElement) {
     if (!appState.currentUser) return;
     if (inputElement) inputElement.disabled = true;
 
     try {
-        await planService.updateUserSettings(appState.currentUser.uid, { [settingKey]: isEnabled });
+        await planService.updateUserSettings(appState.currentUser.uid, { [settingKey]: settingValue });
         
         if (!appState.userInfo.settings) {
             appState.userInfo.settings = {};
         }
-        appState.userInfo.settings[settingKey] = isEnabled;
-        toastUI.showToast('Preferência salva com sucesso!', 'info');
-
-        // Se o usuário acabou de ativar a opção, verifica imediatamente os planos carregados
-        if (settingKey === 'autoRecalcShortDelay' && isEnabled) {
-            modalsUI.close('settings-modal');
-            checkAndPromptShortDelayPlans(true);
-        }
+        appState.userInfo.settings[settingKey] = settingValue;
+        settingsChangedDuringModalOpen = true;
+        toastUI.showToast('Preferência salva com sucesso!', 'info', 2000);
     } catch (error) {
         console.error('Erro ao atualizar configuração:', error);
-        if (inputElement) inputElement.checked = !isEnabled;
+        if (inputElement && inputElement.type === 'checkbox') {
+            inputElement.checked = !settingValue;
+        }
         modalsUI.showError('settings-modal', 'Não foi possível salvar a configuração. Tente novamente.');
     } finally {
         if (inputElement) inputElement.disabled = false;
@@ -596,13 +606,15 @@ async function handleToggleSetting(settingKey, isEnabled, inputElement) {
 }
 
 /**
- * Verifica se há planos com 1 a 3 dias de leitura em atraso quando a configuração está ativa.
- * @param {boolean} forceCheck - Ignora a trava de sessão (usado quando o usuário ativa o switch manualmente).
+ * Verifica se há planos entre o limite mínimo escolhido (1, 2 ou 3) e 3 dias de leitura em atraso.
+ * @param {boolean} forceCheck - Ignora a trava de sessão (usado quando o usuário altera configurações).
  */
 function checkAndPromptShortDelayPlans(forceCheck = false) {
     const isAutoRecalcEnabled = Boolean(appState.userInfo?.settings?.autoRecalcShortDelay ?? false);
     if (!isAutoRecalcEnabled) return;
     if (hasCheckedShortDelaysThisSession && !forceCheck) return;
+
+    const minThresholdDays = Number(appState.userInfo?.settings?.shortDelayThresholdDays ?? 1);
 
     const plans = appState.userPlans || [];
     if (plans.length === 0) return;
@@ -617,7 +629,7 @@ function checkAndPromptShortDelayPlans(forceCheck = false) {
         const effectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
         if (effectiveDateStr && effectiveDateStr < todayStr) {
             const readingDaysLate = countReadingDaysBetween(effectiveDateStr, todayStr, plan.allowedDays);
-            if (readingDaysLate >= 1 && readingDaysLate <= 3) {
+            if (readingDaysLate >= minThresholdDays && readingDaysLate <= 3) {
                 pendingShortDelayPlans.push({ plan, daysLate: readingDaysLate });
             }
         }
@@ -1478,6 +1490,7 @@ function initApplication() {
         onSaveHighlight: handleSaveHighlight, 
         onDeleteVerseHighlight: handleDeleteVerseHighlight,
         onToggleSetting: handleToggleSetting,
+        onCloseSettings: handleCloseSettings,
         onConfirmShortDelayRecalc: handleConfirmShortDelayRecalc
     });
     
