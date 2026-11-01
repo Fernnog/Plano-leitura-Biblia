@@ -50,7 +50,6 @@ import {
 import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
-import { APP_VERSION, VERSION_CHANGELOG } from './config/app-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
 import * as planCalculator from './utils/plan-calculator.js';
 
@@ -85,6 +84,25 @@ const appState = {
     }
 };
 
+let pendingShortDelayPlans = [];
+let hasCheckedShortDelaysThisSession = false;
+
+function updateAllViews() {
+    perseverancePanelUI.render(appState.userInfo);
+    weeklyTrackerUI.render(appState.weeklyInteractions);
+    sidePanelsUI.render(appState.userPlans, {
+        onSwitchPlan: handleSwitchPlan,
+        onRecalculate: (planId) => {
+            modalsUI.resetRecalculateForm();
+            const confirmBtn = document.getElementById('confirm-recalculate');
+            confirmBtn.dataset.planId = planId;
+            modalsUI.open('recalculate-modal');
+        }
+    });
+    renderAllPlanCards();
+    floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+}
+
 
 // --- 3. ORQUESTRADOR PRINCIPAL E LÓGICA DE NEGÓCIOS ---
 
@@ -97,24 +115,11 @@ async function handleAuthStateChange(user) {
         
         await loadInitialUserData(user);
 
-        headerUI.render(user, APP_VERSION); 
+        headerUI.render(user); 
         planCreationActionsSection.style.display = 'flex';
         
-        perseverancePanelUI.render(appState.userInfo);
-        weeklyTrackerUI.render(appState.weeklyInteractions);
-
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        
-        renderAllPlanCards();
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
+        updateAllViews();
+        checkAndPromptShortDelayPlans();
         
         if (appState.userPlans.length === 0) {
             handleCreateNewPlanRequest();
@@ -124,6 +129,8 @@ async function handleAuthStateChange(user) {
 
     } else {
         appState.reset();
+        hasCheckedShortDelaysThisSession = false;
+        pendingShortDelayPlans = [];
         authUI.show();
         headerUI.render(null);
         planCreationActionsSection.style.display = 'none';
@@ -280,6 +287,8 @@ async function handleSignup(email, password) {
 
 async function handleLogout() {
     try {
+        hasCheckedShortDelaysThisSession = false;
+        pendingShortDelayPlans = [];
         await authService.logout();
     } catch (error) {
         toastUI.showToast(`Erro ao sair: ${error.message}`, 'error');
@@ -553,6 +562,205 @@ function handleEditPlanRequest(planId) {
 
 
 // --- 4. FUNÇÕES DE RECÁLCULO, SINCRONIZAÇÃO E REAVALIAÇÃO ---
+
+function handleOpenSettings() {
+    const currentSettings = appState.userInfo?.settings ?? { autoRecalcShortDelay: false };
+    modalsUI.openSettingsModal(currentSettings);
+}
+
+async function handleToggleSetting(settingKey, isEnabled, inputElement) {
+    if (!appState.currentUser) return;
+    if (inputElement) inputElement.disabled = true;
+
+    try {
+        await planService.updateUserSettings(appState.currentUser.uid, { [settingKey]: isEnabled });
+        
+        if (!appState.userInfo.settings) {
+            appState.userInfo.settings = {};
+        }
+        appState.userInfo.settings[settingKey] = isEnabled;
+        toastUI.showToast('Preferência salva com sucesso!', 'info');
+
+        // Se o usuário acabou de ativar a opção, verifica imediatamente os planos carregados
+        if (settingKey === 'autoRecalcShortDelay' && isEnabled) {
+            modalsUI.close('settings-modal');
+            checkAndPromptShortDelayPlans(true);
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar configuração:', error);
+        if (inputElement) inputElement.checked = !isEnabled;
+        modalsUI.showError('settings-modal', 'Não foi possível salvar a configuração. Tente novamente.');
+    } finally {
+        if (inputElement) inputElement.disabled = false;
+    }
+}
+
+/**
+ * Verifica se há planos com 1 a 3 dias de leitura em atraso quando a configuração está ativa.
+ * @param {boolean} forceCheck - Ignora a trava de sessão (usado quando o usuário ativa o switch manualmente).
+ */
+function checkAndPromptShortDelayPlans(forceCheck = false) {
+    const isAutoRecalcEnabled = Boolean(appState.userInfo?.settings?.autoRecalcShortDelay ?? false);
+    if (!isAutoRecalcEnabled) return;
+    if (hasCheckedShortDelaysThisSession && !forceCheck) return;
+
+    const plans = appState.userPlans || [];
+    if (plans.length === 0) return;
+
+    const todayStr = getCurrentUTCDateString();
+    pendingShortDelayPlans = [];
+
+    plans.forEach(plan => {
+        const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
+        if (plan.currentDay > totalReadingDaysInPlan) return;
+
+        const effectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
+        if (effectiveDateStr && effectiveDateStr < todayStr) {
+            const readingDaysLate = countReadingDaysBetween(effectiveDateStr, todayStr, plan.allowedDays);
+            if (readingDaysLate >= 1 && readingDaysLate <= 3) {
+                pendingShortDelayPlans.push({ plan, daysLate: readingDaysLate });
+            }
+        }
+    });
+
+    hasCheckedShortDelaysThisSession = true;
+
+    if (pendingShortDelayPlans.length > 0) {
+        modalsUI.displayShortDelayConfirmation(pendingShortDelayPlans);
+    }
+}
+
+/**
+ * Função Pura de Domínio: Constrói o objeto de plano recalculado em memória sem efeitos colaterais de DOM.
+ */
+function buildRecalculatedPlanObject(plan, option = 'extend_date', newPace = null, startDateOption = 'today', specificDate = null, manuallyReadChapters = []) {
+    const todayStr = getCurrentUTCDateString();
+
+    // 1. Consolida capítulos já lidos (readLog + dailyChapterReadStatus marcados + manuallyReadChapters)
+    const updatedReadLog = { ...(plan.readLog || {}) };
+    const chaptersConfirmedToday = [
+        ...Object.keys(plan.dailyChapterReadStatus || {}).filter(ch => plan.dailyChapterReadStatus[ch]),
+        ...manuallyReadChapters
+    ];
+
+    if (chaptersConfirmedToday.length > 0) {
+        const existingTodayLog = new Set(updatedReadLog[todayStr] || []);
+        chaptersConfirmedToday.forEach(ch => existingTodayLog.add(ch));
+        updatedReadLog[todayStr] = Array.from(existingTodayLog);
+    }
+
+    const allReadChaptersSet = new Set();
+    Object.values(updatedReadLog).forEach(chList => {
+        if (Array.isArray(chList)) chList.forEach(ch => allReadChaptersSet.add(ch));
+    });
+
+    const remainingChapters = (plan.chaptersList || []).filter(ch => !allReadChaptersSet.has(ch));
+    if (remainingChapters.length === 0) {
+        throw new Error(`O plano "${plan.name}" não possui capítulos pendentes para recalcular.`);
+    }
+
+    // 2. Determina o ritmo original (capítulos por dia de leitura) para 'extend_date'
+    const originalTotalDays = Object.keys(plan.plan || {}).length || 1;
+    const originalPace = Math.max(1, Math.round(plan.totalChapters / originalTotalDays));
+    const targetPace = option === 'new_pace' && newPace > 0 ? newPace : originalPace;
+
+    // 3. Reconstrói o mapa do plano a partir de plan.currentDay com ritmo original
+    const newPlanMap = {};
+    for (let d = 1; d < plan.currentDay; d++) {
+        if (plan.plan[d.toString()]) {
+            newPlanMap[d.toString()] = plan.plan[d.toString()];
+        }
+    }
+
+    let dayCursor = plan.currentDay;
+    for (let i = 0; i < remainingChapters.length; i += targetPace) {
+        newPlanMap[dayCursor.toString()] = remainingChapters.slice(i, i + targetPace);
+        dayCursor++;
+    }
+
+    // 4. Calcula a nova data base (hoje) e a nova endDate projetada
+    const baseDateStr = startDateOption === 'specific_date' && specificDate ? specificDate : todayStr;
+    const tempPlanForEndDate = {
+        ...plan,
+        plan: newPlanMap,
+        recalculationBaseDay: plan.currentDay,
+        recalculationBaseDate: baseDateStr
+    };
+    const totalNewDays = Object.keys(newPlanMap).length;
+    const newEndDateStr = getEffectiveDateForDay(tempPlanForEndDate, totalNewDays) || plan.endDate;
+
+    const historyEntry = {
+        date: todayStr,
+        type: 'auto',
+        option,
+        recalculatedFromDay: plan.currentDay,
+        chaptersReadAtPoint: allReadChaptersSet.size
+    };
+
+    const { id, ...planWithoutId } = plan;
+    return {
+        ...planWithoutId,
+        plan: newPlanMap,
+        endDate: newEndDateStr,
+        readLog: updatedReadLog,
+        dailyChapterReadStatus: {},
+        recalculationBaseDay: plan.currentDay,
+        recalculationBaseDate: baseDateStr,
+        recalculationHistory: [...(plan.recalculationHistory || []), historyEntry]
+    };
+}
+
+/**
+ * Executa o recálculo global em lote para todos os planos com 1 a 3 dias de atraso.
+ */
+async function handleConfirmShortDelayRecalc() {
+    if (!appState.currentUser || pendingShortDelayPlans.length === 0) return;
+
+    modalsUI.showLoading('short-delay-recalc-modal');
+    modalsUI.hideError('short-delay-recalc-modal');
+    const confirmBtn = document.getElementById('confirm-short-delay-recalc');
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    try {
+        const batchUpdates = [];
+        const updatedPlansById = new Map();
+
+        // 1. Processamento síncrono em memória para todos os planos do lote
+        for (const { plan } of pendingShortDelayPlans) {
+            const updatedPlanData = buildRecalculatedPlanObject(plan, 'extend_date', null, 'today');
+            batchUpdates.push({
+                planId: plan.id,
+                updatedPlanData
+            });
+            updatedPlansById.set(plan.id, { id: plan.id, ...updatedPlanData });
+        }
+
+        // 2. Persistência atômica única no Firestore via writeBatch
+        await planService.saveMultipleRecalculatedPlans(appState.currentUser.uid, batchUpdates);
+
+        // 3. Sincronização em memória do appState sem nova leitura de rede
+        appState.userPlans = appState.userPlans.map(existingPlan =>
+            updatedPlansById.has(existingPlan.id) ? updatedPlansById.get(existingPlan.id) : existingPlan
+        );
+
+        const count = batchUpdates.length;
+        pendingShortDelayPlans = [];
+        modalsUI.close('short-delay-recalc-modal');
+
+        // 4. Única atualização de todas as views na tela
+        updateAllViews();
+        toastUI.showToast(
+            `${count} ${count === 1 ? 'plano foi recalculado' : 'planos foram recalculados'} mantendo o ritmo original!`,
+            'success'
+        );
+    } catch (error) {
+        console.error('Erro ao executar recálculo global de atrasos curtos:', error);
+        modalsUI.showError('short-delay-recalc-modal', error.message || 'Erro ao recalcular os planos.');
+    } finally {
+        modalsUI.hideLoading('short-delay-recalc-modal');
+        if (confirmBtn) confirmBtn.disabled = false;
+    }
+}
 
 function handleReassessPlansRequest() {
     readingPlanUI.hide();
@@ -1192,7 +1400,7 @@ function initApplication() {
     authUI.init({ onLogin: handleLogin, onSignup: handleSignup });
     headerUI.init({
         onLogout: handleLogout,
-        onShowVersionInfo: () => modalsUI.displayVersionInfo(APP_VERSION, VERSION_CHANGELOG)
+        onOpenSettings: handleOpenSettings
     });
     
     createNewPlanButton.addEventListener('click', handleCreateNewPlanRequest);
@@ -1268,7 +1476,9 @@ function initApplication() {
             return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
         },
         onSaveHighlight: handleSaveHighlight, 
-        onDeleteVerseHighlight: handleDeleteVerseHighlight // <- Evento alterado conforme plano
+        onDeleteVerseHighlight: handleDeleteVerseHighlight,
+        onToggleSetting: handleToggleSetting,
+        onConfirmShortDelayRecalc: handleConfirmShortDelayRecalc
     });
     
     console.log("Aplicação modular inicializada com nova arquitetura de UI. v1.1.0");
