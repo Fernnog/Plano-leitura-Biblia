@@ -6,17 +6,16 @@
 
 // Importa os elementos do DOM necessários
 import {
-    headerLogo,
     userEmailSpan,
     logoutButton,
-    versionCard // Adicionado para a nova funcionalidade
+    settingsButton
 } from './dom-elements.js';
 
 // --- Estado Interno e Callbacks ---
 let state = {
     callbacks: {
         onLogout: null,
-        onShowVersionInfo: null, // Adicionado para a nova funcionalidade
+        onOpenSettings: null,
     },
 };
 
@@ -24,38 +23,31 @@ let state = {
 
 /**
  * Inicializa o módulo de UI do cabeçalho, configurando os listeners de eventos.
- * @param {object} callbacks - Objeto contendo os callbacks { onLogout, onShowVersionInfo }.
+ * @param {object} callbacks - Objeto contendo os callbacks { onLogout, onOpenSettings }.
  */
 export function init(callbacks) {
     state.callbacks = { ...state.callbacks, ...callbacks };
 
-    // O único evento que o header agora gerencia é o de logout.
     logoutButton.addEventListener('click', () => state.callbacks.onLogout?.());
-
-    // Adicionado o listener para o card de versão
-    versionCard.addEventListener('click', () => state.callbacks.onShowVersionInfo?.());
+    if (settingsButton) {
+        settingsButton.addEventListener('click', () => state.callbacks.onOpenSettings?.());
+    }
 }
 
 /**
  * Renderiza o cabeçalho com base no estado de autenticação do usuário.
  * @param {object|null} user - O objeto do usuário do Firebase, ou null se deslogado.
  */
-export function render(user, version) {
+export function render(user) {
     if (user) {
         userEmailSpan.textContent = user.email;
         userEmailSpan.style.display = 'inline-block';
         logoutButton.style.display = 'inline-block';
-
-        // ADIÇÃO: Preenche o card com o número da versão e o exibe
-        if (version) {
-            versionCard.textContent = `v${version}`;
-            versionCard.style.display = 'flex';
-        }
-
+        if (settingsButton) settingsButton.style.display = 'flex';
     } else {
         userEmailSpan.style.display = 'none';
         logoutButton.style.display = 'none';
-        versionCard.style.display = 'none'; // Garante que ele suma ao deslogar
+        if (settingsButton) settingsButton.style.display = 'none';
     }
 }
 

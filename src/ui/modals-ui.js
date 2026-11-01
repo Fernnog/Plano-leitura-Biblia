@@ -25,8 +25,10 @@ import {
     bibleExplorerModal, explorerGridView, explorerBookGrid,
     explorerDetailView, explorerBackButton, explorerDetailTitle,
     explorerChapterList,
-    // Versão
-    versionModal, versionModalTitle, versionModalContent,
+    // Configurações e Recálculo Rápido (1-3 dias)
+    settingsModal, toggleAutoRecalcShortDelay,
+    shortDelayRecalcModal, shortDelayPlansList,
+    confirmShortDelayRecalcBtn, cancelShortDelayRecalcBtn,
     // Highlights
     highlightModal, highlightForm, highlightPlanIdInput, highlightChapterName, highlightVersesInput,
     // Meus Grifos (NOVO)
@@ -42,14 +44,18 @@ let state = {
     callbacks: {
         onConfirmRecalculate: null,
         onRequestStep2: null,
-        onSaveHighlight: null, // Callback adicionado para highlights
-        onDeleteVerseHighlight: null // Substituiu o onToggleVerseDone
+        onSaveHighlight: null,
+        onDeleteVerseHighlight: null,
+        onToggleSetting: null,
+        onConfirmShortDelayRecalc: null
     },
 };
 
 // Adiciona todos os modais à lista de gerenciamento
 const allModals = [
-    recalculateModal, statsModal, historyModal, syncModal, bibleExplorerModal, versionModal, highlightModal, myHighlightsModal
+    recalculateModal, statsModal, historyModal, syncModal,
+    bibleExplorerModal, highlightModal, myHighlightsModal,
+    settingsModal, shortDelayRecalcModal
 ];
 
 let progressChartInstance = null;
@@ -178,6 +184,7 @@ export function hideLoading(modalId) {
 export function showError(modalId, message) {
     let errorDivId = `${modalId.replace('-modal', '')}-error`;
     if (modalId === 'recalculate-modal') errorDivId = 'recalc-error';
+    if (modalId === 'short-delay-recalc-modal') errorDivId = 'short-delay-recalc-error';
     
     const errorDiv = document.getElementById(errorDivId);
     if (errorDiv) {
@@ -189,6 +196,7 @@ export function showError(modalId, message) {
 export function hideError(modalId) {
     let errorDivId = `${modalId.replace('-modal', '')}-error`;
     if (modalId === 'recalculate-modal') errorDivId = 'recalc-error';
+    if (modalId === 'short-delay-recalc-modal') errorDivId = 'short-delay-recalc-error';
     
     const errorDiv = document.getElementById(errorDivId);
     if (errorDiv) errorDiv.style.display = 'none';
@@ -197,25 +205,35 @@ export function hideError(modalId) {
 
 // --- Funções Específicas de População de Conteúdo ---
 
-export function displayVersionInfo(version, changelog) {
-    versionModalTitle.innerHTML = `Novidades da Versão ${version}`;
-    versionModalContent.innerHTML = '';
-
-    if (changelog && changelog.length > 0) {
-        changelog.forEach(item => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'changelog-item';
-            itemEl.innerHTML = `
-                <strong>${item.type}</strong>
-                <p>${item.description}</p>
-            `;
-            versionModalContent.appendChild(itemEl);
-        });
-    } else {
-        versionModalContent.innerHTML = '<p>Nenhuma novidade específica para esta versão.</p>';
+export function openSettingsModal(userSettings = {}) {
+    hideError('settings-modal');
+    if (toggleAutoRecalcShortDelay) {
+        toggleAutoRecalcShortDelay.checked = Boolean(userSettings?.autoRecalcShortDelay ?? false);
     }
+    open('settings-modal');
+}
 
-    open('version-modal');
+export function displayShortDelayConfirmation(delayedPlansInfo) {
+    if (!shortDelayPlansList || !Array.isArray(delayedPlansInfo) || delayedPlansInfo.length === 0) return;
+
+    hideError('short-delay-recalc-modal');
+    hideLoading('short-delay-recalc-modal');
+    shortDelayPlansList.innerHTML = '';
+
+    delayedPlansInfo.forEach(({ plan, daysLate }) => {
+        const item = document.createElement('div');
+        item.className = 'short-delay-plan-item';
+        item.innerHTML = `
+            <div class="short-delay-plan-title">
+                <span>${plan.icon || '📖'}</span>
+                <span>${plan.name || 'Plano sem nome'}</span>
+            </div>
+            <span class="short-delay-badge">${daysLate} ${daysLate === 1 ? 'dia de atraso' : 'dias de atraso'}</span>
+        `;
+        shortDelayPlansList.appendChild(item);
+    });
+
+    open('short-delay-recalc-modal');
 }
 
 /**
@@ -553,6 +571,24 @@ export function init(callbacks) {
                 explorerGridView.style.display = 'block';
                 explorerDetailView.style.display = 'none';
             }
+        });
+    }
+
+    if (toggleAutoRecalcShortDelay) {
+        toggleAutoRecalcShortDelay.addEventListener('change', (e) => {
+            state.callbacks.onToggleSetting?.('autoRecalcShortDelay', e.target.checked, e.target);
+        });
+    }
+
+    if (cancelShortDelayRecalcBtn) {
+        cancelShortDelayRecalcBtn.addEventListener('click', () => {
+            close('short-delay-recalc-modal');
+        });
+    }
+
+    if (confirmShortDelayRecalcBtn) {
+        confirmShortDelayRecalcBtn.addEventListener('click', () => {
+            state.callbacks.onConfirmShortDelayRecalc?.();
         });
     }
 

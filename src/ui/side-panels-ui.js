@@ -18,6 +18,8 @@ import {
 import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
 import { getCurrentUTCDateString, formatUTCDateStringToBrasilian, countReadingDaysBetween } from '../utils/date-helpers.js';
 
+const INDIVIDUAL_RECALC_THRESHOLD_DAYS = 5;
+
 // --- Funções Privadas de Renderização ---
 
 /**
@@ -142,10 +144,9 @@ export function render(allUserPlans, callbacks) {
             hasOverdueItems = true;
             const readingDaysLate = countReadingDaysBetween(firstEffectiveDateStr, todayStr, plan.allowedDays);
             
-            // --- INÍCIO DA ALTERAÇÃO: Lógica de dias de atraso corrigida ---
-            // Aumentamos o limite para 3 para tornar a sugestão menos agressiva e mais precisa.
-            if (readingDaysLate >= 3) {
-            // --- FIM DA ALTERAÇÃO ---
+            // Reserva o card de sugestão de recálculo individual para atrasos a partir do 5º dia.
+            // Atrasos menores (1 a 4 dias) caem no bloco 'else' e exibem os capítulos pendentes do dia.
+            if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS) {
                 const suggestionEl = _createRecalcSuggestionElement(plan, readingDaysLate, callbacks.onRecalculate);
                 overdueReadingsListDiv.appendChild(suggestionEl);
             } else {

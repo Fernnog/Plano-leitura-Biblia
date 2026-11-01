@@ -172,8 +172,12 @@ export const closeReassessmentButton = document.getElementById('close-reassessme
 export const reassessmentGrid = document.getElementById('reassessment-grid');
 export const reassessmentLegendList = document.getElementById('reassessment-legend-list');
 
-// --- Elementos do Card de Versão e Modal ---
-export const versionCard = document.getElementById('version-card');
-export const versionModal = document.getElementById('version-modal');
-export const versionModalTitle = document.getElementById('version-modal-title');
-export const versionModalContent = document.getElementById('version-modal-content');
+// --- Elementos de Configurações e Modal de Recálculo Rápido (1-3 dias) ---
+export const settingsButton = document.getElementById('settings-button');
+export const settingsModal = document.getElementById('settings-modal');
+export const toggleAutoRecalcShortDelay = document.getElementById('toggle-auto-recalc-short-delay');
+
+export const shortDelayRecalcModal = document.getElementById('short-delay-recalc-modal');
+export const shortDelayPlansList = document.getElementById('short-delay-plans-list');
+export const confirmShortDelayRecalcBtn = document.getElementById('confirm-short-delay-recalc');
+export const cancelShortDelayRecalcBtn = document.getElementById('cancel-short-delay-recalc');
