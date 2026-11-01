@@ -1224,15 +1224,81 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     margin-top: 20px;
 }
 
+.setting-item-group {
+    background-color: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    overflow: hidden;
+    transition: var(--transition-fast);
+}
+
 .setting-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 15px;
     padding: 15px;
-    background-color: var(--background-light);
+}
+
+.setting-sub-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 15px;
+    background-color: rgba(27, 58, 87, 0.04);
+    border-top: 1px dashed var(--border-color);
+    animation: fade-in-down 0.25s ease-out;
+}
+
+.setting-sub-label {
+    font-size: 0.88em;
+    font-weight: 600;
+    color: var(--primary-action);
+}
+
+.threshold-pills-group {
+    display: flex;
+    gap: 8px;
+}
+
+.threshold-pill {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.threshold-pill input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.threshold-pill span {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--text-color-muted);
+    background-color: var(--background-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--base-border-radius);
+    border-radius: 20px;
+    transition: var(--transition-fast);
+}
+
+.threshold-pill:hover span {
+    border-color: var(--accent-color);
+    color: var(--primary-action);
+}
+
+.threshold-pill input[type="radio"]:checked + span {
+    background-color: var(--primary-action);
+    color: var(--text-color-light);
+    border-color: var(--primary-action);
+    box-shadow: 0 2px 6px rgba(27, 58, 87, 0.25);
 }
 
 .setting-info {

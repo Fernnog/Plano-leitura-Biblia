@@ -419,15 +419,35 @@
                 <div id="settings-error" class="error-message" style="display: none;"></div>
                 
                 <div class="settings-list">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <strong>Recálculo Rápido (1 a 3 dias de atraso)</strong>
-                            <small>Exibe um painel de confirmação ao abrir o app para recalcular todos os planos com atraso de 1 a 3 dias mantendo o ritmo original a partir de hoje.</small>
+                    <div class="setting-item-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <strong>Recálculo Rápido (1 a 3 dias de atraso)</strong>
+                                <small>Exibe um painel de confirmação ao abrir o app para recalcular todos os planos com atraso curto mantendo o ritmo original a partir de hoje.</small>
+                            </div>
+                            <label class="toggle-switch" for="toggle-auto-recalc-short-delay">
+                                <input type="checkbox" id="toggle-auto-recalc-short-delay">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
-                        <label class="toggle-switch" for="toggle-auto-recalc-short-delay">
-                            <input type="checkbox" id="toggle-auto-recalc-short-delay">
-                            <span class="toggle-slider"></span>
-                        </label>
+
+                        <div id="short-delay-threshold-container" class="setting-sub-options" style="display: none;">
+                            <span class="setting-sub-label">Disparar aviso a partir de:</span>
+                            <div class="threshold-pills-group">
+                                <label class="threshold-pill">
+                                    <input type="radio" name="short-delay-threshold" value="1" checked>
+                                    <span>1 dia</span>
+                                </label>
+                                <label class="threshold-pill">
+                                    <input type="radio" name="short-delay-threshold" value="2">
+                                    <span>2 dias</span>
+                                </label>
+                                <label class="threshold-pill">
+                                    <input type="radio" name="short-delay-threshold" value="3">
+                                    <span>3 dias</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
