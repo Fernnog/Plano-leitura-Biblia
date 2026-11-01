@@ -463,6 +463,15 @@ async function handleChapterToggle(planId, chapterName, isRead) {
         }
 
         renderAllPlanCards();
+        sidePanelsUI.render(appState.userPlans, {
+            onSwitchPlan: handleSwitchPlan,
+            onRecalculate: (targetPlanId) => {
+                modalsUI.resetRecalculateForm();
+                const confirmBtn = document.getElementById('confirm-recalculate');
+                confirmBtn.dataset.planId = targetPlanId;
+                modalsUI.open('recalculate-modal');
+            }
+        });
         perseverancePanelUI.render(appState.userInfo);
         weeklyTrackerUI.render(appState.weeklyInteractions);
         
@@ -481,17 +490,30 @@ async function handleCompleteDay(planId) {
         const { currentDay, plan } = planToAdvance;
         const chaptersForLog = plan[currentDay.toString()] || [];
         const newDay = currentDay + 1;
+        const todayStr = getCurrentUTCDateString();
 
-        await planService.advanceToNextDay(appState.currentUser.uid, planId, newDay, getCurrentUTCDateString(), chaptersForLog);
-        await loadInitialUserData(appState.currentUser);
-        
+        // 1. Persistência atômica no Firestore via arrayUnion
+        await planService.advanceToNextDay(appState.currentUser.uid, planId, newDay, todayStr, chaptersForLog);
+
+        // 2. Sincronização otimista do estado em memória (evita re-fetch global e toasts colaterais)
+        planToAdvance.currentDay = newDay;
+        planToAdvance.dailyChapterReadStatus = {};
+        if (!planToAdvance.readLog) {
+            planToAdvance.readLog = {};
+        }
+        const existingTodayLog = Array.isArray(planToAdvance.readLog[todayStr])
+            ? planToAdvance.readLog[todayStr]
+            : [];
+        planToAdvance.readLog[todayStr] = Array.from(new Set([...existingTodayLog, ...chaptersForLog]));
+
+        // 3. Renderização única e coordenada dos componentes impactados
         renderAllPlanCards();
         sidePanelsUI.render(appState.userPlans, {
             onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
+            onRecalculate: (targetPlanId) => {
                 modalsUI.resetRecalculateForm();
                 const confirmBtn = document.getElementById('confirm-recalculate');
-                confirmBtn.dataset.planId = planId;
+                confirmBtn.dataset.planId = targetPlanId;
                 modalsUI.open('recalculate-modal');
             }
         });
