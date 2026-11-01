@@ -27,6 +27,7 @@ import {
     explorerChapterList,
     // Configurações e Recálculo Rápido (1-3 dias)
     settingsModal, toggleAutoRecalcShortDelay,
+    shortDelayThresholdContainer, shortDelayThresholdRadios,
     shortDelayRecalcModal, shortDelayPlansList,
     confirmShortDelayRecalcBtn, cancelShortDelayRecalcBtn,
     // Highlights
@@ -47,6 +48,7 @@ let state = {
         onSaveHighlight: null,
         onDeleteVerseHighlight: null,
         onToggleSetting: null,
+        onCloseSettings: null,
         onConfirmShortDelayRecalc: null
     },
 };
@@ -168,7 +170,13 @@ export function open(modalId) {
 
 export function close(modalId) {
     const modal = document.getElementById(modalId);
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        const wasOpen = modal.style.display === 'flex';
+        modal.style.display = 'none';
+        if (wasOpen && modalId === 'settings-modal') {
+            state.callbacks.onCloseSettings?.();
+        }
+    }
 }
 
 export function showLoading(modalId) {
@@ -207,8 +215,19 @@ export function hideError(modalId) {
 
 export function openSettingsModal(userSettings = {}) {
     hideError('settings-modal');
+    const isEnabled = Boolean(userSettings?.autoRecalcShortDelay ?? false);
+    const thresholdDays = String(userSettings?.shortDelayThresholdDays ?? 1);
+
     if (toggleAutoRecalcShortDelay) {
-        toggleAutoRecalcShortDelay.checked = Boolean(userSettings?.autoRecalcShortDelay ?? false);
+        toggleAutoRecalcShortDelay.checked = isEnabled;
+    }
+    if (shortDelayThresholdContainer) {
+        shortDelayThresholdContainer.style.display = isEnabled ? 'flex' : 'none';
+    }
+    if (shortDelayThresholdRadios) {
+        shortDelayThresholdRadios.forEach(radio => {
+            radio.checked = (radio.value === thresholdDays);
+        });
     }
     open('settings-modal');
 }
@@ -576,7 +595,21 @@ export function init(callbacks) {
 
     if (toggleAutoRecalcShortDelay) {
         toggleAutoRecalcShortDelay.addEventListener('change', (e) => {
-            state.callbacks.onToggleSetting?.('autoRecalcShortDelay', e.target.checked, e.target);
+            const isChecked = e.target.checked;
+            if (shortDelayThresholdContainer) {
+                shortDelayThresholdContainer.style.display = isChecked ? 'flex' : 'none';
+            }
+            state.callbacks.onToggleSetting?.('autoRecalcShortDelay', isChecked, e.target);
+        });
+    }
+
+    if (shortDelayThresholdRadios) {
+        shortDelayThresholdRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    state.callbacks.onToggleSetting?.('shortDelayThresholdDays', parseInt(e.target.value, 10), e.target);
+                }
+            });
         });
     }
 

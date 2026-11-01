@@ -176,6 +176,8 @@ export const reassessmentLegendList = document.getElementById('reassessment-lege
 export const settingsButton = document.getElementById('settings-button');
 export const settingsModal = document.getElementById('settings-modal');
 export const toggleAutoRecalcShortDelay = document.getElementById('toggle-auto-recalc-short-delay');
+export const shortDelayThresholdContainer = document.getElementById('short-delay-threshold-container');
+export const shortDelayThresholdRadios = document.querySelectorAll('input[name="short-delay-threshold"]');
 
 export const shortDelayRecalcModal = document.getElementById('short-delay-recalc-modal');
 export const shortDelayPlansList = document.getElementById('short-delay-plans-list');
