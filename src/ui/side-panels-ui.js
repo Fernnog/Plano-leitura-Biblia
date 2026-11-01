@@ -24,33 +24,47 @@ const INDIVIDUAL_RECALC_THRESHOLD_DAYS = 5;
 
 /**
  * Cria e retorna o elemento HTML para um item de leitura (seja atrasado ou próximo).
- * @param {object} itemData - Dados do item contendo { plan, date, chapters }.
+ * @param {object} itemData - Dados do item contendo { plan, date, chapters, completed, dayNumber }.
  * @param {string} type - 'overdue' ou 'upcoming'.
  * @param {Function} onSwitchPlan - Callback para trocar o plano.
  * @returns {HTMLElement} O elemento div criado.
  */
 function _createReadingItemElement(itemData, type, onSwitchPlan) {
     const itemEl = document.createElement('div');
-    const { plan, date, chapters } = itemData;
+    const { plan, date, chapters, completed = false } = itemData;
 
-    itemEl.className = type === 'overdue' ? 'overdue-reading-item' : 'upcoming-reading-item';
+    const baseClass = type === 'overdue' ? 'overdue-reading-item' : 'upcoming-reading-item';
+    itemEl.className = completed ? `${baseClass} completed-today` : baseClass;
     itemEl.dataset.planId = plan.id;
     itemEl.style.cursor = 'pointer';
-    itemEl.title = `Clique para ativar o plano "${plan.name}"`;
+    itemEl.title = completed
+        ? `Meta concluída hoje! Clique para visualizar o plano "${plan.name}"`
+        : `Clique para ativar o plano "${plan.name}"`;
 
     const formattedDate = formatUTCDateStringToBrasilian(date);
     const chaptersText = chapters.length > 0 ? chapters.join(', ') : 'N/A';
     
-    // --- INÍCIO DA ALTERAÇÃO: Adicionado o .shield-wrapper ---
+    const checkSvgHTML = completed ? `
+        <div class="reading-item-status-icon" title="Leitura concluída hoje" aria-label="Leitura concluída hoje">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5"></path>
+            </svg>
+        </div>
+    ` : '';
+
     itemEl.innerHTML = `
         <div class="${type}-date">${formattedDate}</div>
-        <div class="${type}-plan-name">
-            <div class="shield-wrapper"><span class="plan-icon">${plan.icon || '📖'}</span></div>
-            <span>${plan.name}</span>
+        <div class="reading-item-body">
+            <div class="reading-item-info">
+                <div class="${type}-plan-name">
+                    <div class="shield-wrapper"><span class="plan-icon">${plan.icon || '📖'}</span></div>
+                    <span>${plan.name}</span>
+                </div>
+                <div class="${type}-chapters">${chaptersText}</div>
+            </div>
+            ${checkSvgHTML}
         </div>
-        <div class="${type}-chapters">${chaptersText}</div>
     `;
-    // --- FIM DA ALTERAÇÃO ---
 
     itemEl.addEventListener('click', () => {
         if (onSwitchPlan) {
@@ -112,7 +126,50 @@ export function init() {
 }
 
 /**
- * Renderiza os painéis de leituras atrasadas e próximas.
+ * Busca reversa contígua O(1) amortizada: verifica a partir de (currentDay - 1) quais dias
+ * foram concluídos na data de hoje (todayStr), interrompendo imediatamente no primeiro
+ * dia anterior que não conste no log de hoje.
+ * @private
+ * @param {object} plan - O objeto do plano.
+ * @param {string} todayStr - Data atual em formato YYYY-MM-DD.
+ * @returns {Array<{dayNumber: number, date: string, chapters: string[]}>}
+ */
+function _getCompletedDaysForToday(plan, todayStr) {
+    const loggedChaptersToday = plan.readLog?.[todayStr];
+    if (!Array.isArray(loggedChaptersToday) || loggedChaptersToday.length === 0) {
+        return [];
+    }
+
+    const loggedSet = new Set(loggedChaptersToday);
+    const completedTodayList = [];
+
+    // Percorre de trás para frente a partir do dia imediatamente anterior ao currentDay
+    for (let dayNum = plan.currentDay - 1; dayNum >= 1; dayNum--) {
+        const dayChapters = plan.plan?.[dayNum.toString()] || [];
+        if (dayChapters.length === 0) break;
+
+        const wasCompletedToday = dayChapters.every(ch => loggedSet.has(ch));
+        if (!wasCompletedToday) {
+            // Como a progressão é sequencial, podemos interromper o loop imediatamente (O(1) médio)
+            break;
+        }
+
+        const effectiveDateStr = getEffectiveDateForDay(plan, dayNum);
+        if (effectiveDateStr) {
+            completedTodayList.unshift({
+                dayNumber: dayNum,
+                date: effectiveDateStr,
+                chapters: dayChapters
+            });
+        }
+    }
+
+    return completedTodayList;
+}
+
+/**
+ * Renderiza os painéis de leituras atrasadas e próximas, mantendo visíveis com efeito
+ * esmaecido as leituras concluídas no dia corrente até a virada de data.
  * @param {Array<object>} allUserPlans - Lista de todos os planos do usuário.
  * @param {object} callbacks - Objeto contendo os callbacks { onSwitchPlan, onRecalculate }.
  */
@@ -128,15 +185,50 @@ export function render(allUserPlans, callbacks) {
     const todayStr = getCurrentUTCDateString();
     let hasOverdueItems = false;
     const upcomingReadings = [];
-    const UPCOMING_DAYS_WINDOW = 10; // Define quantos dias de leitura vamos projetar para o futuro
+    const UPCOMING_DAYS_WINDOW = 10;
 
     allUserPlans.forEach(plan => {
         const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
+
+        // 1. Recupera dias já avançados na data de hoje (busca reversa O(1))
+        const completedTodayItems = _getCompletedDaysForToday(plan, todayStr);
+        completedTodayItems.forEach(completedItem => {
+            if (completedItem.date < todayStr) {
+                hasOverdueItems = true;
+                const itemEl = _createReadingItemElement(
+                    {
+                        plan,
+                        date: completedItem.date,
+                        chapters: completedItem.chapters,
+                        completed: true,
+                        dayNumber: completedItem.dayNumber
+                    },
+                    'overdue',
+                    callbacks.onSwitchPlan
+                );
+                overdueReadingsListDiv.appendChild(itemEl);
+            } else {
+                upcomingReadings.push({
+                    plan,
+                    date: completedItem.date,
+                    chapters: completedItem.chapters,
+                    completed: true,
+                    dayNumber: completedItem.dayNumber
+                });
+            }
+        });
+
+        // Se o plano inteiro foi concluído, não há dias futuros pendentes a projetar
         if (plan.currentDay > totalReadingDaysInPlan) {
-            return; // Ignora planos já concluídos
+            return;
         }
 
-        // --- LÓGICA DE ATRASADOS ---
+        // Verifica se todos os capítulos do currentDay já estão marcados nos checkboxes
+        const currentDayChapters = plan.plan[plan.currentDay.toString()] || [];
+        const isCurrentDayAllChecked = currentDayChapters.length > 0 &&
+            currentDayChapters.every(ch => Boolean(plan.dailyChapterReadStatus?.[ch]));
+
+        // 2. Lógica de Leituras Atrasadas para o currentDay
         const firstEffectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
         if (!firstEffectiveDateStr) return; 
 
@@ -144,68 +236,74 @@ export function render(allUserPlans, callbacks) {
             hasOverdueItems = true;
             const readingDaysLate = countReadingDaysBetween(firstEffectiveDateStr, todayStr, plan.allowedDays);
             
-            // Reserva o card de sugestão de recálculo individual para atrasos a partir do 5º dia.
-            // Atrasos menores (1 a 4 dias) caem no bloco 'else' e exibem os capítulos pendentes do dia.
-            if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS) {
+            // Só exibe sugestão de recálculo se for atraso >= 5 dias E o usuário ainda não tiver marcado os capítulos hoje
+            if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS && !isCurrentDayAllChecked) {
                 const suggestionEl = _createRecalcSuggestionElement(plan, readingDaysLate, callbacks.onRecalculate);
                 overdueReadingsListDiv.appendChild(suggestionEl);
             } else {
-                const chaptersForDay = plan.plan[plan.currentDay.toString()] || [];
-                const readingItem = { plan, date: firstEffectiveDateStr, chapters: chaptersForDay };
+                const readingItem = {
+                    plan,
+                    date: firstEffectiveDateStr,
+                    chapters: currentDayChapters,
+                    completed: isCurrentDayAllChecked,
+                    dayNumber: plan.currentDay
+                };
                 const itemEl = _createReadingItemElement(readingItem, 'overdue', callbacks.onSwitchPlan);
                 overdueReadingsListDiv.appendChild(itemEl);
             }
         }
         
-        // --- LÓGICA DE PRÓXIMAS LEITURAS (Ciclo Semanal) ---
-        // Para cada plano, projetamos suas próximas N leituras
+        // 3. Lógica de Próximas Leituras (Ciclo Semanal)
         for (let i = 0; i < UPCOMING_DAYS_WINDOW; i++) {
             const dayNumber = plan.currentDay + i;
             if (dayNumber > totalReadingDaysInPlan) {
-                break; // Para de projetar se o plano acabou
+                break;
             }
 
             const projectedDateStr = getEffectiveDateForDay(plan, dayNumber);
 
-            // Adiciona à lista apenas se a data for de hoje em diante
             if (projectedDateStr && projectedDateStr >= todayStr) {
                 const chapters = plan.plan[dayNumber.toString()] || [];
+                const isCompleted = (i === 0 && isCurrentDayAllChecked);
                 upcomingReadings.push({
                     plan,
                     date: projectedDateStr,
-                    chapters
+                    chapters,
+                    completed: isCompleted,
+                    dayNumber
                 });
             }
         }
     });
 
-    // --- RENDERIZAÇÃO FINAL ---
-
     // Controle de Visibilidade dos Atrasados
     overdueReadingsSection.style.display = hasOverdueItems ? 'block' : 'none';
     
-    // 1. Ordena a lista AGREGADA de todas as próximas leituras por data
-    upcomingReadings.sort((a, b) => a.date.localeCompare(b.date));
+    // Ordena por data (e em caso de empate de data, coloca o menor dayNumber primeiro)
+    upcomingReadings.sort((a, b) => {
+        const dateDiff = a.date.localeCompare(b.date);
+        return dateDiff !== 0 ? dateDiff : (a.dayNumber - b.dayNumber);
+    });
 
-    // 2. Remove duplicatas (caso um recálculo tenha gerado datas sobrepostas)
-    const uniqueUpcomingReadings = upcomingReadings.filter((reading, index, self) =>
-        index === self.findIndex((r) => (
-            r.date === reading.date && r.plan.id === reading.plan.id
-        ))
-    );
+    // Desduplicação segura baseada na chave composta (plan.id + dayNumber)
+    const seenKeys = new Set();
+    const uniqueUpcomingReadings = upcomingReadings.filter(item => {
+        const key = `${item.plan.id}-${item.dayNumber}`;
+        if (seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+    });
     
-    // 3. Pega os 7 primeiros itens para criar a visão semanal
     const nextReadingsToShow = uniqueUpcomingReadings.slice(0, 7);
     
     if (nextReadingsToShow.length > 0) {
-        upcomingReadingsListDiv.innerHTML = ''; // Limpa antes de adicionar
+        upcomingReadingsListDiv.innerHTML = '';
         nextReadingsToShow.forEach(itemData => {
             const itemEl = _createReadingItemElement(itemData, 'upcoming', callbacks.onSwitchPlan);
             upcomingReadingsListDiv.appendChild(itemEl);
         });
         upcomingReadingsSection.style.display = 'block';
     } else {
-        // Se, após toda a projeção, não houver leituras futuras, esconde o painel
         upcomingReadingsSection.style.display = 'none';
     }
 
