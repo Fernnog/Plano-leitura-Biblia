@@ -1192,48 +1192,164 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
     }
 }
 
-/* CARD DE VERSÃO E MODAL */
-.version-card {
+/* --- BOTÃO DE CONFIGURAÇÕES E MODAL DE AJUSTES --- */
+.settings-icon-btn {
     display: flex;
     align-items: center;
-    background-color: rgba(27, 58, 87, 0.08); /* Sutil azul marinho */
+    justify-content: center;
+    background-color: rgba(27, 58, 87, 0.08);
     color: var(--primary-action);
-    padding: 4px 10px;
-    border-radius: 15px;
-    font-size: 0.8em;
-    font-weight: 600;
+    width: 36px;
+    height: 36px;
+    min-height: unset;
+    padding: 0;
+    margin: 0;
+    border-radius: 50%;
+    font-size: 1.15em;
     cursor: pointer;
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
     border: 1px solid rgba(27, 58, 87, 0.2);
+    transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
-.version-card:hover {
+.settings-icon-btn:hover:not(:disabled) {
     background-color: rgba(27, 58, 87, 0.15);
-    transform: scale(1.05);
+    transform: rotate(45deg) scale(1.05);
+    box-shadow: none;
 }
 
-.version-changelog {
+.settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     margin-top: 20px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px;
+    background-color: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+}
+
+.setting-info {
+    text-align: left;
+    flex-grow: 1;
+}
+
+.setting-info strong {
+    display: block;
+    color: var(--primary-action);
+    margin-bottom: 4px;
+    font-size: 0.95em;
+}
+
+.setting-info small {
+    margin: 0;
+    color: var(--text-color-muted);
+}
+
+/* Chave Seletora (Toggle Switch) */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--marker-inactive-border);
+    transition: var(--transition-fast);
+    border-radius: 34px;
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #ffffff;
+    transition: var(--transition-fast);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: var(--success-color);
+}
+
+.toggle-switch input:focus-visible + .toggle-slider {
+    box-shadow: 0 0 0 3px rgba(var(--primary-action-rgb), 0.3);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(24px);
+}
+
+/* Lista de Planos no Modal de Recálculo Rápido (1 a 3 dias) */
+.short-delay-plans-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--base-border-radius);
+    margin-bottom: 20px;
+}
+
+.short-delay-plan-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background-color: var(--background-card);
+    border-left: 4px solid var(--accent-color);
+    border-radius: calc(var(--base-border-radius) / 1.5);
+    box-shadow: var(--box-shadow-sm);
+}
+
+.short-delay-plan-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--primary-action);
     text-align: left;
 }
 
-.changelog-item {
-    margin-bottom: 18px;
-    padding-left: 15px;
-    border-left: 3px solid var(--border-color);
-}
-
-.changelog-item strong {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--primary-action);
-}
-
-.changelog-item p {
-    margin: 0;
-    color: var(--text-color-muted);
-    font-size: 0.95em;
-    line-height: 1.5;
+.short-delay-badge {
+    font-size: 0.8em;
+    font-weight: 700;
+    color: var(--warning-text-dark);
+    background-color: var(--warning-bg-light);
+    border: 1px solid var(--warning-border-strong);
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
 }
 
 /* --- BOTÃO NEON E HISTÓRICO (Marca-Texto Virtual) --- */
