@@ -8,11 +8,12 @@
 // Importações necessárias do SDK do Firebase e da configuração local
 import {
     doc, getDoc, setDoc, updateDoc, deleteDoc,
-    addDoc, collection, getDocs, query, orderBy, serverTimestamp
+    addDoc, collection, getDocs, query, orderBy, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 import { db } from '../config/firebase-config.js';
 import { getUTCWeekId } from '../utils/date-helpers.js';
+import { DEFAULT_USER_SETTINGS } from '../config/app-config.js';
 
 // --- Funções de Leitura de Dados (Read) ---
 
@@ -30,7 +31,15 @@ export async function fetchUserInfo(userId, userEmail) {
     const docSnap = await getDoc(userDocRef);
 
     if (docSnap.exists()) {
-        return docSnap.data();
+        const data = docSnap.data();
+        // Hidratação defensiva para usuários antigos que ainda não possuem o mapa 'settings' no banco
+        return {
+            ...data,
+            settings: {
+                ...DEFAULT_USER_SETTINGS,
+                ...(data.settings || {})
+            }
+        };
     } else {
         // O documento não existe, então criamos um.
         console.log(`Criando novo documento para o usuário: ${userId}`);
@@ -41,6 +50,7 @@ export async function fetchUserInfo(userId, userEmail) {
             lastStreakInteractionDate: null,
             currentStreak: 0,
             longestStreak: 0,
+            settings: { ...DEFAULT_USER_SETTINGS },
             globalWeeklyInteractions: {
                 weekId: getUTCWeekId(),
                 interactions: {}
@@ -249,4 +259,37 @@ export async function removeHighlight(userId, planId, chapterName, verseIndex) {
     };
     
     await updateDoc(planDocRef, updatePayload);
+}
+
+/**
+ * Atualiza chaves específicas do objeto settings do usuário no Firestore.
+ * @param {string} userId - O UID do usuário.
+ * @param {object} settingsPartial - Par chave/valor a ser salvo (ex: { autoRecalcShortDelay: true }).
+ */
+export async function updateUserSettings(userId, settingsPartial) {
+    if (!userId) throw new Error("userId é obrigatório para atualizar configurações.");
+    const userDocRef = doc(db, 'users', userId);
+    const payload = {};
+    for (const [key, value] of Object.entries(settingsPartial)) {
+        payload[`settings.${key}`] = value;
+    }
+    await updateDoc(userDocRef, payload);
+}
+
+/**
+ * Salva múltiplos planos recalculados em uma única transação atômica (writeBatch).
+ * Elimina gargalos de rede e garante consistência total no recálculo global.
+ * @param {string} userId - O UID do usuário.
+ * @param {Array<{planId: string, updatedPlanData: object}>} plansBatch - Lista de planos atualizados.
+ */
+export async function saveMultipleRecalculatedPlans(userId, plansBatch) {
+    if (!userId || !Array.isArray(plansBatch) || plansBatch.length === 0) return;
+    const batch = writeBatch(db);
+
+    plansBatch.forEach(({ planId, updatedPlanData }) => {
+        const planDocRef = doc(db, 'users', userId, 'plans', planId);
+        batch.set(planDocRef, updatedPlanData);
+    });
+
+    await batch.commit();
 }
