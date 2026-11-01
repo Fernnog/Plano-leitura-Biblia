@@ -8,7 +8,7 @@
 // Importações necessárias do SDK do Firebase e da configuração local
 import {
     doc, getDoc, setDoc, updateDoc, deleteDoc,
-    addDoc, collection, getDocs, query, orderBy, serverTimestamp, writeBatch
+    addDoc, collection, getDocs, query, orderBy, serverTimestamp, writeBatch, arrayUnion
 } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js";
 
 import { db } from '../config/firebase-config.js';
@@ -174,14 +174,14 @@ export async function updateUserInteractions(userId, interactionUpdates) {
 }
 
 /**
- * Avança o plano para o próximo dia, registra os capítulos lidos no log e limpa os status diários.
+ * Avança o plano para o próximo dia, acumula atomicamente os capítulos lidos no log da data
+ * e limpa os status diários de checkboxes.
  * @param {string} userId - O UID do usuário.
  * @param {string} planId - O ID do plano.
  * @param {number} newDay - O novo número do dia atual do plano.
  * @param {string} dateMarkedStr - A data (YYYY-MM-DD) em que a conclusão ocorreu.
  * @param {Array<string>} chaptersReadForLog - Array de capítulos concluídos para adicionar ao log.
- * @returns {Promise<void>} Uma promessa que resolve quando a atualização é concluída.
- * @throws {Error} Se userId ou planId não forem fornecidos.
+ * @returns {Promise<void>}
  */
 export async function advanceToNextDay(userId, planId, newDay, dateMarkedStr, chaptersReadForLog) {
     if (!userId || !planId) throw new Error("userId e planId são obrigatórios.");
@@ -189,7 +189,7 @@ export async function advanceToNextDay(userId, planId, newDay, dateMarkedStr, ch
     const dataToUpdate = {
         currentDay: newDay,
         dailyChapterReadStatus: {}, // Limpa os checkboxes para o novo dia.
-        [`readLog.${dateMarkedStr}`]: chaptersReadForLog // Adiciona ao log de leituras.
+        [`readLog.${dateMarkedStr}`]: arrayUnion(...chaptersReadForLog) // Operação atômica sem necessidade de getDoc prévio.
     };
     await updateDoc(planDocRef, dataToUpdate);
 }
