@@ -1,469 +1,707 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#1B3A57">
-    <title>Plano de Leitura da Bíblia</title>
-
+    <title>Minhas Economias - Painel de Controle</title>
+    
     <link rel="icon" type="image/png" sizes="32x32" href="imagens/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="imagens/favicon-16x16.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="imagens/apple-touch-icon.png">
+    <link rel="shortcut icon" href="imagens/favicon.ico">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#C9A84C">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+
+    <!-- Local: <head>, logo abaixo do link do style.css -->
+    <link rel="stylesheet" href="style.css?v=2.0.0">
+    <link rel="stylesheet" href="reports.css?v=2.0.0"> <!-- Novo arquivo -->
+    <!-- html2pdf removido: Sistema agora utiliza jsPDF nativo de ponta a ponta -->
     
-    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="imagens/apple-touch-icon.png">
+    <!-- NOVO: Biblioteca Vetorial jsPDF Standalone -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
+    
 <body>
-    <div id="splash-screen">
-        <img src="logo.png" alt="Logotipo Plano de Leitura" class="splash-logo">
-        <p class="splash-text">Carregando seu plano...</p>
-    </div>
 
     <header>
-        <img src="logo.png" alt="Logotipo Plano de Leitura" id="header-logo">
-        <div class="header-content">
-            <h1>Plano de Leitura da Bíblia</h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="imagens/android-chrome-192x192.png" alt="Logo Minhas Economias" class="app-logo">
+            <h1>Painel Financeiro</h1>
         </div>
-
-        <div id="user-status" class="user-status-container">
-            <div id="version-card" class="version-card" style="display: none;" title="Ver novidades da versão">
+        <div class="header-actions">
+            <div class="auth-container">
+                <button id="btn-login-toggle" class="icon-btn-small btn-dark-gold" title="Acessar Conta">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+                <div id="login-panel" class="hidden popover-panel">
+                    <form id="login-form">
+                        <input type="email" id="auth-email" placeholder="E-mail" required>
+                        <input type="password" id="auth-password" placeholder="Senha" required>
+                        <p id="auth-feedback" style="font-size: 0.85rem; margin-top: 5px; margin-bottom: 10px; text-align: center; display: none; font-weight: 600;"></p>
+                        <button type="submit" class="btn-block">Entrar</button>
+                    </form>
+                    
+                    <div id="logged-in-view" class="hidden" style="text-align: center;">
+                        <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.2rem;">Conectado como:</p>
+                        <p id="user-email-display"></p>
+                        <button id="btn-logout" class="btn-block">Sair da Conta</button>
+                    </div>
                 </div>
-            <span id="user-email" style="display: none;"></span>
-            <button id="logout-button" class="button-danger" style="display: none;">Sair</button>
+            </div>
         </div>
     </header>
 
-    <main>
-        <section id="auth-section">
-             <h2>Acessar Plano</h2>
-             <div id="auth-error" class="error-message" style="display: none;"></div>
-             <div id="signup-error" class="error-message" style="display: none;"></div>
-             <div id="auth-loading" class="loading-indicator" style="display: none;">Carregando...</div>
+    <div id="background-sync-indicator">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" class="spin-icon">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+        <span>Atualizando Painel...</span>
+    </div>
 
-             <form id="login-form">
-                 <label for="login-email">Email:</label>
-                 <input type="email" id="login-email" required>
-                 <label for="login-password">Senha:</label>
-                 <input type="password" id="login-password" required>
-                 <button type="submit" id="login-button" class="button-primary">Entrar</button>
-                 <p>Não tem uma conta? <a href="#" id="show-signup">Cadastre-se</a></p>
-             </form>
-
-             <form id="signup-form" style="display: none;">
-                 <label for="signup-email">Email:</label>
-                 <input type="email" id="signup-email" required>
-                 <label for="signup-password">Senha:</label>
-                 <input type="password" id="signup-password" required>
-                 <button type="submit" id="signup-button" class="button-primary">Cadastrar</button>
-                 <p>Já tem uma conta? <a href="#" id="show-login">Faça login</a></p>
-             </form>
-        </section>
-
-        <section id="plan-creation-actions" class="plan-creation-actions-container" style="display: none;">
-            <button id="create-new-plan-button" class="button-primary">Criar Novo Plano (Genérico)</button>
-            <button id="explore-bible-button" class="button-secondary">Explorar a Bíblia</button>
-            <button id="reassess-plans-button" class="button-secondary">Reavaliar Planos</button>
-            <button id="create-favorite-plan-button" class="button-special">Criar Plano Favorito Anual</button>
-        </section>
-
-        <section id="plan-creation" style="display: none;">
-             <h2 id="plan-creation-title">Criar Novo Plano</h2>
-             <div id="plan-error" class="error-message" style="display: none;"></div>
-             <div id="plan-loading-create" class="loading-indicator" style="display: none;">Salvando...</div>
-             <input type="hidden" id="editing-plan-id">
-             <label for="plan-name">Nome do Plano:</label>
-             <input type="text" id="plan-name" placeholder="Ex: Bíblia Completa, Novo Testamento" required>
-             <label for="google-drive-link">Link Google Drive (Opcional):</label>
-             <input type="url" id="google-drive-link" placeholder="https://docs.google.com/document/d/...">
-             <fieldset class="icon-selector-fieldset">
-                <legend>Ícone do Plano</legend>
-                <div id="icon-selector-container" class="icon-selector-container"></div>
-                <small style="text-align: center; margin-top: 10px;">Escolha um ícone para identificar seu plano.</small>
-             </fieldset>
-             <fieldset id="plan-structure-fieldset">
-                <legend>Estrutura do Plano (Capítulos e Duração)</legend>
-                <fieldset>
-                    <legend>Método de Seleção de Capítulos</legend>
-                    <label><input type="radio" name="creation-method" value="interval" checked> Intervalo Contínuo</label>
-                    <label><input type="radio" name="creation-method" value="selection"> Seleção Avulsa</label>
-                    <label><input type="radio" name="creation-method" value="chapters-per-day"> Capítulos por Dia de Leitura</label>
-                </fieldset>
-                <div id="interval-options">
-                    <fieldset><legend>Opção 1: Definir por Intervalo</legend>
-                        <label for="start-book-select">Livro Inicial:</label>
-                        <select id="start-book-select" required><option value="">-- Selecione --</option></select>
-                        <label for="start-chapter-input">Capítulo Inicial:</label>
-                        <input type="number" id="start-chapter-input" min="1" required>
-                        <label for="end-book-select">Livro Final:</label>
-                        <select id="end-book-select" required><option value="">-- Selecione --</option></select>
-                        <label for="end-chapter-input">Capítulo Final:</label>
-                        <input type="number" id="end-chapter-input" min="1" required>
-                    </fieldset>
-                </div>
-                <div id="selection-options" style="display: none;">
-                    <fieldset><legend>Opção 2/3: Selecionar Livros/Capítulos</legend>
-                        <label for="books-select">Selecionar Livros Completos (Opcional):</label>
-                        <select id="books-select" multiple></select>
-                        <small>Use Ctrl/Cmd para selecionar múltiplos livros.</small>
-                        <label for="chapters-input">Digitar Capítulos/Intervalos (Opcional):</label>
-                        <input type="text" id="chapters-input" placeholder="Ex: Gênesis 1-3, Êxodo 5, Salmos 119" list="book-suggestions">
-                        <datalist id="book-suggestions"></datalist>
-                        <small>Separe por vírgula. Use hífen para intervalos. Ex: "Jo 3", "Sl 23, Sl 100-102", "1 Coríntios".</small>
-                    </fieldset>
-                </div>
-                <hr>
-                <fieldset>
-                    <legend>Duração do Plano</legend>
-                    <small>A data de início será hoje por padrão, a menos que 'Data Final' seja escolhida.</small>
-                    <label><input type="radio" name="duration-method" value="days" checked> Duração Total (Dias Calendário)</label>
-                    <label><input type="radio" name="duration-method" value="end-date"> Data Final Específica</label>
-                    <div id="days-option">
-                        <label for="days-input">Número Total de Dias (Calendário):</label>
-                        <input type="number" id="days-input" min="1" value="30">
-                        <small>O plano distribuirá os capítulos nos dias de leitura *dentro* deste período.</small>
-                    </div>
-                    <div id="end-date-option" style="display: none;">
-                        <label for="start-date-input">Data de Início (Opcional, padrão é hoje):</label>
-                        <input type="date" id="start-date-input">
-                        <label for="end-date-input">Data Final (Obrigatório nesta opção):</label>
-                        <input type="date" id="end-date-input">
-                        <small>O plano distribuirá os capítulos nos dias de leitura *entre* estas datas (inclusive).</small>
-                    </div>
-                    <div id="chapters-per-day-option" style="display: none;">
-                        <label for="chapters-per-day-input">Capítulos por Dia de Leitura (Aprox.):</label>
-                        <input type="number" id="chapters-per-day-input" min="1" value="3">
-                        <small>O plano calculará a duração e a data final com base neste ritmo.</small>
-                    </div>
-                </fieldset>
-                <fieldset id="periodicity-options">
-                    <legend>Dias de Leitura na Semana</legend>
-                    <small>Selecione os dias em que haverá leitura. Se nenhum for selecionado, a leitura será distribuída em todos os dias.</small>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" name="reading-day" value="0"> Dom</label>
-                        <label><input type="checkbox" name="reading-day" value="1" checked> Seg</label>
-                        <label><input type="checkbox" name="reading-day" value="2" checked> Ter</label>
-                        <label><input type="checkbox" name="reading-day" value="3" checked> Qua</label>
-                        <label><input type="checkbox" name="reading-day" value="4" checked> Qui</label>
-                        <label><input type="checkbox" name="reading-day" value="5" checked> Sex</label>
-                        <label><input type="checkbox" name="reading-day" value="6"> Sáb</label>
-                    </div>
-                    <div id="periodicity-warning" class="error-message" style="display: none; margin-top: 10px;"></div>
-                </fieldset>
-            </fieldset>
-            <button id="create-plan" class="button-primary">Criar Plano</button>
-            <button id="cancel-creation-button" class="button-secondary" style="display: none;">Cancelar</button>
-        </section>
-
-        <section id="plan-reassessment-section" style="display: none;">
-            <div class="reassessment-header">
-                <h2>Quadro de Carga Semanal</h2>
-                <div class="reassessment-actions">
-                    <button id="sync-plans-button" class="button-primary">Sincronizar Datas de Término</button>
-                    <button id="close-reassessment-button" class="button-secondary">Voltar ao Painel</button>
-                </div>
-            </div>
-            <p class="reassessment-description">
-                Visualize a distribuição dos seus planos ao longo da semana. Clique em um item para ajustar seus dias ou arraste e solte para remanejar.
-            </p>
-            <div id="reassessment-grid" class="reassessment-grid-container">
-                </div>
-            <div id="reassessment-legend" class="reassessment-legend-container">
-                <h3>Legenda dos Planos</h3>
-                <div id="reassessment-legend-list">
-                    </div>
-            </div>
-        </section>
-
-        <section id="perseverance-section" class="perseverance-section enhanced-panel" style="display: none;">
-            <div class="perseverance-header">
-                <h2>Sua Perseverança</h2>
-            </div>
-            <div class="milestone-icons-area">
-                <span class="milestone-icon record-crown">👑</span>
-                <div id="cumulative-milestones-container"></div>
-            </div>
-            <div class="perseverance-bar-container">
-                <div class="progress-bar">
-                    <span class="progress-percentage-left">
-                        <span class="current-days-text">0</span> / <span class="record-days-text">0</span> dias
-                    </span>
-                    <div id="perseverance-progress-fill" class="progress">
-                        <div class="progress-shine-overlay"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="milestone-legend">
-                <span>🌱 7d</span> | <span>🔥 15d</span> | <span>⭐ 30d</span> | <span>🌳 100d</span> | <span>💎 300d</span> | <span>☀️ 1000d</span>
-            </div>
-        </section>
-
-        <section id="global-weekly-tracker-section" class="weekly-tracker-container enhanced-panel" style="display: none;">
-             <h3>Suas Interações na Semana</h3>
-             <div class="week-days" id="global-week-days-indicators">
-                 <div class="day-indicator" data-day="0"><span class="day-label">Dom</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="1"><span class="day-label">Seg</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="2"><span class="day-label">Ter</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="3"><span class="day-label">Qua</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="4"><span class="day-label">Qui</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="5"><span class="day-label">Sex</span><span class="day-marker"></span></div>
-                 <div class="day-indicator" data-day="6"><span class="day-label">Sáb</span><span class="day-marker"></span></div>
-             </div>
-        </section>
+    <main id="app-container">
         
-         <section id="overdue-readings" class="enhanced-panel" style="display: none;">
-              <h2>⚠️ Leituras Atrasadas</h2>
-              <div id="overdue-readings-loading" class="loading-indicator" style="display: none;">Verificando...</div>
-              <div id="overdue-readings-list" class="overdue-readings-container"></div>
-         </section>
+        <div id="dashboard-view">
+            <div class="sync-cards-container">
+                <div class="sync-card sync-debito" id="sync-card-debito" title="Definir data de atualização">
+                    <div class="sync-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    </div>
+                    <div class="sync-info">
+                        <span class="sync-title">Débito</span>
+                        <span class="sync-date-display" id="display-date-debito">Pendente</span>
+                    </div>
+                    <input type="date" id="sync-date-debito" class="hidden-sync-date" onchange="SyncModule.saveDate('debito', this.value)">
+                </div>
 
-         <section id="upcoming-readings" class="enhanced-panel" style="display: none;">
-              <h2>Próximas Leituras</h2>
-              <div id="upcoming-readings-loading" class="loading-indicator" style="display: none;">Carregando...</div>
-              <div id="upcoming-readings-list" class="upcoming-readings-container"></div>
-         </section>
+                <div class="sync-card sync-cartao1" id="sync-card-cartao1" title="Definir data de atualização">
+                    <div class="sync-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line><line x1="6" y1="15" x2="9" y2="15"></line></svg>
+                    </div>
+                    <div class="sync-info">
+                        <span class="sync-title">Passaí</span>
+                        <span class="sync-date-display" id="display-date-cartao1">Pendente</span>
+                    </div>
+                    <input type="date" id="sync-date-cartao1" class="hidden-sync-date" onchange="SyncModule.saveDate('cartao1', this.value)">
+                </div>
 
-        <section id="plans-display-section" class="plans-display-container" style="display: none;"></section>
-        
-        <div id="recalculate-modal" class="modal" style="display: none;">
-            <div class="modal-content modal-content-scrollable">
-                <span class="close-button">×</span>
-                <h2>Recalcular Plano de Leitura</h2>
-                
-                <div id="recalc-error" class="error-message" style="display: none;"></div>
-                <div id="recalculate-loading" class="loading-indicator" style="display: none;">Processando...</div>
+                <div class="sync-card sync-cartao2" id="sync-card-cartao2" title="Definir data de atualização">
+                    <div class="sync-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line><line x1="6" y1="15" x2="12" y2="15"></line></svg>
+                    </div>
+                    <div class="sync-info">
+                        <span class="sync-title">CEF</span>
+                        <span class="sync-date-display" id="display-date-cartao2">Pendente</span>
+                    </div>
+                    <input type="date" id="sync-date-cartao2" class="hidden-sync-date" onchange="SyncModule.saveDate('cartao2', this.value)">
+                </div>
+            </div>
 
-                <div id="recalc-step-1">
-                    <p><strong>Passo 1/2:</strong> Ajuste os parâmetros do novo ritmo.</p>
-                    <fieldset><legend>Escolha como proceder:</legend>
-                        <label><input type="radio" name="recalc-option" value="extend_date" checked> Manter ritmo original (adiar data final).</label><br>
-                        <label><input type="radio" name="recalc-option" value="increase_pace"> Manter data final original (aumentar ritmo).</label><br>
-                        <label><input type="radio" name="recalc-option" value="new_pace"> Definir novo ritmo: <input type="number" id="new-pace-input" min="1" value="3"> caps/dia.</label><br>
-                        <label><input type="radio" name="recalc-option" value="variable_pace"> Ritmo Diferenciado (por dia da semana)</label>
+            <div class="dashboard-header">
+                <div class="dashboard-month-nav">
+                    <div class="nav-actions">
+                        <button id="btn-prev-month" class="icon-btn-small" title="Mês Atual" disabled>
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </button>
+                        <button id="btn-next-month" class="icon-btn-small" title="Próximo Mês">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <span id="dashboard-month-label" class="dashboard-month-label">Carregando...</span>
+                </div>
+
+                <div class="card summary-card" id="card-saldo-atual">
+                    <p>Saldo Atual</p>
+                    <h2 id="saldo-atual-display">R$ 0,00</h2>
+                </div>
+                <div class="card summary-card theme-dark-gold" id="card-saldo-mes">
+                    <p id="card-saldo-mes-label">Projeção Final do Mês</p>
+                    <h2 id="saldo-fim-mes-display">R$ 0,00</h2>
+                </div>
+            </div>
+
+            <section class="dashboard-body">
+                <h3 class="section-title">Orçamentos em Destaque</h3>
+                <div id="pinned-budgets-container" class="horizontal-scroll">
+                    </div>
+            </section>
+
+            </div>
+
+        <div id="management-view" class="hidden">
+            <div class="nav-bar">
+                <button class="btn-voltar btn-dark-gold" onclick="fastNavigateToDashboard()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Voltar ao Dashboard
+                </button>
+            </div>
+            
+            <div class="grid-layout">
+                <aside id="view-form" class="hidden">
+                    <div class="card">
+                        <h3>Lançamento</h3>
+                        <form id="transaction-form">
+                            <input type="hidden" id="trans-id">
+                            <input type="hidden" id="trans-exception-parent">
+                            <input type="hidden" id="trans-exception-date">
+                            <label>Tipo</label>
+                            <select id="trans-type" required>
+                                <option value="despesa">Despesa</option>
+                                <option value="receita">Receita</option>
+                            </select>
+                            <label>Valor (R$)</label>
+                            <input type="text" id="trans-amount" inputmode="numeric" placeholder="0,00" required>
+                            <label>Categoria</label>
+                            <select id="trans-category" required></select>
+
+                            <label>Meio de Pagamento</label>
+                            <input type="hidden" id="trans-payment-method" value="cartao2">
+                            <div id="payment-chip-toggle" class="payment-chip-toggle chip-state-cartao2" 
+                                 onclick="cyclePaymentMethod()" title="Clique para selecionar o meio de pagamento">
+                                <span class="chip-toggle-icon">
+                                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+                                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                                        <line x1="6" y1="15" x2="12" y2="15"></line>
+                                    </svg>
+                                </span>
+                                <span class="chip-toggle-label">CEF</span>
+                            </div>
+
+                            <label>Data</label>
+                            <input type="date" id="trans-date" required>
+                            <label>Descrição</label>
+                            <input type="text" id="trans-desc" required>
+
+                            <label style="margin-top: 1rem;">Tipo de Repetição</label>
+                            <select id="trans-recurrence-type">
+                                <option value="unica">Única</option>
+                                <option value="recorrente">Recorrente (Fixa Indefinida)</option>
+                                <option value="parcelada">Compra Parcelada</option>
+                            </select>
+                            
+                            <div id="parcelas-container" class="hidden" style="margin-top: 0.5rem; margin-bottom: 1rem;">
+                                <label>Número de Parcelas</label>
+                                <input type="number" id="trans-installments" min="2" max="72" value="2">
+                            </div>
+
+                            <div id="edit-scope-container" class="hidden" style="margin-top: 1rem; padding: 1.2rem; background: var(--surface); border-radius: 8px; border: 1.5px solid var(--primary);">
+                                <label style="color: var(--primary); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; display: block;">Como deseja aplicar a alteração?</label>
+                                <select id="trans-edit-scope" style="width: 100%; border-color: var(--primary);">
+                                    <option value="only_this">Atualizar APENAS este mês</option>
+                                    <option value="this_and_future">Atualizar este mês e os SEGUINTES (Reajuste)</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" id="btn-save">Salvar Lançamento</button>
+                        </form>
+                    </div>
+
+                   <div class="card">
+                        <h3>Nova Subcategoria</h3>
+                        <form id="category-form">
+                            <label>Vinculada à Categoria Principal</label>
+                            <select id="new-category-parent">
+                                <option value="">— Sem vínculo (Outros) —</option>
+                                </select>
+                            <label>Nome da Subcategoria</label>
+                            <input type="text" id="new-category" placeholder="Ex: Aluguel, Remédios, Netflix..." required>
+                            <button type="submit">Adicionar Subcategoria</button>
+                        </form>
+                    </div>
+                </aside>
+
+                <section id="view-extract" class="hidden">
+                    <div id="extract-scroll-controls" class="floating-scroll-controls hidden">
+                        <!-- 1. Seta para Baixo -->
+                        <button id="btn-scroll-bottom" class="floating-scroll-btn hidden" title="Ir para o final">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="19 12 12 19 5 12"></polyline>
+                            </svg>
+                        </button>
+
+                        <!-- 2. Passaí -->
+                        <button id="btn-scroll-passai" class="floating-scroll-btn" title="Ir para corte do Passaí (Dia 24)">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line><line x1="6" y1="15" x2="9" y2="15"></line>
+                            </svg>
+                        </button>
+
+                        <!-- 3. CEF -->
+                        <button id="btn-scroll-cef" class="floating-scroll-btn" title="Ir para corte da CEF (Dia 25)">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line><line x1="6" y1="15" x2="12" y2="15"></line>
+                            </svg>
+                        </button>
+
+                        <!-- 4. Seta para Cima -->
+                        <button id="btn-scroll-top" class="floating-scroll-btn hidden" title="Ir para o topo">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="card">
+                        <div class="month-selector-header">
+                        <h3 id="extract-month-title">Extrato de Lançamentos</h3>
+                        <div class="search-container" role="search">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="extract-search-input" placeholder="Buscar compra ou valor..." autocomplete="off" aria-label="Buscar lançamentos por descrição, categoria ou valor exato">
+                            <button id="extract-search-clear" class="hidden" title="Limpar busca">&times;</button>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <button id="btn-filter-extract"
+                                        class="icon-btn-small btn-filter-extract"
+                                        data-filter-mode="0"
+                                        onclick="cycleExtractFilter()"
+                                        title="Filtrar por status de conferência">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                                        <line x1="7" y1="12" x2="17" y2="12"></line>
+                                        <line x1="10" y1="18" x2="14" y2="18"></line>
+                                    </svg>
+                                </button>
+                                <button class="icon-btn-small btn-dark-gold" title="Selecionar Mês">
+                                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    <input type="month" id="extract-month-picker" class="hidden-date-picker">
+                            </button>
+                        </div>
+                    </div>
+                    <div id="extract-search-report" class="hidden"></div>
+                    <div class="table-responsive">
+                            <table id="extract-table">
+                                <tbody id="transaction-list"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-budget" class="hidden">
+                    <div class="month-selector-header">
+                        <h3 id="budget-month-title">Orçamento Mensal</h3>
+                        <button class="icon-btn-small btn-dark-gold" title="Selecionar Mês">
+                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <input type="month" id="budget-month-picker" class="hidden-date-picker">
+                        </button>
+                    </div>
+
+                    <details class="card collapsible-card">
+                        <summary>
+                            <span>Configurar Novo Orçamento</span>
+                            <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="collapsible-content">
+                            <form id="budget-form">
+                                <input type="hidden" id="budget-id">
+                                <label>Categoria</label>
+                                <select id="budget-category" required></select>
+                                <label>Meta de Gasto (R$)</label>
+                                <input type="number" id="budget-amount" step="0.01" placeholder="0,00" required>
+                                <label>Recorrência</label>
+                                <select id="budget-recurrence" required>
+                                    <option value="mensal">Todos os meses (Recorrente)</option>
+                                    <option value="unico">Apenas neste mês selecionado</option>
+                                </select>
+                                <button type="submit" id="btn-save-budget">Definir Orçamento</button>
+                            </form>
+                        </div>
+                    </details>
+
+                    <details class="card collapsible-card" id="category-manager-panel">
+                        <summary>
+                            <span style="display:flex; align-items:center; gap:0.5rem;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                </svg>
+                                Configurar Categorias
+                            </span>
+                            <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </summary>
+                        <div class="collapsible-content">
+                            <div class="category-manager-body">
+                                <div class="category-input-row">
+                                    <input type="hidden" id="category-edit-original" value="" />
+                                    <select id="category-manager-parent" class="form-select-sm" required>
+                                        <option value="">— Selecione o Grupo Principal —</option>
+                                        </select>
+                                    <input
+                                        type="text"
+                                        id="new-category-input"
+                                        placeholder="Nome da categoria..."
+                                        autocomplete="off"
+                                    />
+                                    <button type="button" id="btn-save-category" class="btn-primary-sm">
+                                        Adicionar
+                                    </button>
+                                    <button type="button" id="btn-cancel-category-edit" class="btn-ghost-sm hidden">
+                                        Cancelar
+                                    </button>
+                                </div>
+                                <ul id="category-list"></ul>
+                            </div>
+                        </div>
+                    </details>
+
+                    <div class="card">
+                        <h3 style="text-align: center;">Orçamentos</h3>
+                        <div id="budget-current-month" class="card month-card" style="text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-bottom: 1.5rem; padding: 1rem;">
+                            Carregando mês...
+                        </div>
+                        <div id="budget-container"></div>
                         
-                        <div id="variable-pace-config" style="display: none; margin-top: 15px; padding: 15px; background: var(--background-light); border: 1px solid var(--border-color); border-radius: 8px;">
-                            <p style="font-size: 0.9em; margin-bottom: 10px; color: var(--text-color-muted);">Defina a quantidade de capítulos para cada dia:</p>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 10px;">
-                                <div class="day-input-wrapper">
-                                    <small>Dom</small>
-                                    <input type="number" data-day="0" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-0"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Seg</small>
-                                    <input type="number" data-day="1" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-1"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Ter</small>
-                                    <input type="number" data-day="2" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-2"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Qua</small>
-                                    <input type="number" data-day="3" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-3"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Qui</small>
-                                    <input type="number" data-day="4" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-4"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Sex</small>
-                                    <input type="number" data-day="5" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-5"></div></div>
-                                </div>
-                                <div class="day-input-wrapper">
-                                    <small>Sáb</small>
-                                    <input type="number" data-day="6" min="0" class="day-pace-input" placeholder="0">
-                                    <div class="load-bar-container"><div class="load-bar" id="load-bar-6"></div></div>
+                        <div id="budget-total-card" class="budget-total-summary hidden">
+                            <div class="budget-total-header">
+                                <span class="budget-total-label">Total Geral</span>
+                                <span id="budget-total-values" class="budget-total-values">R$ 0,00 / R$ 0,00</span>
+                            </div>
+                            <div class="progress-track">
+                                <div id="budget-total-bar" class="progress-fill status-ok" style="width: 0%"></div>
+                            </div>
+                            <div id="budget-total-footer" class="budget-total-footer">0% do orçamento total utilizado</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="view-charts" class="hidden">
+                    <!-- INÍCIO DO HUB DE RELATÓRIOS (Central de Análise) -->
+                    <div class="report-cards-grid" style="margin-bottom: 2rem;">
+                        
+                        <button class="report-launcher-card" onclick="ReportsModule.openBudgetDeviation()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            </div>
+                            <h4 class="report-card-title">Desvio Orçamentário</h4>
+                            <p class="report-card-desc">Compare o previsto vs. realizado em todos orçamentos.</p>
+                            <span class="report-card-cta">Ver Análise →</span>
+                        </button>
+
+                        <button class="report-launcher-card" onclick="ReportsModule.openFutureCommitment()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </div>
+                            <h4 class="report-card-title">Radar de Comprometimento</h4>
+                            <p class="report-card-desc">Projeção de gastos fixos para os próximos 6 meses.</p>
+                            <span class="report-card-cta">Ver Radar →</span>
+                        </button>
+
+                        <button class="report-launcher-card" onclick="ReportsModule.openIncomeRigidity()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                            </div>
+                            <h4 class="report-card-title">Mapa de Engessamento</h4>
+                            <p class="report-card-desc">Descubra qual % da sua renda já está bloqueada.</p>
+                            <span class="report-card-cta">Ver Índice →</span>
+                        </button>
+
+                        <button class="report-launcher-card" onclick="ReportsModule.openPaymentMethodReport()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                            </div>
+                            <h4 class="report-card-title">Meios de Pagamento</h4>
+                            <p class="report-card-desc">Análise de gastos dividida por cartões e contas.</p>
+                            <span class="report-card-cta">Ver Divisão →</span>
+                        </button>
+
+                        <button class="report-launcher-card report-launcher-imprevistos" onclick="ReportsModule.openImprevistosAlert()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path></svg>
+                            </div>
+                            <h4 class="report-card-title">Termômetro de Imprevistos</h4>
+                            <p class="report-card-desc">Monitore gastos emergenciais e proteja sua reserva.</p>
+                            <span class="report-card-cta">Medir Risco →</span>
+                        </button>
+                        
+                        <button class="report-launcher-card report-launcher-projector" onclick="BudgetProjectorModule.openConfig()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            </div>
+                            <h4 class="report-card-title">Projetor de Ciclos</h4>
+                            <p class="report-card-desc">Alinhe orçamentos com a data de corte do cartão.</p>
+                            <span class="report-card-cta">Configurar →</span>
+                        </button>
+
+                        <button class="report-launcher-card report-launcher-ai" onclick="document.getElementById('export-ai-dialog').showModal()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            </div>
+                            <h4 class="report-card-title">Exportar para IA</h4>
+                            <p class="report-card-desc">Gere um prompt detalhado para analisar no ChatGPT.</p>
+                            <span class="report-card-cta">Gerar Dados →</span>
+                        </button>
+
+                        <button class="report-launcher-card report-launcher-catextract" onclick="ReportsModule.openCategoryExtract()">
+                            <div class="report-card-icon">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                </svg>
+                            </div>
+                            <h4 class="report-card-title">Extrato por Categoria</h4>
+                            <p class="report-card-desc">Filtre lançamentos por categoria e mês para análise e exportação rápida.</p>
+                            <span class="report-card-cta">Ver Extrato →</span>
+                        </button>
+
+                    </div>
+                    <!-- FIM DO HUB DE RELATÓRIOS -->
+
+                    <div class="card chart-card">
+                        <div class="chart-card-header">
+                            <div class="chart-card-title-row">
+                                <h3>Despesas e Receitas por Categoria</h3>
+                                <div class="action-group-right">
+                                    <button class="icon-btn-small" title="Selecionar Mês">
+                                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                        <input type="month" id="chart-month-picker" class="hidden-date-picker">
+                                    </button>
+                                    <button id="btn-export-pdf" class="icon-btn-small" title="Exportar PDF Vetorial" onclick="ReportsModule.exportPanelToPDF()">
+                                        <svg class="export-icon-default" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        <svg class="export-icon-loading hidden spin-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
-                            <small style="display:block; margin-top:10px; font-style:italic; font-size:0.8em;">Dias com 0 ou vazio serão ignorados no cálculo.</small>
+                            <span id="chart-month-chip" class="chart-month-chip">Carregando...</span>
                         </div>
-                    </fieldset>
-                    <fieldset>
-                        <legend>Data de Início do Recálculo</legend>
-                        <label><input type="radio" name="recalc-start-option" value="today" checked> A partir de hoje</label>
-                        <label><input type="radio" name="recalc-start-option" value="next_reading_day"> A partir do próximo dia de leitura</label>
-                        <div class="recalc-specific-date-wrapper">
-                            <label style="display: inline-block; margin-right: 10px;">
-                                <input type="radio" name="recalc-start-option" value="specific_date"> A partir de:
-                            </label>
-                            <input type="date" id="recalc-specific-date-input" style="display: none;">
-                        </div>
-                    </fieldset>
-                    
-                    <div class="modal-footer">
-                        <button id="btn-goto-step-2" class="button-primary">Próximo: Confirmar Leituras →</button>
+                        
+                        <div id="category-chart-totals" class="category-chart-totals"></div>
+                        <div id="category-chart" class="simple-bar-chart"></div>
                     </div>
-                </div>
-
-                <div id="recalc-step-2" style="display: none;">
-                    <p><strong>Passo 2/2:</strong> Confirme o que <strong>JÁ FOI LIDO</strong>.</p>
-                    <p class="small-text">O sistema detectou estes capítulos como pendentes. Marque os que você <strong style="color:var(--success-color);">já leu</strong> para removê-los do novo plano.</p>
-                    
-                    <div id="manual-check-list" class="chapter-check-list-container">
-                        </div>
-
-                    <div class="modal-footer">
-                        <button id="btn-back-step-1" class="button-secondary">← Voltar</button>
-                        <button id="confirm-recalculate" class="button-primary">Confirmar Recálculo</button>
-                    </div>
-                </div>
+                </section>
 
             </div>
         </div>
 
-         <div id="stats-modal" class="modal" style="display: none;">
-             <div class="modal-content modal-content-scrollable">
-                 <span class="close-button">×</span>
-                 <h2>Suas Estatísticas (Plano Ativo)</h2>
-                 <div id="stats-loading" class="loading-indicator" style="display: none;">Calculando...</div>
-                 <div id="stats-error" class="error-message" style="display: none;"></div>
-                 <div id="stats-content">
-                     <p><strong>Plano:</strong> <span id="stats-active-plan-name">--</span></p>
-                     <p><strong>Progresso (Dias):</strong> <span id="stats-active-plan-progress">--</span>%</p>
-                     <hr>
-                     
-                     <div id="stats-plan-summary-container" style="margin-top: 20px;">
-                        <h4 style="color: var(--primary-action); text-align: left; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Escopo do Plano</h4>
-                        <div id="stats-plan-summary-list" style="font-size: 0.9em; max-height: 150px; overflow-y: auto; padding-right: 10px;">
-                            </div>
-                    </div>
-
-                     <div class="stats-chart-container">
-                         <canvas id="progress-chart"></canvas>
-                     </div>
-
-                     <p><strong>Total de Capítulos Lidos:</strong> <span id="stats-total-chapters">--</span></p>
-                     <p><strong>Ritmo Médio (Caps/Dia Lido):</strong> <span id="stats-avg-pace">--</span></p>
-                     <p><strong>Previsão de Término (com ritmo atual):</strong> <span id="stats-forecast-date">--</span></p>
-                     <p><strong>Número de Recálculos:</strong> <span id="stats-recalculations-count">--</span></p>
-                     <p><strong>Plano Concluído:</strong> <span id="stats-plans-completed">--</span></p>
-                     
-                     <small>Nota: Estatísticas baseadas no histórico registrado para o plano ativo.</small>
-                 </div>
-             </div>
-         </div>
-
-         <div id="history-modal" class="modal" style="display: none;">
-             <div class="modal-content modal-content-scrollable">
-                 <span class="close-button">×</span>
-                 <h2>Histórico de Leitura (Plano Ativo)</h2>
-                 <div id="history-loading" class="loading-indicator" style="display: none;">Carregando...</div>
-                 <div id="history-error" class="error-message" style="display: none;"></div>
-                 <div id="history-list" class="history-list-container"></div>
-             </div>
-         </div>
-
-        <div id="sync-plans-modal" class="modal" style="display: none;">
-            <div class="modal-content modal-content-scrollable">
-                <span class="close-button">×</span>
-                <h2>Sincronizar Datas de Término</h2>
-                <p>Escolha um plano como referência e selecione quais outros planos devem ser ajustados para terminar na mesma data.</p>
-                <div id="sync-error" class="error-message" style="display: none;"></div>
-                <div id="sync-loading" class="loading-indicator" style="display: none;">Sincronizando...</div>
-
-                <fieldset>
-                    <legend>1. Plano de Referência</legend>
-                    <label for="sync-base-plan-select">Escolha o plano cuja data final será a meta:</label>
-                    <select id="sync-base-plan-select"></select>
-                    <p style="margin-top: 10px;">Data de término de referência: <strong id="sync-target-date-display">--/--/----</strong></p>
-                </fieldset>
-
-                <fieldset>
-                    <legend>2. Planos para Sincronizar</legend>
-                    <div id="sync-plans-to-adjust-list" class="sync-plans-list">
-                        </div>
-                </fieldset>
-                
-                <button id="confirm-sync-button" class="button-primary" disabled>Confirmar Sincronização</button>
-            </div>
-        </div>
-
-        <div id="bible-explorer-modal" class="modal" style="display: none;">
-            <div class="modal-content modal-content-scrollable">
-                <span class="close-button">×</span>
-                <div id="explorer-view-container">
-                    <div id="explorer-grid-view">
-                        <h2>Explorador de Livros da Bíblia</h2>
-                        <p>Clique em um livro para ver os detalhes dos capítulos.</p>
-                        <div id="explorer-book-grid" class="explorer-grid-container">
-                            </div>
-                    </div>
-
-                    <div id="explorer-detail-view" style="display: none;">
-                        <div class="explorer-detail-header">
-                            <button id="explorer-back-button" class="button-secondary">← Voltar</button>
-                            <h2 id="explorer-detail-title"></h2>
-                        </div>
-                        <div id="explorer-chapter-list" class="explorer-list-container">
-                            </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="version-modal" class="modal" style="display: none;">
-            <div class="modal-content modal-content-scrollable">
-                <span class="close-button">×</span>
-                <h2 id="version-modal-title">Novidades da Versão</h2>
-                <div id="version-modal-content" class="version-changelog">
-                    </div>
-            </div>
-        </div>
-        <div id="highlight-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span class="close-button">×</span>
-                <h2>Grifar Versículos</h2>
-                <p>Livro e Capítulo: <strong id="highlight-chapter-name" style="color: var(--primary-action);">--</strong></p>
-                
-                <div id="highlight-error" class="error-message" style="display: none;"></div>
-                
-                <form id="highlight-form">
-                    <input type="hidden" id="highlight-plan-id">
-                    <label for="highlight-verses-input">Quais versículos deseja marcar?</label>
-                    <input type="text" id="highlight-verses-input" placeholder="Ex: 5 ou 10-12" required>
-                    <small>Você poderá ver e confirmar essa marcação no Histórico do plano.</small>
-                    
-                    <div class="modal-footer">
-                        <button type="submit" id="save-highlight-button" class="button-primary">Salvar Marcação</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div id="my-highlights-modal" class="modal" style="display: none;">
-            <div class="modal-content modal-content-scrollable">
-                <span class="close-button">×</span>
-                <h2>Meus Grifos</h2>
-                <div id="my-highlights-list" class="highlights-list-container">
-                    </div>
-            </div>
+        <!-- Dock de Navegação Global -->
+        <div id="global-dock" class="global-dock">
+            <button id="btn-novo-lancamento" class="icon-btn btn-dark-gold" title="Novo Lançamento" onclick="startNewTransaction()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button id="btn-ver-movimentos" class="icon-btn btn-extrato" title="Gerenciar Movimentações" onclick="showView('extract')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            </button>
+            <button id="btn-orcamento" class="icon-btn btn-orcamento" title="Configurar Orçamentos" onclick="showView('budget')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </button>
+            <button id="btn-graficos" class="icon-btn btn-graficos" title="Gráficos de Despesas" onclick="showView('charts')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18" stroke="currentColor"></path>
+                    <path d="M18 17V9" stroke="var(--danger)"></path> 
+                    <path d="M13 17V5" stroke="var(--success)"></path> 
+                    <path d="M8 17v-3" stroke="#2563EB"></path> 
+                </svg>
+            </button>
         </div>
 
     </main>
 
-    <footer>
-        </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
-    <script type="module" src="./src/main.js"></script>
-    
-    <div id="floating-navigator">
+    <dialog id="report4-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Gastos por Meio de Pagamento</h3>
+            <button class="close-dialog" onclick="document.getElementById('report4-dialog').close()">&times;</button>
         </div>
+        <div id="report4-content" class="report-dialog-body"></div>
+    </dialog>
 
-    <!-- Container para as Notificações Modernas (Toasts) -->
+    <dialog id="report1-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Desvio Orçamentário — Previsto vs. Real</h3>
+            <button class="close-dialog" onclick="document.getElementById('report1-dialog').close()">&times;</button>
+        </div>
+        <div id="report1-content" class="report-dialog-body"></div>
+    </dialog>
+
+    <dialog id="report2-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Radar de Comprometimento — Próximos 6 Meses</h3>
+            <button class="close-dialog" onclick="document.getElementById('report2-dialog').close()">&times;</button>
+        </div>
+        <div id="report2-content" class="report-dialog-body"></div>
+    </dialog>
+
+    <dialog id="report3-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Mapa de Engessamento da Renda</h3>
+            <button class="close-dialog" onclick="document.getElementById('report3-dialog').close()">&times;</button>
+        </div>
+        <div id="report3-content" class="report-dialog-body"></div>
+    </dialog>
+
+    <dialog id="category-transactions-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3 id="category-transactions-title">Lançamentos da Categoria</h3>
+            <button class="close-dialog" onclick="document.getElementById('category-transactions-dialog').close()">&times;</button>
+        </div>
+        <div id="category-transactions-content" class="report-dialog-body"></div>
+    </dialog>
+
+    <dialog id="budget-summary-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3 id="budget-summary-title">Resumo do Grupo</h3>
+            <button class="close-dialog" onclick="document.getElementById('budget-summary-dialog').close()">&times;</button>
+        </div>
+        <div id="budget-summary-content" class="report-dialog-body"></div>
+    </dialog>
+    
+    <dialog id="report5-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Termômetro de Imprevistos</h3>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button class="icon-btn-small" title="Selecionar mês">
+                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <input type="month" id="report5-month-input" class="hidden-date-picker"
+                           onchange="ReportsModule._imprevMonth(this.value)">
+                </button>
+                <button id="btn-export-imprevistos" class="icon-btn-small" title="Gerar Relatório PDF Vetorial" onclick="ReportsModule.exportImprevistosToPDF()">
+                    <svg class="export-icon-default" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <svg class="export-icon-loading hidden spin-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                    </svg>
+                </button>
+                <button class="close-dialog"
+                        onclick="document.getElementById('report5-dialog').close()">&times;</button>
+            </div>
+        </div>
+        <div id="report5-content" class="report-dialog-body"></div>
+    </dialog>
+
+    <dialog id="export-ai-dialog" class="report-dialog" style="max-width: 400px;">
+        <div class="dialog-header">
+            <h3>Exportar para IA</h3>
+            <button class="close-dialog" onclick="document.getElementById('export-ai-dialog').close()">&times;</button>
+        </div>
+        <div class="report-dialog-body" style="text-align: center; padding: 2rem 1.5rem;">
+            <p style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-light);">Selecione o mês para compilar todos os dados em formato texto (Markdown).</p>
+            <div style="display: flex; justify-content: center; gap: 1rem; align-items: center;">
+                <input type="month" id="ai-export-month-input" class="form-select-sm" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);" required>
+                <button class="icon-btn-small btn-dark-gold" title="Baixar Arquivo TXT" onclick="ReportsModule.exportAITxtReport()">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="projector-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Configuração do Projetor</h3>
+            <button class="close-dialog" onclick="document.getElementById('projector-dialog').close()">&times;</button>
+        </div>
+        <div class="report-dialog-body">
+            <div style="margin-bottom: 1.5rem; background: var(--surface); padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border);">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 700;">Início do Ciclo (Dia da Fatura/Salário)</label>
+                <input type="number" id="projector-cycle-day" min="1" max="31" class="form-select-sm" style="width: 100px;">
+            </div>
+            <h4 style="margin-bottom: 0.8rem; font-size: 0.95rem;">Orçamentos Monitorados</h4>
+            <div id="projector-cat-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem;"></div>
+            <button class="btn-block btn-dark-gold" onclick="BudgetProjectorModule.saveConfig()">Salvar Configurações</button>
+        </div>
+    </dialog>
+
+    <dialog id="report-catextract-dialog" class="report-dialog">
+        <div class="dialog-header">
+            <h3>Análise Direcionada</h3>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <button class="icon-btn-small" title="Selecionar mês">
+                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <input type="month" id="report-catextract-month" class="hidden-date-picker" onchange="ReportsModule._catExtractMonth(this.value)">
+                </button>
+                <button id="btn-export-catextract" class="icon-btn-small" title="Gerar Relatório PDF" onclick="ReportsModule.exportCategoryExtractToPDF()">
+                    <svg class="export-icon-default" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <svg class="export-icon-loading hidden spin-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                    </svg>
+                </button>
+                <button class="close-dialog" onclick="document.getElementById('report-catextract-dialog').close()">&times;</button>
+            </div>
+        </div>
+        
+        <div class="report-dialog-body" id="report-catextract-scroll-area">
+            <div id="report-catextract-title" style="text-align: center; margin-bottom: 1.5rem;">
+                <h2 id="cat-extract-ui-month" style="font-size: 1.2rem; color: var(--text); font-family: 'Playfair Display', serif; margin:0;">Selecione o Período</h2>
+                <span id="cat-extract-ui-cat" style="font-size: 0.85rem; color: var(--text-light); text-transform: uppercase; font-weight: 700;">Aguardando Seleção</span>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;" class="no-print">
+                <select id="report-catextract-select" class="form-select-sm" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border);" onchange="ReportsModule._catExtractCategory(this.value)">
+                </select>
+            </div>
+            
+            <div id="report-catextract-content"></div>
+        </div>
+    </dialog>
+
     <div id="toast-container" class="toast-container"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    
+   <script src="js/firebase-service.js"></script>
+    
+    <script src="js/toast-module.js"></script>
+    <script src="js/payment-config.js"></script>
+    <script src="js/category-groups.js"></script>
+    <script src="js/category-manager.js"></script>
+    
+    <script src="js/budget.js"></script>
+    <script src="js/extract.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="js/budget-projector.js"></script>
+    <script src="js/script.js"></script>
 </body>
 </html>
