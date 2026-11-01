@@ -4,5 +4,6 @@
  * @description Contém configurações globais da aplicação.
  */
 export const DEFAULT_USER_SETTINGS = {
-    autoRecalcShortDelay: false
+    autoRecalcShortDelay: false,
+    shortDelayThresholdDays: 1
 };
