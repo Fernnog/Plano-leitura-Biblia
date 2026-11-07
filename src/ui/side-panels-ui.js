@@ -20,7 +20,27 @@ import { getCurrentUTCDateString, formatUTCDateStringToBrasilian, countReadingDa
 
 const INDIVIDUAL_RECALC_THRESHOLD_DAYS = 5;
 
-// --- Funções Privadas de Renderização ---
+// --- Funções Privadas de Ordenação e Renderização ---
+
+/**
+ * Comparador cronológico determinístico para itens de leitura (atrasados ou próximos).
+ * 1º Critério: Data efetiva ('YYYY-MM-DD') em ordem ascendente (mais antigo primeiro).
+ * 2º Critério: Apenas se pertencerem ao mesmo plano, ordena pelo número sequencial do dia (dayNumber).
+ * 3º Critério: Para planos distintos na mesma data, retorna 0 (preserva a ordem original de allUserPlans via sort estável).
+ * @private
+ * @param {object} a - Primeiro item { plan, date, dayNumber }.
+ * @param {object} b - Segundo item { plan, date, dayNumber }.
+ * @returns {number} -1, 0 ou 1.
+ */
+function _compareReadingItemsChronologically(a, b) {
+    if (a.date !== b.date) {
+        return a.date < b.date ? -1 : 1;
+    }
+    if (a.plan.id === b.plan.id) {
+        return (a.dayNumber || 0) - (b.dayNumber || 0);
+    }
+    return 0;
+}
 
 /**
  * Cria e retorna o elemento HTML para um item de leitura (seja atrasado ou próximo).
@@ -76,19 +96,22 @@ function _createReadingItemElement(itemData, type, onSwitchPlan) {
 }
 
 /**
- * Cria o elemento HTML para a sugestão de recálculo.
+ * Cria o elemento HTML para a sugestão de recálculo, exibindo a data desde quando o plano está parado.
  * @private
  * @param {object} plan - O plano que necessita de recálculo.
  * @param {number} daysLate - Quantos dias de leitura o plano está atrasado.
+ * @param {string} sinceDate - Data efetiva ('YYYY-MM-DD') do primeiro dia em atraso.
  * @param {Function} onRecalculate - Callback para acionar o modal de recálculo.
  * @returns {HTMLElement} O elemento div criado.
  */
-function _createRecalcSuggestionElement(plan, daysLate, onRecalculate) {
+function _createRecalcSuggestionElement(plan, daysLate, sinceDate, onRecalculate) {
     const itemEl = document.createElement('div');
     itemEl.className = 'recalc-suggestion-item';
 
-    // --- INÍCIO DA ALTERAÇÃO: Adicionado o .shield-wrapper ---
+    const formattedDate = formatUTCDateStringToBrasilian(sinceDate);
+
     itemEl.innerHTML = `
+        <div class="overdue-date">Desde ${formattedDate}</div>
         <div class="recalc-plan-name">
             <div class="shield-wrapper"><span class="plan-icon">${plan.icon || '📖'}</span></div>
             <span>${plan.name}</span>
@@ -98,11 +121,10 @@ function _createRecalcSuggestionElement(plan, daysLate, onRecalculate) {
         </p>
         <button class="recalc-suggestion-button">Recalcular Plano</button>
     `;
-    // --- FIM DA ALTERAÇÃO ---
 
     const button = itemEl.querySelector('button');
     button.addEventListener('click', (e) => {
-        e.stopPropagation(); // Previne o clique de acionar o onSwitchPlan no container
+        e.stopPropagation(); // Previne o clique de acionar a navegação no container
         onRecalculate?.(plan.id);
     });
 
@@ -168,22 +190,22 @@ function _getCompletedDaysForToday(plan, todayStr) {
 }
 
 /**
- * Renderiza os painéis de leituras atrasadas e próximas, mantendo visíveis com efeito
+ * Renderiza os painéis de leituras atrasadas e próximas, ordenando ambos cronologicamente
+ * (do mais antigo no topo ao mais recente na base) e mantendo visíveis com efeito
  * esmaecido as leituras concluídas no dia corrente até a virada de data.
  * @param {Array<object>} allUserPlans - Lista de todos os planos do usuário.
  * @param {object} callbacks - Objeto contendo os callbacks { onSwitchPlan, onRecalculate }.
  */
 export function render(allUserPlans, callbacks) {
-    overdueReadingsListDiv.innerHTML = '';
-    upcomingReadingsListDiv.innerHTML = '';
-    
     if (!allUserPlans || allUserPlans.length === 0) {
+        overdueReadingsListDiv.replaceChildren();
+        upcomingReadingsListDiv.replaceChildren();
         hide();
         return;
     }
 
     const todayStr = getCurrentUTCDateString();
-    let hasOverdueItems = false;
+    const overdueReadings = [];
     const upcomingReadings = [];
     const UPCOMING_DAYS_WINDOW = 10;
 
@@ -194,19 +216,14 @@ export function render(allUserPlans, callbacks) {
         const completedTodayItems = _getCompletedDaysForToday(plan, todayStr);
         completedTodayItems.forEach(completedItem => {
             if (completedItem.date < todayStr) {
-                hasOverdueItems = true;
-                const itemEl = _createReadingItemElement(
-                    {
-                        plan,
-                        date: completedItem.date,
-                        chapters: completedItem.chapters,
-                        completed: true,
-                        dayNumber: completedItem.dayNumber
-                    },
-                    'overdue',
-                    callbacks.onSwitchPlan
-                );
-                overdueReadingsListDiv.appendChild(itemEl);
+                overdueReadings.push({
+                    itemType: 'reading',
+                    plan,
+                    date: completedItem.date,
+                    chapters: completedItem.chapters,
+                    completed: true,
+                    dayNumber: completedItem.dayNumber
+                });
             } else {
                 upcomingReadings.push({
                     plan,
@@ -233,23 +250,26 @@ export function render(allUserPlans, callbacks) {
         if (!firstEffectiveDateStr) return; 
 
         if (firstEffectiveDateStr < todayStr) {
-            hasOverdueItems = true;
             const readingDaysLate = countReadingDaysBetween(firstEffectiveDateStr, todayStr, plan.allowedDays);
             
             // Só exibe sugestão de recálculo se for atraso >= 5 dias E o usuário ainda não tiver marcado os capítulos hoje
             if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS && !isCurrentDayAllChecked) {
-                const suggestionEl = _createRecalcSuggestionElement(plan, readingDaysLate, callbacks.onRecalculate);
-                overdueReadingsListDiv.appendChild(suggestionEl);
+                overdueReadings.push({
+                    itemType: 'recalc-suggestion',
+                    plan,
+                    date: firstEffectiveDateStr,
+                    daysLate: readingDaysLate,
+                    dayNumber: plan.currentDay
+                });
             } else {
-                const readingItem = {
+                overdueReadings.push({
+                    itemType: 'reading',
                     plan,
                     date: firstEffectiveDateStr,
                     chapters: currentDayChapters,
                     completed: isCurrentDayAllChecked,
                     dayNumber: plan.currentDay
-                };
-                const itemEl = _createReadingItemElement(readingItem, 'overdue', callbacks.onSwitchPlan);
-                overdueReadingsListDiv.appendChild(itemEl);
+                });
             }
         }
         
@@ -276,14 +296,25 @@ export function render(allUserPlans, callbacks) {
         }
     });
 
-    // Controle de Visibilidade dos Atrasados
-    overdueReadingsSection.style.display = hasOverdueItems ? 'block' : 'none';
+    // 4. Ordenação Cronológica e Renderização Atômica dos Atrasados (Mais antigo -> Mais recente)
+    if (overdueReadings.length > 0) {
+        overdueReadings.sort(_compareReadingItemsChronologically);
+
+        const overdueElements = overdueReadings.map(itemData =>
+            itemData.itemType === 'recalc-suggestion'
+                ? _createRecalcSuggestionElement(itemData.plan, itemData.daysLate, itemData.date, callbacks.onRecalculate)
+                : _createReadingItemElement(itemData, 'overdue', callbacks.onSwitchPlan)
+        );
+
+        overdueReadingsListDiv.replaceChildren(...overdueElements);
+        overdueReadingsSection.style.display = 'block';
+    } else {
+        overdueReadingsListDiv.replaceChildren();
+        overdueReadingsSection.style.display = 'none';
+    }
     
-    // Ordena por data (e em caso de empate de data, coloca o menor dayNumber primeiro)
-    upcomingReadings.sort((a, b) => {
-        const dateDiff = a.date.localeCompare(b.date);
-        return dateDiff !== 0 ? dateDiff : (a.dayNumber - b.dayNumber);
-    });
+    // 5. Ordenação Cronológica e Renderização Atômica das Próximas Leituras
+    upcomingReadings.sort(_compareReadingItemsChronologically);
 
     // Desduplicação segura baseada na chave composta (plan.id + dayNumber)
     const seenKeys = new Set();
@@ -297,13 +328,13 @@ export function render(allUserPlans, callbacks) {
     const nextReadingsToShow = uniqueUpcomingReadings.slice(0, 7);
     
     if (nextReadingsToShow.length > 0) {
-        upcomingReadingsListDiv.innerHTML = '';
-        nextReadingsToShow.forEach(itemData => {
-            const itemEl = _createReadingItemElement(itemData, 'upcoming', callbacks.onSwitchPlan);
-            upcomingReadingsListDiv.appendChild(itemEl);
-        });
+        const upcomingElements = nextReadingsToShow.map(itemData =>
+            _createReadingItemElement(itemData, 'upcoming', callbacks.onSwitchPlan)
+        );
+        upcomingReadingsListDiv.replaceChildren(...upcomingElements);
         upcomingReadingsSection.style.display = 'block';
     } else {
+        upcomingReadingsListDiv.replaceChildren();
         upcomingReadingsSection.style.display = 'none';
     }
 
