@@ -47,7 +47,12 @@ import {
     formatUTCDateStringToBrasilian, 
     countReadingDaysBetween 
 } from './utils/date-helpers.js';
-import { getEffectiveDateForDay } from './utils/plan-logic-helpers.js';
+import {
+    getEffectiveDateForDay,
+    getOverdueReadingDays,
+    consolidateReadChapters,
+    detectOutOfSequenceChapters
+} from './utils/plan-logic-helpers.js';
 import { FAVORITE_ANNUAL_PLAN_CONFIG } from './config/plan-templates.js';
 import { FAVORITE_PLAN_ICONS } from './config/icon-config.js';
 import { buildPlanFromFormData } from './utils/plan-builder.js';
@@ -84,7 +89,7 @@ const appState = {
     }
 };
 
-let pendingShortDelayPlans = [];
+let pendingShortDelayPlanIds = [];
 let hasCheckedShortDelaysThisSession = false;
 
 function updateAllViews() {
@@ -130,7 +135,7 @@ async function handleAuthStateChange(user) {
     } else {
         appState.reset();
         hasCheckedShortDelaysThisSession = false;
-        pendingShortDelayPlans = [];
+        pendingShortDelayPlanIds = [];
         authUI.show();
         headerUI.render(null);
         planCreationActionsSection.style.display = 'none';
@@ -146,6 +151,35 @@ async function handleAuthStateChange(user) {
     }
 }
 
+function _computeReadingMetrics(plan) {
+    const logEntries = plan.readLog || {};
+    const reconciledSet = new Set(Array.isArray(plan.reconciledChapters) ? plan.reconciledChapters : []);
+
+    const allLoggedChapters = new Set();
+    let realChaptersCount = 0;
+    let realDaysWithReading = 0;
+
+    Object.values(logEntries).forEach(chapters => {
+        if (!Array.isArray(chapters) || chapters.length === 0) return;
+        let realInDay = 0;
+        chapters.forEach(ch => {
+            allLoggedChapters.add(ch);
+            if (!reconciledSet.has(ch)) realInDay++;
+        });
+        if (realInDay > 0) {
+            realChaptersCount += realInDay;
+            realDaysWithReading++;
+        }
+    });
+
+    reconciledSet.forEach(ch => allLoggedChapters.add(ch));
+
+    return {
+        totalChaptersRead: allLoggedChapters.size,
+        avgPace: realDaysWithReading > 0 ? (realChaptersCount / realDaysWithReading) : 0
+    };
+}
+
 function renderAllPlanCards() {
     const effectiveDatesMap = {};
     const forecastsMap = {};
@@ -158,11 +192,7 @@ function renderAllPlanCards() {
         const isCompleted = plan.currentDay > totalReadingDaysInPlan;
         
         if (!isCompleted) {
-            const logEntries = plan.readLog || {};
-            const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0);
-            
-            const daysWithReading = Object.keys(logEntries).filter(date => Array.isArray(logEntries[date]) && logEntries[date].length > 0).length;
-            const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
+            const { totalChaptersRead: chaptersReadFromLog, avgPace } = _computeReadingMetrics(plan);
 
             if (avgPace > 0) {
                 const remainingChapters = plan.totalChapters - chaptersReadFromLog;
@@ -229,16 +259,8 @@ async function loadInitialUserData(user) {
 
         // --- NOVO GATILHO: Status ao Carregar a Página ---
         setTimeout(() => {
-            let hasOverdue = false;
             const todayStr = getCurrentUTCDateString();
-            
-            appState.userPlans.forEach(plan => {
-                const totalDays = Object.keys(plan.plan || {}).length;
-                if (plan.currentDay <= totalDays) {
-                    const firstEffectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
-                    if (firstEffectiveDateStr && firstEffectiveDateStr < todayStr) hasOverdue = true;
-                }
-            });
+            const hasOverdue = appState.userPlans.some(plan => getOverdueReadingDays(plan, todayStr).length > 0);
 
             if (hasOverdue) {
                 toastUI.showToast("🔔 Você possui leituras em atraso. Confira a reavaliação se precisar!", "warning", 5000);
@@ -288,7 +310,7 @@ async function handleSignup(email, password) {
 async function handleLogout() {
     try {
         hasCheckedShortDelaysThisSession = false;
-        pendingShortDelayPlans = [];
+        pendingShortDelayPlanIds = [];
         await authService.logout();
     } catch (error) {
         toastUI.showToast(`Erro ao sair: ${error.message}`, 'error');
@@ -627,172 +649,155 @@ async function handleToggleSetting(settingKey, settingValue, inputElement) {
     }
 }
 
-/**
- * Verifica se há planos entre o limite mínimo escolhido (1, 2 ou 3) e 3 dias de leitura em atraso.
- * @param {boolean} forceCheck - Ignora a trava de sessão (usado quando o usuário altera configurações).
- */
 function checkAndPromptShortDelayPlans(forceCheck = false) {
     const isAutoRecalcEnabled = Boolean(appState.userInfo?.settings?.autoRecalcShortDelay ?? false);
     if (!isAutoRecalcEnabled) return;
     if (hasCheckedShortDelaysThisSession && !forceCheck) return;
 
     const minThresholdDays = Number(appState.userInfo?.settings?.shortDelayThresholdDays ?? 1);
-
     const plans = appState.userPlans || [];
     if (plans.length === 0) return;
 
     const todayStr = getCurrentUTCDateString();
-    pendingShortDelayPlans = [];
+    const delayedDisplayPayload = [];
+    pendingShortDelayPlanIds = [];
 
     plans.forEach(plan => {
-        const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
-        if (plan.currentDay > totalReadingDaysInPlan) return;
+        const overdueDays = getOverdueReadingDays(plan, todayStr);
+        const readingDaysLate = overdueDays.length;
 
-        const effectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
-        if (effectiveDateStr && effectiveDateStr < todayStr) {
-            const readingDaysLate = countReadingDaysBetween(effectiveDateStr, todayStr, plan.allowedDays);
-            if (readingDaysLate >= minThresholdDays && readingDaysLate <= 3) {
-                pendingShortDelayPlans.push({ plan, daysLate: readingDaysLate });
-            }
+        if (readingDaysLate >= minThresholdDays && readingDaysLate <= 3) {
+            const anomaly = detectOutOfSequenceChapters(plan);
+            pendingShortDelayPlanIds.push(plan.id);
+            delayedDisplayPayload.push({ plan, daysLate: readingDaysLate, anomaly });
         }
     });
 
     hasCheckedShortDelaysThisSession = true;
 
-    if (pendingShortDelayPlans.length > 0) {
-        modalsUI.displayShortDelayConfirmation(pendingShortDelayPlans);
+    if (delayedDisplayPayload.length > 0) {
+        modalsUI.displayShortDelayConfirmation(delayedDisplayPayload);
     }
 }
 
-/**
- * Função Pura de Domínio: Constrói o objeto de plano recalculado em memória sem efeitos colaterais de DOM.
- */
-function buildRecalculatedPlanObject(plan, option = 'extend_date', newPace = null, startDateOption = 'today', specificDate = null, manuallyReadChapters = []) {
-    const todayStr = getCurrentUTCDateString();
+async function handleConfirmShortDelayRecalc() {
+    if (!appState.currentUser || pendingShortDelayPlanIds.length === 0) return;
 
-    // 1. Consolida capítulos já lidos (readLog + dailyChapterReadStatus marcados + manuallyReadChapters)
-    const updatedReadLog = { ...(plan.readLog || {}) };
-    const chaptersConfirmedToday = [
-        ...Object.keys(plan.dailyChapterReadStatus || {}).filter(ch => plan.dailyChapterReadStatus[ch]),
-        ...manuallyReadChapters
-    ];
+    const plansWithAnomalies = [];
 
-    if (chaptersConfirmedToday.length > 0) {
-        const existingTodayLog = new Set(updatedReadLog[todayStr] || []);
-        chaptersConfirmedToday.forEach(ch => existingTodayLog.add(ch));
-        updatedReadLog[todayStr] = Array.from(existingTodayLog);
-    }
+    // Re-hidrata sempre o plano vivo em appState.userPlans para evitar estado obsoleto
+    for (const planId of pendingShortDelayPlanIds) {
+        const livePlan = appState.userPlans.find(p => p.id === planId);
+        if (!livePlan) continue;
 
-    const allReadChaptersSet = new Set();
-    Object.values(updatedReadLog).forEach(chList => {
-        if (Array.isArray(chList)) chList.forEach(ch => allReadChaptersSet.add(ch));
-    });
-
-    const remainingChapters = (plan.chaptersList || []).filter(ch => !allReadChaptersSet.has(ch));
-    if (remainingChapters.length === 0) {
-        throw new Error(`O plano "${plan.name}" não possui capítulos pendentes para recalcular.`);
-    }
-
-    // 2. Determina o ritmo original (capítulos por dia de leitura) para 'extend_date'
-    const originalTotalDays = Object.keys(plan.plan || {}).length || 1;
-    const originalPace = Math.max(1, Math.round(plan.totalChapters / originalTotalDays));
-    const targetPace = option === 'new_pace' && newPace > 0 ? newPace : originalPace;
-
-    // 3. Reconstrói o mapa do plano a partir de plan.currentDay com ritmo original
-    const newPlanMap = {};
-    for (let d = 1; d < plan.currentDay; d++) {
-        if (plan.plan[d.toString()]) {
-            newPlanMap[d.toString()] = plan.plan[d.toString()];
+        const analysis = detectOutOfSequenceChapters(livePlan);
+        if (analysis.hasAnomalies) {
+            plansWithAnomalies.push({
+                plan: livePlan,
+                outOfSequenceChapters: analysis.outOfSequenceChapters,
+                frontierChapter: analysis.frontierChapter
+            });
         }
     }
 
-    let dayCursor = plan.currentDay;
-    for (let i = 0; i < remainingChapters.length; i += targetPace) {
-        newPlanMap[dayCursor.toString()] = remainingChapters.slice(i, i + targetPace);
-        dayCursor++;
+    if (plansWithAnomalies.length > 0) {
+        modalsUI.showShortDelayAnomaliesStep(plansWithAnomalies);
+        return;
     }
 
-    // 4. Calcula a nova data base (hoje) e a nova endDate projetada
-    const baseDateStr = startDateOption === 'specific_date' && specificDate ? specificDate : todayStr;
-    const tempPlanForEndDate = {
-        ...plan,
-        plan: newPlanMap,
-        recalculationBaseDay: plan.currentDay,
-        recalculationBaseDate: baseDateStr
-    };
-    const totalNewDays = Object.keys(newPlanMap).length;
-    const newEndDateStr = getEffectiveDateForDay(tempPlanForEndDate, totalNewDays) || plan.endDate;
-
-    const historyEntry = {
-        date: todayStr,
-        type: 'auto',
-        option,
-        recalculatedFromDay: plan.currentDay,
-        chaptersReadAtPoint: allReadChaptersSet.size
-    };
-
-    const { id, ...planWithoutId } = plan;
-    return {
-        ...planWithoutId,
-        plan: newPlanMap,
-        endDate: newEndDateStr,
-        readLog: updatedReadLog,
-        dailyChapterReadStatus: {},
-        recalculationBaseDay: plan.currentDay,
-        recalculationBaseDate: baseDateStr,
-        recalculationHistory: [...(plan.recalculationHistory || []), historyEntry]
-    };
+    await _executeShortDelayBatchRecalc({});
 }
 
-/**
- * Executa o recálculo global em lote para todos os planos com 1 a 3 dias de atraso.
- */
-async function handleConfirmShortDelayRecalc() {
-    if (!appState.currentUser || pendingShortDelayPlans.length === 0) return;
+async function _executeShortDelayBatchRecalc(reconciledByPlanId = {}) {
+    if (!appState.currentUser || pendingShortDelayPlanIds.length === 0) return;
 
-    modalsUI.showLoading('short-delay-recalc-modal');
+    modalsUI.setShortDelayLoading(true);
     modalsUI.hideError('short-delay-recalc-modal');
-    const confirmBtn = document.getElementById('confirm-short-delay-recalc');
-    if (confirmBtn) confirmBtn.disabled = true;
 
     try {
+        const todayStr = getCurrentUTCDateString();
         const batchUpdates = [];
         const updatedPlansById = new Map();
 
-        // 1. Processamento síncrono em memória para todos os planos do lote
-        for (const { plan } of pendingShortDelayPlans) {
-            const updatedPlanData = buildRecalculatedPlanObject(plan, 'extend_date', null, 'today');
-            batchUpdates.push({
-                planId: plan.id,
-                updatedPlanData
-            });
-            updatedPlansById.set(plan.id, { id: plan.id, ...updatedPlanData });
+        for (const planId of pendingShortDelayPlanIds) {
+            const livePlan = appState.userPlans.find(p => p.id === planId);
+            if (!livePlan) continue;
+
+            const reconciledForPlan = reconciledByPlanId[planId] || [];
+
+            // 1. Consolidação sempre sob a data real de hoje (todayStr)
+            const consolidatedPlan = consolidateReadChapters(
+                livePlan,
+                { regularChapters: [], reconciledChapters: reconciledForPlan },
+                todayStr
+            );
+
+            // 2. Motor único mantendo o ritmo vigente sem deriva
+            const currentPace = planCalculator.resolveOriginalPace(consolidatedPlan);
+            const targetEndDate = planCalculator.calculateEndDateFromPace(consolidatedPlan, currentPace, todayStr);
+
+            if (!targetEndDate) {
+                throw new Error(`Não foi possível projetar a nova data de término para o plano "${livePlan.name}".`);
+            }
+
+            const calcResult = planCalculator.recalculatePlanToTargetDate(
+                consolidatedPlan,
+                targetEndDate,
+                todayStr,
+                { type: 'extend_date', pace: currentPace }
+            );
+
+            if (!calcResult) {
+                throw new Error(`Não foi possível recalcular o plano "${livePlan.name}".`);
+            }
+
+            const { recalculatedPlan } = calcResult;
+            const { totalChaptersRead } = _computeReadingMetrics(recalculatedPlan);
+
+            const historyEntry = {
+                date: todayStr,
+                type: 'auto',
+                option: 'extend_date',
+                recalculatedFromDay: livePlan.currentDay,
+                chaptersReadAtPoint: totalChaptersRead,
+                manualCleanupCount: reconciledForPlan.length
+            };
+
+            const { id, ...planWithoutId } = {
+                ...recalculatedPlan,
+                recalculationHistory: [...(livePlan.recalculationHistory || []), historyEntry]
+            };
+
+            batchUpdates.push({ planId: livePlan.id, updatedPlanData: planWithoutId });
+            updatedPlansById.set(livePlan.id, { id: livePlan.id, ...planWithoutId });
         }
 
-        // 2. Persistência atômica única no Firestore via writeBatch
+        if (batchUpdates.length === 0) {
+            pendingShortDelayPlanIds = [];
+            modalsUI.close('short-delay-recalc-modal');
+            return;
+        }
+
         await planService.saveMultipleRecalculatedPlans(appState.currentUser.uid, batchUpdates);
 
-        // 3. Sincronização em memória do appState sem nova leitura de rede
         appState.userPlans = appState.userPlans.map(existingPlan =>
             updatedPlansById.has(existingPlan.id) ? updatedPlansById.get(existingPlan.id) : existingPlan
         );
 
         const count = batchUpdates.length;
-        pendingShortDelayPlans = [];
+        pendingShortDelayPlanIds = [];
         modalsUI.close('short-delay-recalc-modal');
 
-        // 4. Única atualização de todas as views na tela
         updateAllViews();
         toastUI.showToast(
-            `${count} ${count === 1 ? 'plano foi recalculado' : 'planos foram recalculados'} mantendo o ritmo original!`,
+            `${count} ${count === 1 ? 'plano foi recalculado' : 'planos foram recalculados'} mantendo o ritmo atual!`,
             'success'
         );
     } catch (error) {
         console.error('Erro ao executar recálculo global de atrasos curtos:', error);
         modalsUI.showError('short-delay-recalc-modal', error.message || 'Erro ao recalcular os planos.');
     } finally {
-        modalsUI.hideLoading('short-delay-recalc-modal');
-        if (confirmBtn) confirmBtn.disabled = false;
+        modalsUI.setShortDelayLoading(false);
     }
 }
 
@@ -856,40 +861,68 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
         if (!targetDate || plansToSyncIds.length === 0) {
             throw new Error("Seleção inválida. Escolha um plano de referência e planos para ajustar.");
         }
+
         const todayStr = getCurrentUTCDateString();
+        const batchUpdates = [];
+        const updatedPlansById = new Map();
 
         for (const planId of plansToSyncIds) {
-            const originalPlan = appState.userPlans.find(p => p.id === planId);
-            
-            const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetDate, todayStr);
+            const livePlan = appState.userPlans.find(p => p.id === planId);
+            if (!livePlan) {
+                throw new Error("Um dos planos selecionados não foi encontrado. Recarregue a página e tente novamente.");
+            }
+
+            // Consolida eventuais chaves órfãs sob a data real de hoje antes do cálculo
+            const consolidatedPlan = consolidateReadChapters(
+                livePlan,
+                { regularChapters: [], reconciledChapters: [] },
+                todayStr
+            );
+
+            const result = planCalculator.recalculatePlanToTargetDate(
+                consolidatedPlan,
+                targetDate,
+                todayStr,
+                { type: 'sync' }
+            );
 
             if (!result) {
                 const formattedDate = formatUTCDateStringToBrasilian(targetDate);
-                throw new Error(`O plano "${originalPlan.name}" não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima.`);
+                throw new Error(`O plano "${livePlan.name}" não pode ser recalculado para terminar em ${formattedDate}. A data pode ser muito próxima.`);
             }
-            let { recalculatedPlan } = result;
-            
-            if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
-            recalculatedPlan.recalculationHistory.push({
+
+            const { recalculatedPlan } = result;
+            const { totalChaptersRead } = _computeReadingMetrics(recalculatedPlan);
+
+            const historyEntry = {
                 date: todayStr,
                 type: 'sync',
-                recalculatedFromDay: originalPlan.currentDay,
-                chaptersReadAtPoint: Object.values(originalPlan.readLog || {}).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0),
+                recalculatedFromDay: livePlan.currentDay,
+                chaptersReadAtPoint: totalChaptersRead,
                 targetDate: targetDate,
-                syncedWithPlanId: basePlanId,
-            });
+                syncedWithPlanId: basePlanId
+            };
 
-            const planToSave = { ...recalculatedPlan };
-            delete planToSave.id;
-            await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
+            const { id, ...planToSave } = {
+                ...recalculatedPlan,
+                recalculationHistory: [...(livePlan.recalculationHistory || []), historyEntry]
+            };
+
+            batchUpdates.push({ planId, updatedPlanData: planToSave });
+            updatedPlansById.set(planId, { id: planId, ...planToSave });
         }
+
+        // Persistência atômica (tudo ou nada): impede sincronização parcial em caso de erro de validação
+        await planService.saveMultipleRecalculatedPlans(appState.currentUser.uid, batchUpdates);
+
+        appState.userPlans = appState.userPlans.map(existingPlan =>
+            updatedPlansById.has(existingPlan.id) ? updatedPlansById.get(existingPlan.id) : existingPlan
+        );
 
         toastUI.showToast("Planos sincronizados com sucesso!", 'success');
         modalsUI.close('sync-plans-modal');
-        await loadInitialUserData(appState.currentUser);
         renderAllPlanCards();
         handleReassessPlansRequest();
-
     } catch (error) {
         modalsUI.showError('sync-modal', `Erro: ${error.message}`);
     } finally {
@@ -897,7 +930,7 @@ async function handleConfirmSync(basePlanId, targetDate, plansToSyncIds) {
     }
 }
 
-async function handleRecalculate(option, newPaceValue, startDateOption, specificDate, manuallyReadChapters, dayWeights) {
+async function handleRecalculate(option, newPaceValue, startDateOption, specificDate, manualSelection, dayWeights) {
     const planId = document.getElementById('confirm-recalculate').dataset.planId;
     if (!appState.currentUser || !planId) return;
 
@@ -905,32 +938,28 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
     modalsUI.hideError('recalculate-modal');
 
     try {
-        if (manuallyReadChapters && manuallyReadChapters.length > 0) {
-            const updates = manuallyReadChapters.map(ch => 
-                planService.updateChapterStatus(appState.currentUser.uid, planId, ch, true)
-            );
-            await Promise.all(updates);
-
-            const planToUpdate = appState.userPlans.find(p => p.id === planId);
-            if (planToUpdate) {
-                if (!planToUpdate.dailyChapterReadStatus) planToUpdate.dailyChapterReadStatus = {};
-                manuallyReadChapters.forEach(ch => {
-                    planToUpdate.dailyChapterReadStatus[ch] = true;
-                });
-            }
-        }
-
         const originalPlan = appState.userPlans.find(p => p.id === planId);
+        if (!originalPlan) throw new Error("Plano não encontrado.");
 
-        let baseDateForCalc = getCurrentUTCDateString();
-        
+        const todayStr = getCurrentUTCDateString();
+
+        // 1. Consolida sob a data REAL de hoje (separando leituras atuais de regularizações retroativas)
+        const normalizedSelection = Array.isArray(manualSelection)
+            ? { regularChapters: [], reconciledChapters: manualSelection }
+            : (manualSelection || { regularChapters: [], reconciledChapters: [] });
+
+        const consolidatedPlan = consolidateReadChapters(originalPlan, normalizedSelection, todayStr);
+
+        // 2. Define a data-base de início do novo cronograma (pode ser hoje ou futura)
+        let baseDateForCalc = todayStr;
         switch (startDateOption) {
-            case 'next_reading_day':
-                const tomorrowStr = addUTCDays(new Date(baseDateForCalc), 1).toISOString().split('T')[0];
-                baseDateForCalc = getEffectiveDateForDay({ startDate: tomorrowStr, allowedDays: originalPlan.allowedDays }, 1);
+            case 'next_reading_day': {
+                const tomorrowStr = addUTCDays(new Date(todayStr + 'T00:00:00Z'), 1).toISOString().split('T')[0];
+                baseDateForCalc = getEffectiveDateForDay({ startDate: tomorrowStr, allowedDays: consolidatedPlan.allowedDays }, 1);
                 break;
+            }
             case 'specific_date':
-                if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(getCurrentUTCDateString() + 'T00:00:00Z')) {
+                if (!specificDate || new Date(specificDate + 'T00:00:00Z') < new Date(todayStr + 'T00:00:00Z')) {
                     throw new Error("Por favor, selecione uma data futura válida para o início do recálculo.");
                 }
                 baseDateForCalc = specificDate;
@@ -943,78 +972,71 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         if (!baseDateForCalc) {
             throw new Error("Não foi possível determinar a data de início para o recálculo.");
         }
-        
+
+        // 3. Calcula data alvo sobre o plano já consolidado
         let targetEndDate = null;
-        switch(option) {
+        switch (option) {
             case 'new_pace':
                 if (!newPaceValue || newPaceValue < 1) throw new Error("O novo ritmo deve ser de pelo menos 1.");
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, newPaceValue, baseDateForCalc);
+                targetEndDate = planCalculator.calculateEndDateFromPace(consolidatedPlan, newPaceValue, baseDateForCalc);
                 break;
             case 'increase_pace':
-                targetEndDate = originalPlan.endDate;
+                targetEndDate = consolidatedPlan.endDate;
                 break;
             case 'variable_pace':
                 targetEndDate = 'CALCULATED_BY_DISTRIBUTION';
                 break;
             case 'extend_date':
-            default:
-                const originalPace = originalPlan.chaptersPerDay || (originalPlan.totalChapters / Object.keys(originalPlan.plan).length);
-                targetEndDate = planCalculator.calculateEndDateFromPace(originalPlan, originalPace, baseDateForCalc);
+            default: {
+                const currentPace = planCalculator.resolveOriginalPace(consolidatedPlan);
+                targetEndDate = planCalculator.calculateEndDateFromPace(consolidatedPlan, currentPace, baseDateForCalc);
                 break;
+            }
         }
 
         if (!targetEndDate && option !== 'variable_pace') {
             throw new Error("Não foi possível calcular uma nova data final para a opção selecionada.");
         }
 
-        const calcOptions = {
-            type: option,
-            pace: newPaceValue,
-            dayWeights: dayWeights 
-        };
-
-        const result = planCalculator.recalculatePlanToTargetDate(originalPlan, targetEndDate, baseDateForCalc, calcOptions);
+        const result = planCalculator.recalculatePlanToTargetDate(
+            consolidatedPlan,
+            targetEndDate,
+            baseDateForCalc,
+            { type: option, pace: newPaceValue, dayWeights }
+        );
 
         if (!result) {
-            const formattedDate = formatUTCDateStringToBrasilian(targetEndDate);
-            throw new Error(`O plano não pode ser recalculado. Verifique as datas ou o ritmo escolhido.`);
+            throw new Error("O plano não pode ser recalculado. Verifique as datas ou o ritmo escolhido.");
         }
-        let { recalculatedPlan } = result;
+
+        const { recalculatedPlan } = result;
+        const { totalChaptersRead } = _computeReadingMetrics(recalculatedPlan);
+        const manualCleanupCount =
+            (normalizedSelection.regularChapters?.length || 0) +
+            (normalizedSelection.reconciledChapters?.length || 0);
 
         if (!recalculatedPlan.recalculationHistory) recalculatedPlan.recalculationHistory = [];
         recalculatedPlan.recalculationHistory.push({
-            date: getCurrentUTCDateString(),
+            date: todayStr,
             type: 'manual',
             recalculatedFromDay: originalPlan.currentDay,
-            chaptersReadAtPoint: Object.values(originalPlan.readLog || {}).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0),
+            chaptersReadAtPoint: totalChaptersRead,
             option: option,
             paceValue: option === 'new_pace' ? newPaceValue : null,
             startDateOption: startDateOption,
-            manualCleanupCount: manuallyReadChapters ? manuallyReadChapters.length : 0,
-            variableWeights: option === 'variable_pace' ? dayWeights : null 
+            manualCleanupCount,
+            variableWeights: option === 'variable_pace' ? dayWeights : null
         });
 
-        const planToSave = { ...recalculatedPlan };
-        delete planToSave.id;
-
+        const { id, ...planToSave } = recalculatedPlan;
         await planService.saveRecalculatedPlan(appState.currentUser.uid, planId, planToSave);
-        
+
         const planIndex = appState.userPlans.findIndex(p => p.id === planId);
         if (planIndex !== -1) {
-            appState.userPlans[planIndex] = { ...recalculatedPlan, id: planId };
+            appState.userPlans[planIndex] = { id: planId, ...planToSave };
         }
-        
-        renderAllPlanCards();
-        sidePanelsUI.render(appState.userPlans, {
-            onSwitchPlan: handleSwitchPlan,
-            onRecalculate: (planId) => {
-                modalsUI.resetRecalculateForm();
-                document.getElementById('confirm-recalculate').dataset.planId = planId;
-                modalsUI.open('recalculate-modal');
-            }
-        });
-        floatingNavigatorUI.render(appState.userPlans, appState.activePlanId);
-        
+
+        updateAllViews();
         modalsUI.close('recalculate-modal');
         toastUI.showToast("Plano recalculado com sucesso!", 'success');
 
@@ -1022,11 +1044,8 @@ async function handleRecalculate(option, newPaceValue, startDateOption, specific
         if (planCard) {
             planCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             planCard.classList.add('recalculated-highlight');
-            setTimeout(() => {
-                planCard.classList.remove('recalculated-highlight');
-            }, 2500); 
+            setTimeout(() => { planCard.classList.remove('recalculated-highlight'); }, 2500);
         }
-
     } catch (error) {
         console.error("[ERRO NO RECÁLCULO]", error);
         modalsUI.showError('recalculate-modal', `Erro: ${error.message}`);
@@ -1140,9 +1159,7 @@ function handleShowStats(planId) {
     const progressPercentage = totalReadingDaysInPlan > 0 ? Math.min(100, ((plan.currentDay - 1) / totalReadingDaysInPlan) * 100) : 0;
     
     const logEntries = plan.readLog || {};
-    const chaptersReadFromLog = Object.values(logEntries).reduce((sum, chapters) => sum + (Array.isArray(chapters) ? chapters.length : 0), 0);
-    const daysWithReading = Object.keys(logEntries).filter(date => Array.isArray(logEntries[date]) && logEntries[date].length > 0).length;
-    const avgPace = daysWithReading > 0 ? (chaptersReadFromLog / daysWithReading) : 0;
+    const { totalChaptersRead: chaptersReadFromLog, avgPace } = _computeReadingMetrics(plan);
     
     const recalculationsCount = plan.recalculationHistory?.length || 0;
     
@@ -1503,8 +1520,8 @@ function initApplication() {
                 modalsUI.renderManualCheckList(plan);
             }
         },
-        onConfirmRecalculate: (option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights) => {
-            handleRecalculate(option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights);
+        onConfirmRecalculate: (option, newPace, startDateOption, specificDate, manualSelection, dayWeights) => {
+            handleRecalculate(option, newPace, startDateOption, specificDate, manualSelection, dayWeights);
         },
         onPreviewRecalculate: (planId, option, newPace, startDateOption, specificDate) => {
             return handleRecalculationPreview(planId, option, newPace, startDateOption, specificDate);
@@ -1513,7 +1530,8 @@ function initApplication() {
         onDeleteVerseHighlight: handleDeleteVerseHighlight,
         onToggleSetting: handleToggleSetting,
         onCloseSettings: handleCloseSettings,
-        onConfirmShortDelayRecalc: handleConfirmShortDelayRecalc
+        onConfirmShortDelayRecalc: handleConfirmShortDelayRecalc,
+        onConfirmShortDelayStep2: _executeShortDelayBatchRecalc
     });
     
     console.log("Aplicação modular inicializada com nova arquitetura de UI. v1.1.0");

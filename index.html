@@ -457,17 +457,39 @@
             <div class="modal-content modal-content-scrollable">
                 <span class="close-button">×</span>
                 <h2>📅 Ajuste Rápido de Planos</h2>
-                <p>Identificamos que os planos abaixo estão com 1 a 3 dias de leitura em atraso. Deseja recalculá-los automaticamente a partir de hoje mantendo o ritmo original?</p>
-                
+
                 <div id="short-delay-recalc-error" class="error-message" style="display: none;"></div>
                 <div id="short-delay-recalc-loading" class="loading-indicator" style="display: none;">Recalculando planos...</div>
 
-                <div id="short-delay-plans-list" class="short-delay-plans-container">
+                <div id="short-delay-step-1">
+                    <p>Identificamos que os planos abaixo estão com 1 a 3 dias de leitura em atraso. Deseja recalculá-los automaticamente a partir de hoje mantendo o ritmo atual de cada plano?</p>
+
+                    <div id="short-delay-plans-list" class="short-delay-plans-container">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="cancel-short-delay-recalc" class="button-secondary">Agora não</button>
+                        <button type="button" id="confirm-short-delay-recalc" class="button-primary">Confirmar Recálculo Global</button>
+                    </div>
                 </div>
 
-                <div class="modal-footer">
-                    <button type="button" id="cancel-short-delay-recalc" class="button-secondary">Agora não</button>
-                    <button type="button" id="confirm-short-delay-recalc" class="button-primary">Confirmar Recálculo Global</button>
+                <div id="short-delay-step-2" style="display: none;">
+                    <p><strong>Passo 2/2: Conferência de Capítulos Fora de Sequência</strong></p>
+                    <p class="small-text">
+                        Detectamos capítulos anteriores ao seu ponto atual de leitura sem registro no histórico. Marque abaixo os capítulos que você <strong style="color: var(--success-color);">já leu</strong> para removê-los antes do recálculo.
+                    </p>
+
+                    <div id="short-delay-anomalies-container" class="short-delay-anomalies-container">
+                    </div>
+
+                    <p class="anomaly-footer-hint">
+                        ℹ️ Capítulos deixados desmarcados continuarão como pendentes e serão reagendados no início do novo cronograma.
+                    </p>
+
+                    <div class="modal-footer">
+                        <button type="button" id="btn-short-delay-back" class="button-secondary">← Voltar</button>
+                        <button type="button" id="confirm-short-delay-step-2" class="button-primary">Confirmar e Recalcular Todos</button>
+                    </div>
                 </div>
             </div>
         </div>

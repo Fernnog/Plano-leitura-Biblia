@@ -2021,3 +2021,226 @@ fieldset:disabled { opacity: 0.5; pointer-events: none; }
         stroke-dashoffset: 0 !important;
     }
 }
+
+/* --- Layout Dinâmico (2 Colunas) no Painel de Leituras Atrasadas --- */
+.overdue-readings-container.grid-layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.overdue-readings-container.grid-layout .recalc-suggestion-item,
+.overdue-readings-container.grid-layout .overdue-overflow-notice {
+    grid-column: 1 / -1;
+}
+
+/* --- Aviso Compacto de Dias Atrasados Ocultos (4 dias) --- */
+.overdue-overflow-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background-color: var(--warning-bg-light);
+    border: 1px dashed var(--warning-border-strong);
+    border-radius: var(--base-border-radius);
+    font-size: 0.9em;
+    color: var(--warning-text-dark);
+}
+
+.overdue-overflow-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.overdue-overflow-btn {
+    padding: 6px 14px;
+    margin: 0;
+    min-height: auto;
+    font-size: 0.85em;
+    background-color: var(--primary-action);
+    color: var(--text-color-light);
+}
+
+.overdue-overflow-btn:hover:not(:disabled) {
+    background-color: var(--primary-action-dark);
+}
+
+/* --- Selo de Aviso Antecipado no Passo 1 do Recálculo Global --- */
+.short-delay-badges-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.short-delay-anomaly-badge {
+    font-size: 0.76em;
+    font-weight: 700;
+    color: var(--danger-color);
+    background-color: rgba(var(--danger-color-rgb), 0.1);
+    border: 1px solid rgba(var(--danger-color-rgb), 0.3);
+    padding: 3px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* --- Passo 2 do Recálculo Global: Conferência de Capítulos Fora de Sequência --- */
+.short-delay-anomalies-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 42vh;
+    overflow-y: auto;
+    padding: 4px 2px;
+    margin-bottom: 12px;
+}
+
+.anomaly-plan-group {
+    background-color: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning-border-strong);
+    border-radius: var(--base-border-radius);
+    padding: 14px;
+    text-align: left;
+}
+
+.anomaly-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.anomaly-plan-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--primary-action);
+    font-size: 1em;
+}
+
+.anomaly-select-all-btn {
+    padding: 4px 10px;
+    margin: 0;
+    min-height: auto;
+    font-size: 0.78em;
+    background-color: rgba(var(--primary-action-rgb), 0.1);
+    color: var(--primary-action);
+    border: 1px solid rgba(var(--primary-action-rgb), 0.25);
+    border-radius: 14px;
+}
+
+.anomaly-select-all-btn:hover:not(:disabled) {
+    background-color: var(--primary-action);
+    color: var(--text-color-light);
+}
+
+.anomaly-context-note {
+    font-size: 0.84em;
+    color: var(--warning-text-dark);
+    margin: 0 0 12px 0 !important;
+    text-align: left !important;
+    line-height: 1.4;
+}
+
+.anomaly-chapters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 8px;
+}
+
+.anomaly-chapter-item {
+    display: flex;
+    align-items: center;
+    background-color: var(--warning-bg-light);
+    border: 1px solid var(--warning-border-strong);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.88em;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.anomaly-chapter-item:hover {
+    border-color: var(--primary-action);
+    background-color: #ffffff;
+}
+
+.anomaly-chapter-item label {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-color-dark);
+}
+
+.anomaly-chapter-item input[type="checkbox"] {
+    margin: 0 8px 0 0 !important;
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+}
+
+.anomaly-footer-hint {
+    font-size: 0.82em !important;
+    color: var(--text-color-muted) !important;
+    background-color: var(--background-light);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 0 0 10px 0 !important;
+    text-align: left !important;
+    line-height: 1.4;
+}
+
+/* --- Seções no Passo 2 do Recálculo Individual --- */
+.manual-check-section-title {
+    grid-column: 1 / -1;
+    font-size: 0.82em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--primary-action);
+    padding: 6px 0 4px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-top: 4px;
+}
+
+.manual-check-section-title.is-warning {
+    color: var(--warning-text-dark);
+    border-bottom-color: var(--warning-border-strong);
+}
+
+.manual-chapter-item.is-out-of-sequence {
+    background-color: var(--warning-bg-light);
+    border-color: var(--warning-border-strong);
+}
+
+@media (max-width: 768px) {
+    .overdue-readings-container.grid-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .anomaly-chapters-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .overdue-overflow-notice {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    .overdue-overflow-info {
+        justify-content: center;
+        min-width: unset;
+    }
+}

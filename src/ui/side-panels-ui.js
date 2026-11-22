@@ -15,10 +15,12 @@ import {
     upcomingReadingsListDiv,
 } from './dom-elements.js';
 
-import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
-import { getCurrentUTCDateString, formatUTCDateStringToBrasilian, countReadingDaysBetween } from '../utils/date-helpers.js';
+import { getEffectiveDateForDay, getOverdueReadingDays } from '../utils/plan-logic-helpers.js';
+import { getCurrentUTCDateString, formatUTCDateStringToBrasilian } from '../utils/date-helpers.js';
 
 const INDIVIDUAL_RECALC_THRESHOLD_DAYS = 5;
+const MAX_OVERDUE_DAYS_PER_PLAN = 3;
+const OVERDUE_GRID_LAYOUT_THRESHOLD = 3;
 
 // --- Funções Privadas de Ordenação e Renderização ---
 
@@ -137,6 +139,42 @@ function _createRecalcSuggestionElement(plan, daysLate, sinceDate, onRecalculate
     return itemEl;
 }
 
+/**
+ * Cria o aviso compacto exibido quando há 4 dias atrasados (3 cards visíveis + 1 oculto).
+ * @private
+ * @param {object} plan - O plano com dias ocultos.
+ * @param {number} hiddenCount - Quantidade de dias atrasados ocultos.
+ * @param {Function} onRecalculate - Callback para acionar o modal de recálculo.
+ * @returns {HTMLElement}
+ */
+function _createOverflowNoticeElement(plan, hiddenCount, onRecalculate) {
+    const noticeEl = document.createElement('div');
+    noticeEl.className = 'overdue-overflow-notice';
+
+    const infoEl = document.createElement('div');
+    infoEl.className = 'overdue-overflow-info';
+
+    const iconSpan = document.createElement('span');
+    iconSpan.textContent = plan.icon || '📖';
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `${plan.name}: exibindo os ${MAX_OVERDUE_DAYS_PER_PLAN} dias mais antigos (+${hiddenCount} ${hiddenCount === 1 ? 'dia atrasado oculto' : 'dias atrasados ocultos'}).`;
+
+    infoEl.append(iconSpan, textSpan);
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'overdue-overflow-btn';
+    btn.textContent = 'Recalcular';
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onRecalculate?.(plan.id);
+    });
+
+    noticeEl.append(infoEl, btn);
+    return noticeEl;
+}
+
 
 // --- Funções Públicas (API do Módulo) ---
 
@@ -162,7 +200,13 @@ function _getCompletedDaysForToday(plan, todayStr) {
         return [];
     }
 
-    const loggedSet = new Set(loggedChaptersToday);
+    const reconciledSet = new Set(Array.isArray(plan.reconciledChapters) ? plan.reconciledChapters : []);
+    // Filtra capítulos reconciliados retroativamente para evitar falso status "concluído hoje"
+    const loggedSet = new Set(loggedChaptersToday.filter(ch => !reconciledSet.has(ch)));
+    if (loggedSet.size === 0) {
+        return [];
+    }
+
     const completedTodayList = [];
 
     // Percorre de trás para frente a partir do dia imediatamente anterior ao currentDay
@@ -206,13 +250,14 @@ export function render(allUserPlans, callbacks) {
 
     const todayStr = getCurrentUTCDateString();
     const overdueReadings = [];
+    const overdueNotices = [];
     const upcomingReadings = [];
     const UPCOMING_DAYS_WINDOW = 10;
 
     allUserPlans.forEach(plan => {
         const totalReadingDaysInPlan = Object.keys(plan.plan || {}).length;
 
-        // 1. Recupera dias já avançados na data de hoje (busca reversa O(1))
+        // 1. Dias concluídos hoje permanecem fora do teto de 3 pendentes para feedback visual
         const completedTodayItems = _getCompletedDaysForToday(plan, todayStr);
         completedTodayItems.forEach(completedItem => {
             if (completedItem.date < todayStr) {
@@ -235,80 +280,87 @@ export function render(allUserPlans, callbacks) {
             }
         });
 
-        // Se o plano inteiro foi concluído, não há dias futuros pendentes a projetar
         if (plan.currentDay > totalReadingDaysInPlan) {
             return;
         }
 
-        // Verifica se todos os capítulos do currentDay já estão marcados nos checkboxes
         const currentDayChapters = plan.plan[plan.currentDay.toString()] || [];
         const isCurrentDayAllChecked = currentDayChapters.length > 0 &&
             currentDayChapters.every(ch => Boolean(plan.dailyChapterReadStatus?.[ch]));
 
-        // 2. Lógica de Leituras Atrasadas para o currentDay
-        const firstEffectiveDateStr = getEffectiveDateForDay(plan, plan.currentDay);
-        if (!firstEffectiveDateStr) return; 
+        // 2. Leituras Atrasadas via Fonte Única da Verdade (< todayStr)
+        const overdueDaysForPlan = getOverdueReadingDays(plan, todayStr);
+        if (overdueDaysForPlan.length > 0) {
+            const readingDaysLate = overdueDaysForPlan.length;
 
-        if (firstEffectiveDateStr < todayStr) {
-            const readingDaysLate = countReadingDaysBetween(firstEffectiveDateStr, todayStr, plan.allowedDays);
-            
-            // Só exibe sugestão de recálculo se for atraso >= 5 dias E o usuário ainda não tiver marcado os capítulos hoje
-            if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS && !isCurrentDayAllChecked) {
-                overdueReadings.push({
-                    itemType: 'recalc-suggestion',
-                    plan,
-                    date: firstEffectiveDateStr,
-                    daysLate: readingDaysLate,
-                    dayNumber: plan.currentDay
-                });
-            } else {
+            // Sempre exibe até os 3 dias mais antigos do plano
+            const visibleOverdueDays = overdueDaysForPlan.slice(0, MAX_OVERDUE_DAYS_PER_PLAN);
+            visibleOverdueDays.forEach(dayItem => {
                 overdueReadings.push({
                     itemType: 'reading',
                     plan,
-                    date: firstEffectiveDateStr,
-                    chapters: currentDayChapters,
-                    completed: isCurrentDayAllChecked,
-                    dayNumber: plan.currentDay
+                    date: dayItem.date,
+                    chapters: dayItem.chapters,
+                    completed: dayItem.dayNumber === plan.currentDay && isCurrentDayAllChecked,
+                    dayNumber: dayItem.dayNumber
+                });
+            });
+
+            const hiddenCount = readingDaysLate - visibleOverdueDays.length;
+            if (readingDaysLate >= INDIVIDUAL_RECALC_THRESHOLD_DAYS && !isCurrentDayAllChecked) {
+                overdueNotices.push({
+                    itemType: 'recalc-suggestion',
+                    plan,
+                    date: overdueDaysForPlan[0].date,
+                    daysLate: readingDaysLate
+                });
+            } else if (hiddenCount > 0) {
+                overdueNotices.push({
+                    itemType: 'overflow-notice',
+                    plan,
+                    hiddenCount
                 });
             }
         }
-        
-        // 3. Lógica de Próximas Leituras (Ciclo Semanal)
+
+        // 3. Próximas Leituras
         for (let i = 0; i < UPCOMING_DAYS_WINDOW; i++) {
             const dayNumber = plan.currentDay + i;
-            if (dayNumber > totalReadingDaysInPlan) {
-                break;
-            }
+            if (dayNumber > totalReadingDaysInPlan) break;
 
             const projectedDateStr = getEffectiveDateForDay(plan, dayNumber);
-
             if (projectedDateStr && projectedDateStr >= todayStr) {
                 const chapters = plan.plan[dayNumber.toString()] || [];
-                const isCompleted = (i === 0 && isCurrentDayAllChecked);
                 upcomingReadings.push({
                     plan,
                     date: projectedDateStr,
                     chapters,
-                    completed: isCompleted,
+                    completed: (i === 0 && isCurrentDayAllChecked),
                     dayNumber
                 });
             }
         }
     });
 
-    // 4. Ordenação Cronológica e Renderização Atômica dos Atrasados (Mais antigo -> Mais recente)
-    if (overdueReadings.length > 0) {
+    // 4. Ordenação Cronológica, Grid Dinâmico (2 colunas a partir de 3 cards) e Commit Atômico
+    if (overdueReadings.length > 0 || overdueNotices.length > 0) {
         overdueReadings.sort(_compareReadingItemsChronologically);
 
-        const overdueElements = overdueReadings.map(itemData =>
-            itemData.itemType === 'recalc-suggestion'
-                ? _createRecalcSuggestionElement(itemData.plan, itemData.daysLate, itemData.date, callbacks.onRecalculate)
-                : _createReadingItemElement(itemData, 'overdue', callbacks.onSwitchPlan)
+        overdueReadingsListDiv.classList.toggle('grid-layout', overdueReadings.length >= OVERDUE_GRID_LAYOUT_THRESHOLD);
+
+        const readingElements = overdueReadings.map(itemData =>
+            _createReadingItemElement(itemData, 'overdue', callbacks.onSwitchPlan)
+        );
+        const noticeElements = overdueNotices.map(notice =>
+            notice.itemType === 'recalc-suggestion'
+                ? _createRecalcSuggestionElement(notice.plan, notice.daysLate, notice.date, callbacks.onRecalculate)
+                : _createOverflowNoticeElement(notice.plan, notice.hiddenCount, callbacks.onRecalculate)
         );
 
-        overdueReadingsListDiv.replaceChildren(...overdueElements);
+        overdueReadingsListDiv.replaceChildren(...readingElements, ...noticeElements);
         overdueReadingsSection.style.display = 'block';
     } else {
+        overdueReadingsListDiv.classList.remove('grid-layout');
         overdueReadingsListDiv.replaceChildren();
         overdueReadingsSection.style.display = 'none';
     }

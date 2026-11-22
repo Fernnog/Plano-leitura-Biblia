@@ -78,3 +78,186 @@ export function getEffectiveDateForDay(planData, targetDayNumber) {
         return calculateDateForDay(planData.startDate, targetDayNumber, planData.allowedDays);
     }
 }
+
+/**
+ * Retorna todos os dias de leitura pendentes de um plano cuja data efetiva seja
+ * ESTRITAMENTE anterior à data de referência (`effectiveDateStr < todayStr`).
+ *
+ * Decisão explícita de domínio: o dia corrente ainda está em andamento até 23:59 UTC
+ * e não configura atraso. Esta função é a Fonte Única da Verdade consumida pelo painel
+ * de atrasadas, pelo modal de ajuste rápido e pelo toast inicial.
+ *
+ * @param {object} plan - Objeto completo do plano.
+ * @param {string} todayStr - Data UTC atual no formato YYYY-MM-DD.
+ * @returns {Array<{ dayNumber: number, date: string, chapters: string[] }>}
+ */
+export function getOverdueReadingDays(plan, todayStr) {
+    if (!plan || !plan.plan || !todayStr) return [];
+
+    const totalReadingDaysInPlan = Object.keys(plan.plan).length;
+    const currentDay = Number(plan.currentDay) || 1;
+    if (currentDay > totalReadingDaysInPlan) return [];
+
+    const overdueDays = [];
+    for (let dayNum = currentDay; dayNum <= totalReadingDaysInPlan; dayNum++) {
+        const effectiveDateStr = getEffectiveDateForDay(plan, dayNum);
+        if (!effectiveDateStr || effectiveDateStr >= todayStr) {
+            break;
+        }
+        overdueDays.push({
+            dayNumber: dayNum,
+            date: effectiveDateStr,
+            chapters: plan.plan[dayNum.toString()] || []
+        });
+    }
+
+    return overdueDays;
+}
+
+/**
+ * Consolida de forma pura e definitiva no `readLog` sob a data REAL `logDateStr` (nunca sob
+ * uma data futura do cronograma):
+ *  - `regularChapters`: leituras efetivamente realizadas hoje (ex: seção "Próximos pendentes").
+ *    Entram em `readLog[logDateStr]` e CONTAM normalmente no ritmo médio (`avgPace`).
+ *  - `reconciledChapters` + chaves órfãs em `dailyChapterReadStatus`: regularizações retroativas
+ *    de capítulos lidos no passado. Entram em `readLog[logDateStr]` E em `plan.reconciledChapters`
+ *    (descontadas de `avgPace` e ignoradas no detector de "concluído hoje").
+ *
+ * @param {object} plan - Objeto original do plano.
+ * @param {{ regularChapters?: string[], reconciledChapters?: string[] }|string[]} [chaptersInput={}]
+ * @param {string} logDateStr - Data real de hoje em UTC (YYYY-MM-DD).
+ * @returns {object} Novo objeto de plano imutável com histórico e status diário normalizados.
+ */
+export function consolidateReadChapters(plan, chaptersInput = {}, logDateStr) {
+    if (!plan || !logDateStr) {
+        throw new Error("Plano e data real de registro (logDateStr) são obrigatórios para consolidação.");
+    }
+
+    const regularChapters = Array.isArray(chaptersInput)
+        ? []
+        : (Array.isArray(chaptersInput?.regularChapters) ? chaptersInput.regularChapters.filter(Boolean) : []);
+
+    const explicitReconciled = Array.isArray(chaptersInput)
+        ? chaptersInput.filter(Boolean)
+        : (Array.isArray(chaptersInput?.reconciledChapters) ? chaptersInput.reconciledChapters.filter(Boolean) : []);
+
+    const currentDayKey = String(plan.currentDay || 1);
+    const scheduledToday = new Set(plan.plan?.[currentDayKey] || []);
+
+    // Qualquer checkbox marcado que não pertence ao dia atual é órfão legado e deve ser reconciliado
+    const orphanChecked = Object.entries(plan.dailyChapterReadStatus || {})
+        .filter(([chapterName, isRead]) => isRead === true && !scheduledToday.has(chapterName))
+        .map(([chapterName]) => chapterName);
+
+    const reconciledToAdd = Array.from(new Set([...explicitReconciled, ...orphanChecked]));
+    const allChaptersToLog = Array.from(new Set([...regularChapters, ...reconciledToAdd]));
+
+    const updatedReadLog = { ...(plan.readLog || {}) };
+    if (allChaptersToLog.length > 0) {
+        const existingForDate = Array.isArray(updatedReadLog[logDateStr]) ? updatedReadLog[logDateStr] : [];
+        updatedReadLog[logDateStr] = Array.from(new Set([...existingForDate, ...allChaptersToLog]));
+    }
+
+    const updatedReconciledSet = new Set(Array.isArray(plan.reconciledChapters) ? plan.reconciledChapters : []);
+    reconciledToAdd.forEach(ch => updatedReconciledSet.add(ch));
+
+    // Mantém em dailyChapterReadStatus somente capítulos do dia atual ainda não transferidos para readLog
+    const loggedNowSet = new Set(allChaptersToLog);
+    const updatedDailyStatus = {};
+    scheduledToday.forEach(ch => {
+        if (plan.dailyChapterReadStatus?.[ch] === true && !loggedNowSet.has(ch)) {
+            updatedDailyStatus[ch] = true;
+        }
+    });
+
+    return {
+        ...plan,
+        readLog: updatedReadLog,
+        dailyChapterReadStatus: updatedDailyStatus,
+        reconciledChapters: Array.from(updatedReconciledSet)
+    };
+}
+
+/**
+ * Detecta capítulos pendentes que ficaram perdidos antes da fronteira de progresso real
+ * na sequência do plano (`plan.chaptersList`), funcionando integralmente em planos
+ * canônicos, avulsos, intercalados e com releitura.
+ *
+ * @param {object} plan - Objeto completo do plano.
+ * @returns {{ hasAnomalies: boolean, outOfSequenceChapters: string[], frontierChapter: string|null, frontierIndex: number }}
+ */
+export function detectOutOfSequenceChapters(plan) {
+    const emptyResult = {
+        hasAnomalies: false,
+        outOfSequenceChapters: [],
+        frontierChapter: null,
+        frontierIndex: -1
+    };
+
+    if (!plan || !Array.isArray(plan.chaptersList) || plan.chaptersList.length === 0) {
+        return emptyResult;
+    }
+
+    const chaptersList = plan.chaptersList;
+    const chapterIndexMap = new Map();
+    chaptersList.forEach((chapter, idx) => {
+        if (!chapterIndexMap.has(chapter)) {
+            chapterIndexMap.set(chapter, idx);
+        }
+    });
+
+    const readLogSet = new Set();
+    Object.values(plan.readLog || {}).forEach(chaptersOnDate => {
+        if (Array.isArray(chaptersOnDate)) {
+            chaptersOnDate.forEach(ch => readLogSet.add(ch));
+        }
+    });
+
+    const allReadSet = new Set(readLogSet);
+    (plan.reconciledChapters || []).forEach(ch => allReadSet.add(ch));
+    Object.entries(plan.dailyChapterReadStatus || {}).forEach(([ch, isRead]) => {
+        if (isRead === true) {
+            allReadSet.add(ch);
+        }
+    });
+
+    // Fronteira real: maior índice registrado em readLog OU em dias já concluídos (1 .. currentDay - 1)
+    let frontierIndex = -1;
+
+    readLogSet.forEach(ch => {
+        const idx = chapterIndexMap.get(ch);
+        if (idx !== undefined && idx > frontierIndex) {
+            frontierIndex = idx;
+        }
+    });
+
+    const currentDay = Number(plan.currentDay) || 1;
+    for (let day = 1; day < currentDay; day++) {
+        const pastDayChapters = plan.plan?.[day.toString()] || [];
+        pastDayChapters.forEach(ch => {
+            const idx = chapterIndexMap.get(ch);
+            if (idx !== undefined && idx > frontierIndex) {
+                frontierIndex = idx;
+            }
+        });
+    }
+
+    if (frontierIndex <= 0) {
+        return emptyResult;
+    }
+
+    const outOfSequenceChapters = [];
+    for (let i = 0; i < frontierIndex; i++) {
+        const chapter = chaptersList[i];
+        if (!allReadSet.has(chapter)) {
+            outOfSequenceChapters.push(chapter);
+        }
+    }
+
+    return {
+        hasAnomalies: outOfSequenceChapters.length > 0,
+        outOfSequenceChapters,
+        frontierChapter: chaptersList[frontierIndex] || null,
+        frontierIndex
+    };
+}

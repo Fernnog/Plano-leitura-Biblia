@@ -180,6 +180,11 @@ export const shortDelayThresholdContainer = document.getElementById('short-delay
 export const shortDelayThresholdRadios = document.querySelectorAll('input[name="short-delay-threshold"]');
 
 export const shortDelayRecalcModal = document.getElementById('short-delay-recalc-modal');
+export const shortDelayStep1 = document.getElementById('short-delay-step-1');
+export const shortDelayStep2 = document.getElementById('short-delay-step-2');
 export const shortDelayPlansList = document.getElementById('short-delay-plans-list');
+export const shortDelayAnomaliesContainer = document.getElementById('short-delay-anomalies-container');
 export const confirmShortDelayRecalcBtn = document.getElementById('confirm-short-delay-recalc');
 export const cancelShortDelayRecalcBtn = document.getElementById('cancel-short-delay-recalc');
+export const btnShortDelayBack = document.getElementById('btn-short-delay-back');
+export const confirmShortDelayStep2Btn = document.getElementById('confirm-short-delay-step-2');

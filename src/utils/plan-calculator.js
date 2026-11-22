@@ -1,10 +1,11 @@
 /**
  * @file plan-calculator.js
- * @description Módulo central para lógicas de cálculo e recálculo de planos.
+ * @description Motor único e puro para cálculo e recálculo de cronogramas.
+ * Pré-condição: receber o plano já normalizado via `consolidateReadChapters`.
  */
 
 import { countReadingDaysBetween } from './date-helpers.js';
-import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js'; 
+import { distributeChaptersOverReadingDays, distributeChaptersWeighted } from './chapter-helpers.js';
 import { getEffectiveDateForDay } from './plan-logic-helpers.js';
 
 function _getChaptersFromLog(plan) {
@@ -16,6 +17,8 @@ function _getChaptersFromLog(plan) {
         }
     });
 
+    (plan.reconciledChapters || []).forEach(chapter => chaptersRead.add(chapter));
+
     const currentStatus = plan.dailyChapterReadStatus || {};
     Object.entries(currentStatus).forEach(([chapterName, isRead]) => {
         if (isRead === true) {
@@ -26,57 +29,84 @@ function _getChaptersFromLog(plan) {
     return chaptersRead;
 }
 
-export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, options = {}) {
-    console.log('[DEBUG CALCULATOR] Iniciando cálculo. Options:', options);
+/**
+ * Resolve o ritmo vigente de referência do plano sem deriva entre recálculos sucessivos.
+ * @param {object} plan
+ * @returns {number}
+ */
+export function resolveOriginalPace(plan) {
+    if (typeof plan.chaptersPerDay === 'number' && plan.chaptersPerDay > 0) {
+        return plan.chaptersPerDay;
+    }
+    const totalDays = Object.keys(plan.plan || {}).length || 1;
+    return Math.max(0.5, (plan.totalChapters || 1) / totalDays);
+}
 
-    const chaptersReadSet = _getChaptersFromLog(plan);
+/**
+ * Recalcula o cronograma futuro de um plano já consolidado a partir de `baseDateStr`.
+ *
+ * @param {object} plan - Plano previamente consolidado por `consolidateReadChapters`.
+ * @param {string} targetEndDate - Data alvo de término (YYYY-MM-DD) ou marcador para ritmo variável.
+ * @param {string} baseDateStr - Data de início do novo cronograma (YYYY-MM-DD), independente do readLog.
+ * @param {object} [options={}] - Opções de cálculo (`type`, `pace`, `dayWeights`).
+ * @returns {{ recalculatedPlan: object, newPace: number|string }|null}
+ */
+export function recalculatePlanToTargetDate(plan, targetEndDate, baseDateStr, options = {}) {
     const currentDayStr = plan.currentDay.toString();
     const scheduledForToday = plan.plan[currentDayStr] || [];
-    const checkedOnCurrentDay = scheduledForToday.filter(chapter => 
+    const scheduledTodaySet = new Set(scheduledForToday);
+
+    // Salvaguarda defensiva de contrato: alerta caso algum chamador esqueça a consolidação prévia
+    const hasUnconsolidatedOrphans = Object.entries(plan.dailyChapterReadStatus || {})
+        .some(([ch, isRead]) => isRead === true && !scheduledTodaySet.has(ch));
+    if (hasUnconsolidatedOrphans) {
+        console.warn('[plan-calculator] Plano recebido com chaves órfãs em dailyChapterReadStatus. Execute consolidateReadChapters antes.');
+    }
+
+    const chaptersReadSet = _getChaptersFromLog(plan);
+    const checkedOnCurrentDay = scheduledForToday.filter(chapter =>
         plan.dailyChapterReadStatus && plan.dailyChapterReadStatus[chapter] === true
     );
 
-    const remainingChapters = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter));
+    const remainingChapters = (plan.chaptersList || []).filter(chapter => !chaptersReadSet.has(chapter));
+    const preservedPace = resolveOriginalPace(plan);
 
-    // Se já terminou tudo e não tem nada marcado hoje
     if (remainingChapters.length === 0 && checkedOnCurrentDay.length === 0) {
-        return { recalculatedPlan: { ...plan }, newPace: 0 };
+        return {
+            recalculatedPlan: {
+                ...plan,
+                chaptersPerDay: preservedPace
+            },
+            newPace: 0
+        };
     }
 
     let newPlanMap = {};
     let calculatedEndDate = targetEndDate;
     let newPace = 0;
 
-    // --- LÓGICA DE DISTRIBUIÇÃO PONDERADA (v1.0.5 FIX) ---
+    // --- LÓGICA DE DISTRIBUIÇÃO PONDERADA (Ritmo Variável) ---
     if (options && options.type === 'variable_pace') {
-        
         if (!options.dayWeights || Object.keys(options.dayWeights).length === 0) {
-             console.error('[ERRO CRÍTICO] dayWeights vazio. Revertendo para lógica padrão.');
-             newPace = 1; // Fallback
+            console.error('[ERRO CRÍTICO] dayWeights vazio. Revertendo para lógica padrão.');
+            newPace = 1;
         } else {
-            // Chama a nova função importada
-            const distResult = distributeChaptersWeighted(remainingChapters, todayStr, options.dayWeights);
-            
+            const distResult = distributeChaptersWeighted(remainingChapters, baseDateStr, options.dayWeights);
             const remainingPlanMap = distResult.planMap;
             calculatedEndDate = distResult.endDate;
-            newPace = 'Variável'; 
+            newPace = 'Variável';
 
-            // (A) Preserva o Passado
             for (let i = 1; i < plan.currentDay; i++) {
                 if (plan.plan[i]) {
                     newPlanMap[i] = plan.plan[i];
                 }
             }
 
-            // (B) Reconstrói o Presente/Futuro
-            // Nota: remainingPlanMap tem chaves relativas "1", "2"... 
-            // "1" corresponde ao primeiro dia do recálculo (hoje ou amanhã, dependendo da config)
             Object.keys(remainingPlanMap).forEach((dayKeyRelative) => {
-                const relativeIndex = parseInt(dayKeyRelative) - 1; 
+                const relativeIndex = parseInt(dayKeyRelative, 10) - 1;
                 const newDayKey = plan.currentDay + relativeIndex;
                 let chaptersForDay = remainingPlanMap[dayKeyRelative];
 
-                // Reinjeta capítulos do dia atual no início da lista do primeiro dia
                 if (relativeIndex === 0 && checkedOnCurrentDay.length > 0) {
                     const existingSet = new Set(chaptersForDay);
                     const uniqueCheck = checkedOnCurrentDay.filter(ch => !existingSet.has(ch));
@@ -85,47 +115,40 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
 
                 newPlanMap[newDayKey] = chaptersForDay;
             });
-            
-            // Caso de borda: nada restante, mas algo marcado hoje
+
             if (remainingChapters.length === 0 && checkedOnCurrentDay.length > 0) {
                 newPlanMap[plan.currentDay] = checkedOnCurrentDay;
             }
 
-            // DEBUG FINAL
-            const keys = Object.keys(newPlanMap).sort((a,b) => Number(a)-Number(b));
-            console.log('[DEBUG CALCULATOR] Chaves (Amostra):', keys.slice(0, 5));
-            console.log('[DEBUG CALCULATOR] Dia Atual:', newPlanMap[plan.currentDay]);
-            
             const updatedPlan = {
                 ...plan,
                 plan: newPlanMap,
-                endDate: calculatedEndDate, 
+                endDate: calculatedEndDate,
+                chaptersPerDay: preservedPace,
                 recalculationBaseDay: plan.currentDay,
-                recalculationBaseDate: todayStr,
+                recalculationBaseDate: baseDateStr,
             };
-            
+
             return { recalculatedPlan: updatedPlan, newPace };
         }
     }
 
     // --- LÓGICA PADRÃO (DISTRIBUIÇÃO UNIFORME) ---
-    const availableReadingDays = countReadingDaysBetween(todayStr, targetEndDate, plan.allowedDays);
+    const availableReadingDays = countReadingDaysBetween(baseDateStr, targetEndDate, plan.allowedDays);
 
     if (availableReadingDays < 1) {
-        return null; // Impossível terminar
+        return null;
     }
 
     newPace = remainingChapters.length / availableReadingDays;
     const remainingPlanMap = distributeChaptersOverReadingDays(remainingChapters, availableReadingDays);
-    
-    // Preserva Passado
+
     for (let i = 1; i < plan.currentDay; i++) {
         if (plan.plan[i]) {
-        newPlanMap[i] = plan.plan[i];
+            newPlanMap[i] = plan.plan[i];
         }
     }
 
-    // Reconstrói Futuro
     Object.keys(remainingPlanMap).forEach((dayKey, index) => {
         const newDayKey = plan.currentDay + index;
         let chaptersForDay = remainingPlanMap[dayKey];
@@ -140,27 +163,31 @@ export function recalculatePlanToTargetDate(plan, targetEndDate, todayStr, optio
         newPlanMap[plan.currentDay] = checkedOnCurrentDay;
     }
 
+    // Redefinição deliberada (`new_pace`) atualiza o ritmo vigente; `increase_pace`/`sync` preservam o ritmo base
+    const persistedPace = options.type === 'new_pace' && options.pace > 0 ? options.pace : preservedPace;
+
     const updatedPlan = {
         ...plan,
         plan: newPlanMap,
-        endDate: calculatedEndDate, 
+        endDate: calculatedEndDate,
+        chaptersPerDay: persistedPace,
         recalculationBaseDay: plan.currentDay,
-        recalculationBaseDate: todayStr,
+        recalculationBaseDate: baseDateStr,
     };
-    
+
     return { recalculatedPlan: updatedPlan, newPace };
 }
 
-export function calculateEndDateFromPace(plan, pace, todayStr) {
+export function calculateEndDateFromPace(plan, pace, baseDateStr) {
     if (!pace || pace < 0) return null;
     const chaptersReadSet = _getChaptersFromLog(plan);
-    const remainingChaptersCount = plan.chaptersList.filter(chapter => !chaptersReadSet.has(chapter)).length;
-    
-    if (remainingChaptersCount <= 0) return plan.endDate; 
+    const remainingChaptersCount = (plan.chaptersList || []).filter(chapter => !chaptersReadSet.has(chapter)).length;
+
+    if (remainingChaptersCount <= 0) return plan.endDate;
 
     const requiredReadingDays = pace > 0 ? Math.ceil(remainingChaptersCount / pace) : 0;
     const planDataForEndDateCalc = {
-        startDate: todayStr,
+        startDate: baseDateStr,
         allowedDays: plan.allowedDays,
     };
     return getEffectiveDateForDay(planDataForEndDateCalc, requiredReadingDays);

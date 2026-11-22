@@ -28,8 +28,10 @@ import {
     // Configurações e Recálculo Rápido (1-3 dias)
     settingsModal, toggleAutoRecalcShortDelay,
     shortDelayThresholdContainer, shortDelayThresholdRadios,
-    shortDelayRecalcModal, shortDelayPlansList,
+    shortDelayRecalcModal, shortDelayStep1, shortDelayStep2,
+    shortDelayPlansList, shortDelayAnomaliesContainer,
     confirmShortDelayRecalcBtn, cancelShortDelayRecalcBtn,
+    btnShortDelayBack, confirmShortDelayStep2Btn,
     // Highlights
     highlightModal, highlightForm, highlightPlanIdInput, highlightChapterName, highlightVersesInput,
     // Meus Grifos (NOVO)
@@ -38,7 +40,7 @@ import {
 
 import { CANONICAL_BOOK_ORDER, BIBLE_BOOKS_CHAPTERS } from '../config/bible-data.js';
 import { formatUTCDateStringToBrasilian, getCurrentUTCDateString } from '../utils/date-helpers.js';
-import { getEffectiveDateForDay } from '../utils/plan-logic-helpers.js';
+import { getEffectiveDateForDay, detectOutOfSequenceChapters } from '../utils/plan-logic-helpers.js';
 
 // --- Estado Interno e Callbacks ---
 let state = {
@@ -49,7 +51,8 @@ let state = {
         onDeleteVerseHighlight: null,
         onToggleSetting: null,
         onCloseSettings: null,
-        onConfirmShortDelayRecalc: null
+        onConfirmShortDelayRecalc: null,
+        onConfirmShortDelayStep2: null
     },
 };
 
@@ -232,27 +235,139 @@ export function openSettingsModal(userSettings = {}) {
     open('settings-modal');
 }
 
+export function resetShortDelayToStep1() {
+    hideError('short-delay-recalc-modal');
+    if (shortDelayStep1) shortDelayStep1.style.display = 'block';
+    if (shortDelayStep2) shortDelayStep2.style.display = 'none';
+}
+
+export function setShortDelayLoading(isLoading) {
+    if (isLoading) {
+        showLoading('short-delay-recalc-modal');
+    } else {
+        hideLoading('short-delay-recalc-modal');
+    }
+    [confirmShortDelayRecalcBtn, confirmShortDelayStep2Btn, btnShortDelayBack, cancelShortDelayRecalcBtn]
+        .forEach(btn => { if (btn) btn.disabled = isLoading; });
+}
+
 export function displayShortDelayConfirmation(delayedPlansInfo) {
     if (!shortDelayPlansList || !Array.isArray(delayedPlansInfo) || delayedPlansInfo.length === 0) return;
 
-    hideError('short-delay-recalc-modal');
-    hideLoading('short-delay-recalc-modal');
-    shortDelayPlansList.innerHTML = '';
+    resetShortDelayToStep1();
+    setShortDelayLoading(false);
+    shortDelayPlansList.replaceChildren();
 
-    delayedPlansInfo.forEach(({ plan, daysLate }) => {
+    let totalAnomalies = 0;
+
+    delayedPlansInfo.forEach(({ plan, daysLate, anomaly }) => {
+        const anomalyCount = anomaly?.hasAnomalies ? anomaly.outOfSequenceChapters.length : 0;
+        totalAnomalies += anomalyCount;
+
         const item = document.createElement('div');
         item.className = 'short-delay-plan-item';
-        item.innerHTML = `
-            <div class="short-delay-plan-title">
-                <span>${plan.icon || '📖'}</span>
-                <span>${plan.name || 'Plano sem nome'}</span>
-            </div>
-            <span class="short-delay-badge">${daysLate} ${daysLate === 1 ? 'dia de atraso' : 'dias de atraso'}</span>
-        `;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'short-delay-plan-title';
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = plan.icon || '📖';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = plan.name || 'Plano sem nome';
+        titleDiv.append(iconSpan, nameSpan);
+
+        const badgesDiv = document.createElement('div');
+        badgesDiv.className = 'short-delay-badges-group';
+
+        const delayBadge = document.createElement('span');
+        delayBadge.className = 'short-delay-badge';
+        delayBadge.textContent = `${daysLate} ${daysLate === 1 ? 'dia de atraso' : 'dias de atraso'}`;
+        badgesDiv.appendChild(delayBadge);
+
+        if (anomalyCount > 0) {
+            const anomalyBadge = document.createElement('span');
+            anomalyBadge.className = 'short-delay-anomaly-badge';
+            anomalyBadge.textContent = `⚠️ ${anomalyCount} fora de sequência`;
+            badgesDiv.appendChild(anomalyBadge);
+        }
+
+        item.append(titleDiv, badgesDiv);
         shortDelayPlansList.appendChild(item);
     });
 
+    if (confirmShortDelayRecalcBtn) {
+        confirmShortDelayRecalcBtn.textContent = totalAnomalies > 0
+            ? `Revisar ${totalAnomalies} ${totalAnomalies === 1 ? 'pendência' : 'pendências'} e recalcular →`
+            : 'Confirmar Recálculo Global';
+    }
+
     open('short-delay-recalc-modal');
+}
+
+export function showShortDelayAnomaliesStep(anomaliesByPlan) {
+    if (!shortDelayAnomaliesContainer) return;
+
+    hideError('short-delay-recalc-modal');
+    shortDelayAnomaliesContainer.replaceChildren();
+
+    anomaliesByPlan.forEach(({ plan, outOfSequenceChapters, frontierChapter }) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'anomaly-plan-group';
+        groupEl.dataset.planId = plan.id;
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'anomaly-group-header';
+
+        const titleEl = document.createElement('div');
+        titleEl.className = 'anomaly-plan-title';
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = plan.icon || '📖';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = plan.name || 'Plano sem nome';
+        titleEl.append(iconSpan, nameSpan);
+
+        const selectAllBtn = document.createElement('button');
+        selectAllBtn.type = 'button';
+        selectAllBtn.className = 'anomaly-select-all-btn';
+        selectAllBtn.dataset.action = 'toggle-select-all';
+        selectAllBtn.textContent = 'Marcar todos';
+
+        headerEl.append(titleEl, selectAllBtn);
+
+        const noteEl = document.createElement('p');
+        noteEl.className = 'anomaly-context-note';
+        const count = outOfSequenceChapters.length;
+        noteEl.textContent = frontierChapter
+            ? `${count} ${count === 1 ? 'capítulo anterior' : 'capítulos anteriores'} a ${frontierChapter} sem registro no histórico:`
+            : `${count} ${count === 1 ? 'capítulo fora de sequência encontrado' : 'capítulos fora de sequência encontrados'}:`;
+
+        const gridEl = document.createElement('div');
+        gridEl.className = 'anomaly-chapters-grid';
+
+        outOfSequenceChapters.forEach(chapter => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'anomaly-chapter-item';
+
+            const labelEl = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'short-delay-anomaly-check';
+            checkbox.dataset.planId = plan.id;
+            checkbox.value = chapter;
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = chapter;
+
+            labelEl.append(checkbox, textSpan);
+            itemEl.appendChild(labelEl);
+            gridEl.appendChild(itemEl);
+        });
+
+        groupEl.append(headerEl, noteEl, gridEl);
+        shortDelayAnomaliesContainer.appendChild(groupEl);
+    });
+
+    if (shortDelayStep1) shortDelayStep1.style.display = 'none';
+    if (shortDelayStep2) shortDelayStep2.style.display = 'block';
 }
 
 /**
@@ -625,6 +740,52 @@ export function init(callbacks) {
         });
     }
 
+    if (btnShortDelayBack) {
+        btnShortDelayBack.addEventListener('click', () => {
+            resetShortDelayToStep1();
+        });
+    }
+
+    if (shortDelayAnomaliesContainer) {
+        shortDelayAnomaliesContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action="toggle-select-all"]');
+            if (!btn) return;
+            const group = btn.closest('.anomaly-plan-group');
+            if (!group) return;
+
+            const checkboxes = Array.from(group.querySelectorAll('.short-delay-anomaly-check'));
+            const shouldCheckAll = checkboxes.some(cb => !cb.checked);
+            checkboxes.forEach(cb => { cb.checked = shouldCheckAll; });
+            btn.textContent = shouldCheckAll ? 'Desmarcar todos' : 'Marcar todos';
+        });
+
+        shortDelayAnomaliesContainer.addEventListener('change', (e) => {
+            if (!e.target.classList.contains('short-delay-anomaly-check')) return;
+            const group = e.target.closest('.anomaly-plan-group');
+            const btn = group?.querySelector('button[data-action="toggle-select-all"]');
+            if (!btn) return;
+
+            const checkboxes = Array.from(group.querySelectorAll('.short-delay-anomaly-check'));
+            const allChecked = checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+            btn.textContent = allChecked ? 'Desmarcar todos' : 'Marcar todos';
+        });
+    }
+
+    if (confirmShortDelayStep2Btn) {
+        confirmShortDelayStep2Btn.addEventListener('click', () => {
+            const reconciledByPlanId = {};
+            if (shortDelayAnomaliesContainer) {
+                const checkedBoxes = shortDelayAnomaliesContainer.querySelectorAll('.short-delay-anomaly-check:checked');
+                checkedBoxes.forEach(cb => {
+                    const pid = cb.dataset.planId;
+                    if (!reconciledByPlanId[pid]) reconciledByPlanId[pid] = [];
+                    reconciledByPlanId[pid].push(cb.value);
+                });
+            }
+            state.callbacks.onConfirmShortDelayStep2?.(reconciledByPlanId);
+        });
+    }
+
     // Intercepta o salvamento do formulário de versículos
     if (highlightForm) {
         highlightForm.addEventListener('submit', (e) => {
@@ -719,21 +880,27 @@ export function init(callbacks) {
             if (option === 'variable_pace') {
                 const dayInputs = document.querySelectorAll('.day-pace-input');
                 dayInputs.forEach(input => {
-                    const val = parseInt(input.value);
+                    const val = parseInt(input.value, 10);
                     if (!isNaN(val) && val >= 0) {
                         dayWeights[input.dataset.day] = val;
                     }
                 });
             }
 
-            let manuallyReadChapters = [];
+            // Separa capítulos fora de sequência (regularização) de leituras correntes (reais de hoje)
+            const manualSelection = { regularChapters: [], reconciledChapters: [] };
             if (manualCheckList) {
-                manuallyReadChapters = Array.from(
-                    manualCheckList.querySelectorAll('.manual-chapter-check:checked')
-                ).map(cb => cb.value);
+                const checkedBoxes = manualCheckList.querySelectorAll('.manual-chapter-check:checked');
+                checkedBoxes.forEach(cb => {
+                    if (cb.dataset.outOfSequence === 'true') {
+                        manualSelection.reconciledChapters.push(cb.value);
+                    } else {
+                        manualSelection.regularChapters.push(cb.value);
+                    }
+                });
             }
 
-            state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, manuallyReadChapters, dayWeights);
+            state.callbacks.onConfirmRecalculate?.(option, newPace, startDateOption, specificDate, manualSelection, dayWeights);
         });
     }
 }
